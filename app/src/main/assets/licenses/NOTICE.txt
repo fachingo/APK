@@ -1,0 +1,18 @@
+SnapIMS Mobile — Third-party notices
+
+Kotlin standard library and kotlinx.coroutines: Copyright JetBrains and contributors.
+AndroidX (Compose, Material, CameraX, Room, WorkManager, Lifecycle, Activity,
+ExifInterface, Core and supporting libraries): Copyright The Android Open Source
+Project and contributors. Coil: Copyright Coil contributors. These projects use
+Apache License 2.0; the full license is included in Apache-2.0.txt.
+
+Bundled Google ML Kit barcode scanning and Google Play services components are
+subject to ML Kit Terms of Service (https://developers.google.com/ml-kit/terms)
+and Android Software Development Kit License (https://developer.android.com/studio/terms.html)
+as specified in their Maven POMs. Their distributed third_party_licenses text and
+metadata are preserved alongside this notice, with the component/version in the
+filename. These include their native decoder's third-party attributions.
+
+A resolved runtime component/license inventory accompanies the source under docs.
+The original notices/license files remain authoritative. The application includes
+no third-party photographs, fonts, movie artwork or proprietary catalog data.
