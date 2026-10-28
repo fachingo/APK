@@ -83,9 +83,16 @@ fun inventoryProblems(item: InventoryRow, photos: List<PhotoRow>, repo: CaptureR
         if (ready.any { !repo.original(it.id).isFile || repo.original(it.id).length() != it.bytes }) add("An original photograph is missing or changed")
         if(item.weightGrams !in 1..1_000_000) add("Shipping weight must be 1–1,000,000 grams")
         if(item.priceSource.startsWith("STALE")) add("Price evidence is stale; review the price")
+        if(item.priceSource.startsWith("SOLD")) {
+            val valid=runCatching { val evidence=JSONObject(item.priceEvidenceJson)
+                evidence.getString("titleKey")==InventoryRules.normalizedTitle(item.title) && OffsetDateTime.parse(evidence.getString("expiresAt"))>OffsetDateTime.now()
+            }.getOrDefault(false)
+            if(!valid) add("Sold-price evidence expired or changed; review pricing")
+        }
     }
 }
-suspend fun CaptureRepository.saveInventory(candidate: InventoryRow, expectedRevision: Long): InventoryRow = mutate {
+suspend fun CaptureRepository.saveInventory(candidate: InventoryRow, expectedRevision: Long): InventoryRow = mutate {saveInventoryLocked(candidate,expectedRevision)}
+internal suspend fun CaptureRepository.saveInventoryLocked(candidate: InventoryRow, expectedRevision: Long): InventoryRow = run {
     val inventory = journal.inventoryDao()
     val old = inventory.item(candidate.groupId) ?: error("Inventory item not found.")
     check(old.revision == expectedRevision) { "This item changed while you were editing. Reopen it before saving." }
@@ -107,7 +114,8 @@ suspend fun CaptureRepository.archiveInventory(groupId: String, archived: Boolea
     val saved = old.copy(archived = archived, ready = false, revision = old.revision + 1, updatedAt = OffsetDateTime.now().toString())
     inventory.update(saved); inventoryAudit(old,saved,if(archived) "ARCHIVED" else "RESTORED")
 }
-suspend fun CaptureRepository.applyRecognitionToInventory(id: String): InventoryRow = mutate {
+suspend fun CaptureRepository.applyRecognitionToInventory(id: String): InventoryRow = mutate {applyRecognitionLocked(id)}
+internal suspend fun CaptureRepository.applyRecognitionLocked(id:String):InventoryRow=run {
     val suggestion = dao.recognition(id) ?: error("Suggestion not found.")
     check(suggestion.state == "SUCCEEDED") { "Wait for recognition to finish." }
     val title = suggestion.acceptedTitle?.takeIf { it.isNotBlank() } ?: error("Confirm the printed title in recognition review first.")

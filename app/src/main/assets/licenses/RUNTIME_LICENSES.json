@@ -1640,5 +1640,14 @@
         "url": "https://github.com/tesseract-ocr/tessdata_fast/tree/4.1.0"
       }
     ]
+  },
+  {
+    "component": "org.commonmark:commonmark:0.31.0",
+    "licenses": [
+      {
+        "name": "BSD 2-Clause",
+        "url": "https://github.com/commonmark/commonmark-java/blob/main/LICENSE.txt"
+      }
+    ]
   }
 ]

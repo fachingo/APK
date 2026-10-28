@@ -24,5 +24,7 @@ Continue implementation through A–D with API-key functionality retained. SIWC 
 mandatory physical proof-of-concept gate. Official docs are currently network-blocked
 and no eligible account/device is attached; see SIWC_INVESTIGATION.md. This must be
 reported as blocked/unverified, never substituted with copied cookies or a mock login.
-B/C/D work that can be built and tested locally may proceed while real Shopify/SIWC
+The owner subsequently supplied externally verified SIWC excerpts; the native prototype can proceed, with physical acceptance still mandatory. B/C/D work that can be built and tested locally may proceed while real Shopify/SIWC
 external acceptance remains explicitly gated; do not claim those live workflows passed.
+
+0.3.0 implements independent local C/D work and offline B listing preparation. See MILESTONE_CD.md for delivered scope and remaining live gates.

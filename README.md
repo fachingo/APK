@@ -1,16 +1,27 @@
-# SnapIMS Next 0.2.0
+# SnapIMS Next 0.3.0
 
-**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.2.0-debug.apk)** · [SHA-256](releases/SnapIMS-Next-0.2.0-debug.apk.sha256)
+**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.3.0-debug.apk)** · [SHA-256](releases/SnapIMS-Next-0.3.0-debug.apk.sha256)
 
 Standalone native Android inventory for Canada VHS, built on the existing SnapIMS
 rules and compatible capture formats. No desktop process, local HTTP server or LAN
 connection is required for capture, inventory, search, review or backup.
 
-This is **Milestone A** of the [owner’s master directive](docs/next/MASTER_DIRECTIVE.md),
-with the ordered A–D continuation and SIWC investigation recorded in
-[the feature matrix](docs/next/FEATURE_MATRIX.md). It does not claim verified Shopify
-publishing or ChatGPT subscription sign-in. The current official docs are blocked
-in this environment and no eligible account/physical phone is attached.
+Milestone A is published, and this update adds local sold-evidence pricing and an AI
+workspace preview. Settings contains **Sold pricing**, **AI workspace** and **Listing
+plans**. Read [usage and limits](docs/next/MILESTONE_CD.md) and the [feature matrix](docs/next/FEATURE_MATRIX.md).
+The A–D program is not complete: direct Shopify writes and live development-store
+proof remain gated. **Continue with ChatGPT is an experimental native prototype;
+physical Pixel sign-in, discovery and subscription streaming are still unverified.**
+Its contract uses the owner's externally verified official excerpts, independently
+of API-key mode, with no automatic switch to API billing.
+
+- Pricing imports actual desktop sold-evidence SQLite exports, preserves provenance,
+  calculates source-compatible statistics and requires individual/bulk review.
+- AI chat stores local history and supports explicit provider connections, dynamic
+  models, streamed responses, compatible inline attachments and one-time reviewed
+  local tools. Unknown capabilities can be checked with explicit synthetic probes.
+- The optional local model endpoint is on this phone; inventory needs no server.
+- Local listing plans stay DRAFT preparation only. They do not upload/publish.
 
 ## Standalone inventory
 
@@ -64,11 +75,11 @@ OpenAI request on each shutter. See [recognition details](docs/RECOGNITION_0.1.1
 
 ## Update without losing captures
 
-Install 0.2.0 **over** 0.1.0, 0.1.1 or 0.1.2; do not uninstall or clear app storage.
-Application ID and signing key are unchanged, versionCode increases to 4. Explicit
-Room migrations 1→2→3 retain existing captures/archives and add inventory records.
+Install 0.3.0 **over** 0.1.x or 0.2.0; do not uninstall or clear app storage.
+Application ID and signing key are unchanged, versionCode increases to 5. Explicit
+Room migrations 1→2→3→4 retain captures/archives and add inventory, pricing and chat tables.
 Existing API-key credentials and camera preferences remain on the device. New
-protected backups exclude API keys, which must be reconnected on a different phone.
+protected backups exclude API keys and OAuth credentials, which must be reconnected on a different phone.
 Save and verify backups outside app-private storage before device reset/app removal.
 
 ## Build
@@ -120,3 +131,7 @@ Physical Pixel sustained capture/quality, Android JNI OCR and actual hardware
 Keystore checks remain device acceptance gates. Live OpenAI was not run in this
 cloud environment because no API key was supplied. Wireless pairing/direct desktop
 sync and chat remain separate work. Existing QR desktop import stays compatible.
+
+## License
+
+SnapIMS Next is licensed under [Apache-2.0](LICENSE), as selected by the owner. See [NOTICE](NOTICE) and bundled third-party notices. Separate desktop repositories are unchanged.

@@ -1,0 +1,13 @@
+SnapIMS Next
+Copyright 2026 SnapIMS Next contributors.
+
+SnapIMS Next project code in this repository is licensed under the Apache License,
+Version 2.0. Third-party components retain their respective licenses and notices;
+see app/src/main/assets/licenses and app/libs/tesseract-build-provenance.json.
+
+Business rules and compatibility adapters derive from fachingo/SnapIMS and
+fachingo/Pricing_module source inspected for this application. This repository's
+license does not change the license of either separate desktop repository.
+
+No affiliation with or endorsement by OpenAI, Shopify, Google, or other service
+providers is implied. Service trademarks and account terms remain their owners'.

@@ -1,0 +1,142 @@
+{
+  "source": "Unmodified SnapIMS pricing functions; synthetic unit-test vectors only",
+  "matches": [
+    {
+      "requested": "The Matrix",
+      "listing": "The Matrix VHS 1999 Sealed",
+      "matches": true
+    },
+    {
+      "requested": "The Matrix",
+      "listing": "The Matrix Reloaded VHS",
+      "matches": false
+    },
+    {
+      "requested": "No",
+      "listing": "No VHS Sealed",
+      "matches": true
+    },
+    {
+      "requested": "New",
+      "listing": "New Listing: New VHS",
+      "matches": true
+    },
+    {
+      "requested": "Good",
+      "listing": "Good movie VHS Canadian edition",
+      "matches": true
+    },
+    {
+      "requested": "Alien",
+      "listing": "Alien VHS Lot 2",
+      "matches": false
+    },
+    {
+      "requested": "Alien",
+      "listing": "Aliens VHS",
+      "matches": false
+    },
+    {
+      "requested": "Alien",
+      "listing": "Alien VHS 1979 tested",
+      "matches": true
+    },
+    {
+      "requested": "Batman",
+      "listing": "Batman Returns VHS",
+      "matches": false
+    },
+    {
+      "requested": "Stra\u00dfe",
+      "listing": "STRASSE VHS",
+      "matches": true
+    },
+    {
+      "requested": "Am\u00e9lie",
+      "listing": "Amelie VHS",
+      "matches": true
+    }
+  ],
+  "statistics": [
+    {
+      "values": [
+        [
+          "10.005",
+          "2.00"
+        ]
+      ],
+      "result": {
+        "averageCents": 1201,
+        "medianCents": 1201,
+        "lowestCents": 1201,
+        "highestCents": 1201,
+        "count": 1
+      }
+    },
+    {
+      "values": [
+        [
+          "10",
+          "2"
+        ],
+        [
+          "20",
+          "4"
+        ],
+        [
+          "30",
+          "6"
+        ]
+      ],
+      "result": {
+        "averageCents": 2400,
+        "medianCents": 2400,
+        "lowestCents": 1200,
+        "highestCents": 3600,
+        "count": 3
+      }
+    },
+    {
+      "values": [
+        [
+          "0.01",
+          "0.00"
+        ],
+        [
+          "0.02",
+          "0.00"
+        ]
+      ],
+      "result": {
+        "averageCents": 2,
+        "medianCents": 2,
+        "lowestCents": 1,
+        "highestCents": 2,
+        "count": 2
+      }
+    },
+    {
+      "values": [],
+      "result": null
+    },
+    {
+      "values": [
+        [
+          "19.99",
+          "7.5"
+        ],
+        [
+          "5",
+          "3.5"
+        ]
+      ],
+      "result": {
+        "averageCents": 1800,
+        "medianCents": 1800,
+        "lowestCents": 850,
+        "highestCents": 2749,
+        "count": 2
+      }
+    }
+  ]
+}

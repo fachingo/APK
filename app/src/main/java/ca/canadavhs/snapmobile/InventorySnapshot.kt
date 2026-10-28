@@ -13,7 +13,7 @@ import java.io.FileOutputStream
 import java.util.zip.ZipFile
 import ca.canadavhs.snapmobile.core.sha256
 
-internal val snapshotTables = listOf("sessions","groups","photos","archives","events","recognition","inventory_batches","inventory","inventory_audit","transfer_jobs")
+internal val snapshotTables = listOf("sessions","groups","photos","archives","events","recognition","inventory_batches","inventory","inventory_audit","transfer_jobs","pricing_evidence_native","chat_conversations","chat_messages","ai_capabilities","agent_approvals","listing_plans","siwc_proofs")
 internal val snapshotPrimaryKeys = mapOf("inventory_batches" to "sessionId", "inventory" to "groupId")
 internal const val MAX_SNAPSHOT_BYTES = 32 * 1024 * 1024
 internal const val MAX_PACKAGE_FILES = 100_000
@@ -38,8 +38,8 @@ internal fun cursorObject(cursor: Cursor): JSONObject = JSONObject().apply {
 }
 internal fun CaptureRepository.snapshotFile(path: String): File {
     val parts = path.split('/')
-    require(parts.size == 2 && parts[0] in listOf("originals","archives") && parts[1].matches(Regex("[A-Za-z0-9._-]{1,180}")) && parts[1] !in listOf(".","..")) { "Unsafe photo/package path." }
-    val directory = if(parts[0] == "originals") originals else archiveDir
+    require(parts.size == 2 && parts[0] in listOf("originals","archives","chat-attachments") && parts[1].matches(Regex("[A-Za-z0-9._-]{1,180}")) && parts[1] !in listOf(".","..")) { "Unsafe photo/package path." }
+    val directory = when(parts[0]) { "originals" -> originals; "archives" -> archiveDir; else -> File(dataRoot,"chat-attachments").apply {mkdirs()} }
     val file = File(directory, parts[1])
     require(file.canonicalFile.parentFile == directory.canonicalFile && !java.nio.file.Files.isSymbolicLink(file.toPath())) { "Unsafe symbolic link in package." }
     return file
@@ -57,6 +57,7 @@ internal suspend fun CaptureRepository.buildSnapshot(): JSONObject = mutate {
     }
     val files = linkedMapOf<String, File>()
     originals.listFiles()?.filter { it.isFile }?.forEach { file -> files["originals/${file.name}"] = snapshotFile("originals/${file.name}") }
+    File(dataRoot,"chat-attachments").listFiles()?.filter {it.isFile}?.forEach {files["chat-attachments/${it.name}"]=snapshotFile("chat-attachments/${it.name}")}
     val archives = tables.getJSONArray("archives")
     for(i in 0 until archives.length()) {
         val row = archives.getJSONObject(i)
@@ -69,7 +70,7 @@ internal suspend fun CaptureRepository.buildSnapshot(): JSONObject = mutate {
     require(files.size <= MAX_PACKAGE_FILES) { "Export separate batches: backup exceeds the package file limit." }
     val manifestFiles = JSONArray()
     // Hashing is performed after the consistent metadata snapshot, outside camera's lock.
-    JSONObject().put("format","snapims.inventory.snapshot").put("version",1).put("schema",3)
+    JSONObject().put("format","snapims.inventory.snapshot").put("version",1).put("schema",4)
         .put("tables",tables).put("files",manifestFiles).put("file_paths",JSONArray(files.keys.toList()))
 }
 internal suspend fun CaptureRepository.hashSnapshotFiles(snapshot: JSONObject): JSONObject = withContext(Dispatchers.IO) {
@@ -88,8 +89,13 @@ internal suspend fun CaptureRepository.hashSnapshotFiles(snapshot: JSONObject): 
     snapshot
 }
 internal fun CaptureRepository.validateSnapshot(snapshot: JSONObject) {
-    require(snapshot.getString("format") == "snapims.inventory.snapshot" && snapshot.getInt("version") == 1 && snapshot.getInt("schema") == 3) { "Unsupported inventory snapshot version." }
+    require(snapshot.getString("format") == "snapims.inventory.snapshot" && snapshot.getInt("version") == 1 && snapshot.getInt("schema") in 3..4) { "Unsupported inventory snapshot version." }
     val tables = snapshot.getJSONObject("tables")
+    if(snapshot.getInt("schema")==3) {
+        val oldTables=snapshotTables.take(10).toSet()
+        require(tables.keys().asSequence().toSet()==oldTables) {"Incomplete legacy inventory snapshot."}
+        snapshotTables.drop(10).forEach {tables.put(it,JSONArray())};snapshot.put("schema",4)
+    }
     require(tables.keys().asSequence().toSet() == snapshotTables.toSet()) { "Incomplete inventory snapshot." }
     val files = snapshot.getJSONArray("files"); require(files.length() <= MAX_PACKAGE_FILES)
     val indexed = mutableMapOf<String,JSONObject>(); var total = 0L
@@ -101,10 +107,23 @@ internal fun CaptureRepository.validateSnapshot(snapshot: JSONObject) {
         require(row.getString("sha256").matches(Regex("[a-f0-9]{64}")))
     }
     snapshotTables.forEach { table ->
+        val columns=linkedMapOf<String,Pair<String,Boolean>>()
+        journal.openHelper.writableDatabase.query("PRAGMA table_info($table)").use {c->while(c.moveToNext()) columns[c.getString(c.getColumnIndexOrThrow("name"))]=c.getString(c.getColumnIndexOrThrow("type")) to (c.getInt(c.getColumnIndexOrThrow("notnull"))==1)}
         val rows = tables.getJSONArray(table); require(rows.length() <= 500_000)
         val primary = snapshotPrimaryKeys[table] ?: "id"; val ids = mutableSetOf<String>()
         for(i in 0 until rows.length()) {
-            val row = rows.getJSONObject(i); val id = row.getString(primary)
+            val row = rows.getJSONObject(i)
+            require(row.keys().asSequence().toSet()==columns.keys) {"Unsupported $table columns."}
+            columns.forEach {(key,spec)->val value=row.get(key)
+                if(value==JSONObject.NULL) require(!spec.second) {"Missing required $table field."}
+                else when(spec.first) {
+                    "TEXT" ->require(value is String) {"Invalid text in $table.$key"}
+                    "INTEGER" ->require(value is Int || value is Long) {"Invalid integer in $table.$key"}
+                    "REAL" ->require(value is Number) {"Invalid number in $table.$key"}
+                    else ->error("Unsupported snapshot column type")
+                }
+            }
+            val id = row.getString(primary)
             require(id.isNotBlank() && id.length <= 200 && ids.add(id)) { "Duplicate or invalid $table identity." }
             requireUuid(id)
             row.keys().forEach { key -> val value = row.get(key); require(value == JSONObject.NULL || value is String || value is Number || value is Boolean); if(value is String) require(value.length <= 1_000_000) }
@@ -128,6 +147,22 @@ internal fun CaptureRepository.validateSnapshot(snapshot: JSONObject) {
                 "archives" -> if(row.getString("state") == "READY") {
                     val file = indexed["archives/${row.getString("filename")}"] ?: error("Backup is missing a completed archive.")
                     require(file.getLong("bytes") == row.getLong("bytes") && file.getString("sha256") == row.getString("sha256"))
+                }
+                "chat_messages" -> {
+                    require(row.getString("role") in listOf("user","assistant","tool"))
+                    require(row.getString("status") in listOf("COMPLETE","PENDING","STREAMING","INTERRUPTED","CANCELLED","ERROR"))
+                    val attachments=JSONArray(row.getString("attachmentsJson"));require(attachments.length()<=4)
+                    for(j in 0 until attachments.length()) {val a=attachments.getJSONObject(j);val path="chat-attachments/${a.getString("path")}";snapshotFile(path)
+                        require(a.getString("mime") in listOf("image/jpeg","image/png","application/pdf","text/plain"))
+                        val file=indexed[path] ?: error("Backup is missing a chat attachment.")
+                        require(file.getString("sha256")==a.getString("sha256") && file.getLong("bytes")==a.getLong("bytes") && file.getLong("bytes")<=8_000_000)
+                    }
+                    JSONArray(row.getString("toolCallsJson"))
+                }
+                "chat_conversations" -> {
+                    val provider=AiProvider.get(row.getString("provider"))
+                    require(row.getString("authMode")==if(provider.subscription) "CHATGPT_PLAN" else "API_KEY")
+                    require(row.getString("model").length in 1..300)
                 }
                 "inventory" -> {
                     val copy = JSONObject(row.toString()).put("sku",row.getString("itemId"))
@@ -197,6 +232,8 @@ internal suspend fun CaptureRepository.mergeSnapshot(snapshot: JSONObject, stage
             if(table == "recognition" && row.getString("state") in listOf("RUNNING","QUEUED")) {
                 row.put("state","ERROR").put("workId","").put("error","Restored job requires manual retry; no provider request was restarted.")
             }
+            if(table=="chat_messages" && row.getString("status") in listOf("PENDING","STREAMING")) row.put("status","INTERRUPTED").put("error","Restored response requires manual retry; no AI request was restarted.")
+            if(table=="agent_approvals" && row.getString("state")=="PENDING") row.put("state","EXPIRED").put("resultJson","{\"error\":\"Restored approval requires a fresh proposal\"}")
             if(table == "transfer_jobs" && row.getString("state") == "RUNNING") row.put("state","INTERRUPTED").put("error","Restored job requires manual retry.")
             val id = row.getString(primary)
             val existing = db.query("SELECT * FROM $table WHERE $primary=?", arrayOf(id)).use { cursor -> if(cursor.moveToFirst()) cursorObject(cursor) else null }
@@ -204,6 +241,13 @@ internal suspend fun CaptureRepository.mergeSnapshot(snapshot: JSONObject, stage
             else inserts += Triple(table,columns,columns.map { key -> row.get(key).takeUnless { it == JSONObject.NULL } })
         }
     }
+    val newItems=inserts.filter {it.first=="inventory"}.map {it.third[it.second.indexOf("itemId")]}
+    require(newItems.distinct().size==newItems.size) {"Duplicate physical Item IDs in the restore."}
+    val newBatches=inserts.filter {it.first=="inventory_batches"}.map {it.third[it.second.indexOf("batchId")]}
+    require(newBatches.distinct().size==newBatches.size) {"Duplicate batch identities in the restore."}
+    val activeExisting=db.query("SELECT COUNT(*) FROM sessions WHERE finished=0").use {it.moveToFirst();it.getInt(0)}
+    val activeNew=inserts.count {it.first=="sessions" && (it.third[it.second.indexOf("finished")] as Number).toLong()==0L}
+    require(activeExisting+activeNew<=1) {"Finish the current capture session before merging another active session."}
     val files = snapshot.getJSONArray("files")
     var needed = 0L
     for(i in 0 until files.length()) {
@@ -220,10 +264,11 @@ internal suspend fun CaptureRepository.mergeSnapshot(snapshot: JSONObject, stage
         if(!target.exists()) {
             val source = File(stage,path)
             require(source.isFile && source.length() == row.getLong("bytes") && hashFile(source) == row.getString("sha256"))
-            atomicMove(source,target)
+            try {java.nio.file.Files.createLink(target.toPath(),source.toPath());java.nio.file.Files.delete(source.toPath())}
+            catch(e:java.nio.file.FileAlreadyExistsException) {require(target.length()==row.getLong("bytes") && hashFile(target)==row.getString("sha256")) {"A conflicting file appeared during restore."}}
         }
     }
-    sync(originals); sync(archiveDir)
+    sync(originals); sync(archiveDir); File(dataRoot,"chat-attachments").takeIf {it.isDirectory}?.let {sync(it)};sync(dataRoot)
     for((table,columns,values) in inserts) db.execSQL("INSERT INTO $table (${columns.joinToString(",")}) VALUES (${columns.joinToString(",") { "?" }})",values.toTypedArray())
     db.query("PRAGMA foreign_key_check").use { cursor -> check(!cursor.moveToFirst()) { "Restore contains broken record references." } }
     inserts.count { it.first == "inventory" }

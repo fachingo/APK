@@ -111,13 +111,13 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
         Scaffold(snackbarHost = { SnackbarHost(snackbar) }, bottomBar = {
             if (!wide) NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
                 destinations.forEachIndexed { i, entry ->
-                    NavigationBarItem(selected = screen == destinationRoutes[i] || (destinationRoutes[i] == 3 && screen in listOf(2,6)), onClick = { if (!vm.busy && !vm.maintenance) screen = destinationRoutes[i] }, enabled = !vm.busy && !vm.maintenance, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first) })
+                    NavigationBarItem(selected = screen == destinationRoutes[i] || (destinationRoutes[i] == 3 && screen in listOf(2,6,7,8,9)), onClick = { if (!vm.busy && !vm.maintenance) screen = destinationRoutes[i] }, enabled = !vm.busy && !vm.maintenance, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first) })
                 }
             }
         }) { padding ->
             Row(Modifier.fillMaxSize().padding(padding)) {
                 if (wide) NavigationRail {
-                    destinations.forEachIndexed { i, entry -> NavigationRailItem(selected = screen == destinationRoutes[i] || (destinationRoutes[i] == 3 && screen in listOf(2,6)), enabled = !vm.busy && !vm.maintenance, onClick = { if (!vm.busy && !vm.maintenance) screen = destinationRoutes[i] }, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first, fontSize = 10.sp) }) }
+                    destinations.forEachIndexed { i, entry -> NavigationRailItem(selected = screen == destinationRoutes[i] || (destinationRoutes[i] == 3 && screen in listOf(2,6,7,8,9)), enabled = !vm.busy && !vm.maintenance, onClick = { if (!vm.busy && !vm.maintenance) screen = destinationRoutes[i] }, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first, fontSize = 10.sp) }) }
                 }
                 Box(Modifier.weight(1f).fillMaxHeight()) {
                 when (screen) {
@@ -137,10 +137,13 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
                             } }
                         }; if (archives.isEmpty()) item { EmptyState("No archives yet", "Next closes a product. Finish Batch or Finalize Part packages complete groups.") } }
                     }
-                    3 -> SettingsScreen(vm, light, onBackups = { screen = 6 }, onExports = { screen = 2 }) { light = it }
+                    3 -> SettingsScreen(vm, light, onBackups = { screen = 6 }, onExports = { screen = 2 }, onWorkspace={screen=7},onPricing={screen=8},onListings={screen=9}) { light = it }
                     4 -> InventoryHome(vm, capture = { screen = 0 }, inventory = { screen = 5 }, batches = { screen = 1 }, backups = { screen = 6 })
                     5 -> InventoryScreen(vm, reviewPhotos = { screen = 1 })
                     6 -> BackupScreen(vm) { screen = 3 }
+                    7 -> AiWorkspaceScreen(vm,back={screen=3})
+                    8 -> PricingScreen(vm) {screen=3}
+                    9 -> ListingPlansScreen(vm) {screen=3}
                 }
                 if (!vm.initialized) Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { Box(contentAlignment = Alignment.Center) { Text("Recovering your capture journal…") } }
             }
@@ -371,7 +374,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
         } }, confirmButton = { TextButton(onClick = { inspected = null }) { Text("Done") } })
     }
 }
-@Composable fun SettingsScreen(vm: CaptureViewModel, light: Boolean, onBackups: () -> Unit = {}, onExports: () -> Unit = {}, appearance: (Boolean) -> Unit) {
+@Composable fun SettingsScreen(vm: CaptureViewModel, light: Boolean, onBackups: () -> Unit = {}, onExports: () -> Unit = {}, onWorkspace:()->Unit={},onPricing:()->Unit={},onListings:()->Unit={}, appearance: (Boolean) -> Unit) {
     val prefs = vm.repo.preferences
     val context = LocalContext.current
     var showLicenses by remember { mutableStateOf(false) }
@@ -380,6 +383,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(vertical = 24.dp)) {
         item { PageTitle("Settings", "Your collection, your controls") }
         item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { OutlinedButton(onClick = onBackups) { Text("Backup & import") }; OutlinedButton(onClick = onExports) { Text("Transfers") } } }
+        item { Row(Modifier.horizontalScroll(rememberScrollState())) {OutlinedButton(onClick=onWorkspace) {Text("AI workspace")};OutlinedButton(onClick=onPricing) {Text("Sold pricing")};OutlinedButton(onClick=onListings) {Text("Listing plans")}} }
         item { Text("CAMERA", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
         item { ResolutionSettings(prefs) }
         item { PreferenceSwitch("Fast capture", prefs.getBoolean("fastCapture", true)) { prefs.edit().putBoolean("fastCapture", it).apply() } }
@@ -391,13 +395,14 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
         item { Text("RECOGNITION", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
         item { PreferenceSwitch("Offline barcode scanning", prefs.getBoolean("barcode", true)) { prefs.edit().putBoolean("barcode", it).apply() } }
         item { RecognitionSettings(vm) }
+        item {BusinessDefaultsSettings(vm)}
         item { Text("ARCHIVES & RETENTION", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
         item { OutlinedTextField(archiveMb, { value -> archiveMb = value.filter(Char::isDigit).take(5); val n = archiveMb.toIntOrNull(); if (n != null && n in 1..10000) prefs.edit().putInt("archiveMb", n).apply() }, label = { Text("Archive target · MB") }, supportingText = { Text("1–10,000 MB · whole products only; oversized products stay together") }, isError = archiveMb.toIntOrNull() !in 1..10000, singleLine = true) }
         item { OutlinedTextField(location, { location = it.uppercase().take(3); if (validLocation(location)) prefs.edit().putString("defaultLocation", location).apply() }, label = { Text("Default location") }, supportingText = { Text("A1–J10 or Q1, optional") }, isError = !validLocation(location), singleLine = true) }
         item { Text("Choose an export destination each time using Save to Files. Existing capture ZIPs remain unchanged; make inventory and photo corrections in Inventory. Removing a photo keeps its source file. No automatic deletion or cloud backup. Uninstalling Android apps removes private files: save and verify all ZIPs before uninstalling or clearing storage.", style = MaterialTheme.typography.bodySmall) }
         item { PreferenceSwitch("Light appearance", light) { prefs.edit().putBoolean("light", it).apply(); appearance(it) } }
         item { TextButton(onClick = { showLicenses = true }) { Text("Third-party notices & licenses") } }
-        item { Text("SnapIMS Next 0.2.0 · standalone inventory", style = MaterialTheme.typography.bodySmall) }
+        item { Text("SnapIMS Next 0.3.0 · standalone inventory & AI preview", style = MaterialTheme.typography.bodySmall) }
     }
     if (showLicenses) NoticesDialog(context) { showLicenses = false }
 

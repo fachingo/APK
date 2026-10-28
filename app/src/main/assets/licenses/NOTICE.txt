@@ -1,4 +1,4 @@
-SnapIMS Mobile 0.1.1 — Third-party notices
+SnapIMS Next 0.3.0 — Third-party notices
 
 Kotlin/kotlinx.coroutines, AndroidX Compose/Material/CameraX/Room/WorkManager,
 Lifecycle/Activity/ExifInterface, Coil, OkHttp/Okio and ZXing retain their original
@@ -13,3 +13,7 @@ Apache 2.0 license. See RUNTIME_LICENSES.json for versions and original sources.
 Tesseract OCR uses trained character data. Model-free barcode/image checks use
 ZXing and deterministic pixel statistics. These are distinct recognition options.
 No proprietary catalog data or third-party product photographs are bundled.
+
+CommonMark Java 0.31.0 uses the included BSD 2-Clause license. Chat Markdown is rendered natively; HTML does not execute and remote Markdown images are not loaded.
+
+SnapIMS Next project code is licensed under Apache-2.0 by owner choice. The root LICENSE and NOTICE are included in source distributions; third-party components retain their own terms.
