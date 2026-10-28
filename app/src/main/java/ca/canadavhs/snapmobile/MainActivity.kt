@@ -383,7 +383,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(vertical = 24.dp)) {
         item { PageTitle("Settings", "Your collection, your controls") }
         item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { OutlinedButton(onClick = onBackups) { Text("Backup & import") }; OutlinedButton(onClick = onExports) { Text("Transfers") } } }
-        item { Row(Modifier.horizontalScroll(rememberScrollState())) {OutlinedButton(onClick=onWorkspace) {Text("AI workspace")};OutlinedButton(onClick=onPricing) {Text("Sold pricing")};OutlinedButton(onClick=onListings) {Text("Listing plans")}} }
+        item { Row(Modifier.horizontalScroll(rememberScrollState())) {OutlinedButton(onClick=onWorkspace) {Text("AI workspace")};OutlinedButton(onClick=onPricing) {Text("Sold pricing")};OutlinedButton(onClick=onListings) {Text("Shopify")}} }
         item { Text("CAMERA", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
         item { ResolutionSettings(prefs) }
         item { PreferenceSwitch("Fast capture", prefs.getBoolean("fastCapture", true)) { prefs.edit().putBoolean("fastCapture", it).apply() } }

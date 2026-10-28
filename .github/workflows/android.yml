@@ -2,7 +2,7 @@ name: Android APK
 on:
   push:
     branches: [main]
-    paths: ['app/**', 'core/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', '.github/workflows/android.yml']
+    paths: ['app/**', 'core/**', 'broker/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', '.github/workflows/android.yml']
   pull_request:
   workflow_dispatch:
 permissions:
@@ -42,6 +42,13 @@ jobs:
         run: ./gradlew --no-daemon :core:test :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest
       - name: Lint after kapt completes
         run: ./gradlew --no-daemon :app:lintDebug
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Credential broker mock tests
+        run: |
+          python -m pip install -r broker/requirements-dev.txt
+          python -m pytest -q broker/tests
       - name: APK artifacts
         uses: actions/upload-artifact@v4
         with:

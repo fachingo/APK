@@ -1,8 +1,14 @@
-# SnapIMS Next 0.3.0: pricing and AI workspace preview
+# SnapIMS Next pricing and AI workspace preview (introduced 0.3.0)
+
+0.4.0 update: Settings → Shopify now provides native draft jobs and an optional
+hosted credential broker. Chat can read saved Shopify checkpoints and propose a
+draft upload with separate operator approval; it cannot silently publish live. See
+SHOPIFY_SETUP.md for current implementation and unrun real-store acceptance.
+The remaining details below describe the original C/D preview.
 
 Open Settings → Sold pricing, AI workspace or Listing plans. The existing desktop
 application is unchanged. Capture/inventory/OCR/backup still work without a server.
-The direct Shopify workflow and required physical SIWC acceptance remain incomplete.
+Real Shopify authorization/development-store acceptance and physical SIWC proof remain incomplete.
 
 ## Sold evidence
 
@@ -63,7 +69,7 @@ have not been tested because no dataset was supplied.
   an item revision plus original-photo fingerprint binds each one-time approval.
   No arbitrary SQL/shell, invented prices, production Shopify writes or messaging.
 - The existing offline barcode/Tesseract and API-key recognition paths are retained.
-  Chat can read/apply already confirmed current-photo results after approval; it cannot yet invoke a new recognition run or perform Shopify actions. Those
+  Chat can read/apply already confirmed current-photo results after approval; it cannot yet invoke a new recognition run. In 0.4.0 it can propose separately approved Shopify draft jobs and read saved outcomes. Remaining
   capabilities remain outside this preview's closed registry.
 
 Requests run while the app process is alive; screen navigation/rotation preserves
@@ -79,5 +85,5 @@ the device after conversation deletion; uninstall/clear-data removes private fil
 
 Listing plans are deterministic local DRAFT data with inventory/photo fingerprints,
 validation problems and revision. Repeating preparation of unchanged input reuses
-its plan. It does not upload media, mutate Shopify or mark an item uploaded. See
+its plan. The 0.3.0 local-plan tool itself does not upload. The separate 0.4.0 Shopify screen and approved draft-job tool implement uploads; real-store acceptance is unrun. See
 SHOPIFY_SETUP.md for the required auth/API review and real development-store gates.

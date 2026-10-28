@@ -1,7 +1,7 @@
-# SnapIMS Next 0.3.0 validation
+# SnapIMS Next 0.4.0 validation
 
-| Check | Actual result |
-| --- | --- |
+| Check | Executed result |
+|---|---|
 | CaptureRulesTest | 10 passed |
 | DesktopConformanceTest | 4 passed |
 | LocalRecognitionTest | 6 passed |
@@ -13,56 +13,49 @@
 | NextIntegrationTest | 7 passed |
 | RecognitionClientTest | 7 passed |
 | RecognitionStorageTest | 7 passed |
+| ShopifyUiTest | 1 passed |
+| ShopifyWorkflowTest | 9 passed |
 | SiwcProtocolTest | 6 passed |
 | StandaloneInventoryTest | 9 passed |
 | StandaloneUiTest | 1 passed |
 | WorkspaceUiTest | 1 passed |
-| Unique host tests | **79 passed, 0 failed, 0 skipped** |
-| App / instrumentation APK | Built; physical instrumentation execution unrun |
-| Android lint | Passed, 0 errors; warnings remain |
-| Signing identity vs published 0.2.0 | Matches |
-| 16 KB APK alignment | Passed |
-| Upgrade | Explicit 1→2→3→4 migration validates latest Room schema and preserves captures/files |
-| Existing inventory/camera/backup regression | Retained checks passed, including synthetic 100-item/300-photo round trip |
-| Real desktop pricing functions | Generated synthetic vectors match exact title filters and Decimal HALF_UP statistics |
-| Actual source-created pricing SQLite | Native read-only import, source bytes unchanged, same dataset imports zero duplicates |
-| Reviewed pricing | Manual-price override, exact evidence/title/expiry, stale title, optimistic revision and batch rollback checks |
-| Agent tools | No changes before approval; single-use/revision binding; invented prices and unknown tools rejected; confirmed recognition application |
-| Current backups | Evidence/chat/private attachment bytes included; stopped messages INTERRUPTED, restored approvals EXPIRED; original identities retained |
-| Legacy imports | Existing schema3 desktop/native packages still accepted; conflicting records/originals rejected |
-| SIWC protocol | RFC7636 PKCE, loopback-only redirect, state/duplicate/denial rejection; real RSA/ES256 signed-token identity/expiry/nonce/azp rejection checks |
-| Token storage / lifecycle contract | AES-GCM envelope rotation/tamper rejection, scope rejection and identity preservation in mock fixtures |
-| SIWC Responses | Allowed fields only; local context; response.completed required; partial stream errors and strict subscription catalog parsing |
-| Billing isolation | Mock subscription HTTP429 causes one request and no API-key fallback |
-| Compatible completion stream | Tool-call delta assembly plus required DONE/finish reason |
-| Native chat UI | Seeded local history/Markdown/inert HTML/connections rendered with no provider request; PNG inspected |
-| Apache-2.0 | Owner explicitly selected; LICENSE/NOTICE added; third-party notices retained |
-| Physical Pixel SIWC sign-in/catalog/stream | **UNRUN**: no physical device or eligible account attached |
-| Real OpenAI/Gemini/Groq/OpenRouter/local-model calls | **UNRUN**: no provider credentials/server bound |
-| Shopify live draft/media/batch/reconciliation | **UNRUN / not implemented**: official API/auth and real dev-store gates remain |
-| Real owner's sold-evidence dataset | **UNRUN**: no dataset supplied; test evidence is explicitly synthetic |
-| Hosted GitHub Actions execution | Workflow supplied; local checks are not a claim of hosted CI execution |
+| Android/core host tests | **89 passed, 0 failed, 0 skipped** |
+| Broker mock/crypto/SQLite tests | **13 passed** |
+| Total executed tests | **102 passed** |
+| App and instrumentation APKs | Built; physical instrumentation execution UNRUN |
+| Android lint | 0 errors; 57 warnings remain |
+| Upgrade migrations | Explicit1→2→3→4→5, capture/files preserved; latest Room schema validated |
+| Signing vs0.3.0 / 16KB alignment | Same signing identity; alignment passed |
+| Native Shopify interruption | Synthetic timeout after server creation; stable request key, one product, no duplicate on retry |
+| Native Shopify files/batches | Two photos, async processing stays WAITING_REMOTE, metadata/stock/IDs verified; success skips; separate live SUBMIT approval |
+| Mutation safety | Changed local item rejected, unexpected stock protected, production guard, quantity1, closed owned-resource writes |
+| Restore | Schema3/4 upgrades; Shopify upload secrets redacted; restored jobs PAUSED_RECONNECT; identity retained |
+| Agent approval | DRAFT job absent before approval, one-time approval and job commit together, local status read, no implicit live publication |
+| Broker security | P256 signed requests, body binding, replay/clock, one-use pairing, revocation, encrypted token renewal, foreign-resource and production denial |
+| Broker creation recovery | Immutable request hashes, cached minimal result, uncertain create/file read-only reconciliation, no blind duplicate |
+| GraphQL registry syntax | All19 operation documents parse; actual Shopify schema acceptance UNRUN |
+| Container | Builds; non-root UID10001 startup/HTTP health and0600 state file verified; no Shopify requests |
+| Shopify UI | Actual seeded Room inventory rendered, pairing/connection gates disabled until configured; PNG inspected |
+| Retained A/C/D regression | Camera/layout/recognition, immutable inventory/photos,100×300 synthetic backup stress, source pricing/statistics, approvals, streaming/billing isolation passed |
+| Physical Pixel / real Shopify authorization and development-store draft | **UNRUN**: no bound device/store/credentials; no broker deployed |
+| SIWC physical Pixel sign-in/catalog/completed stream | **UNRUN**: no physical eligible account bound |
+| Live provider calls / real sold dataset | **UNRUN** for this release's0.3 pricing fixtures; supplied Harvester CSV belongs to the next pricing extension |
 
-The app remains a preview of C/D after the published A milestone; A–D as a whole
-is incomplete. B currently supplies only local listing preparation. SIWC implements
-the owner's externally verified official preview contract, but has no physical-device
-acceptance evidence. No mock login or stream is labeled a real eligible-account pass.
+No production Canada VHS data, real Shopify account or paid provider was mutated.
+Host/mocked tests are not real API or hardware acceptance. A–D remains incomplete
+until the documented external acceptance succeeds. Shopify server JSONL bulk and
+unrelated existing-product linkage/update are not implemented; native batches use
+per-item durable operations. SIWC never silently switches to billable API usage.
 
-The separate desktop repositories are unchanged. No production inventory, Shopify
-listing or paid provider account was accessed. No credentials are bundled or exported.
-ChatGPT and API-key modes are independent, with no automatic billing fallback.
+Capture test fixtures use real Linux directory fsync because Robolectric's stub is
+unsupported. UI/test JVMs are isolated; assertions are enabled. Lint ran separately
+after build/tests. Container startup caught and fixed copied-file ownership for its
+non-root user. Earlier failed development logs remain retained, with no checks disabled.
 
-Robolectric capture fixtures use a real Linux FileChannel directory fsync in place
-of Robolectric's unsupported directory-fsync stub. Separate test JVMs isolate global
-WorkManager/activity teardown state; UI scenarios use separate classes. Assertions
-remain enabled. Test/build and lint execute sequentially after kapt completes.
-The synthetic images do not measure physical shutter latency or barcode accuracy.
+APK SHA256: b48684209f2d5b6d42813373b4938d43f99177f015cd27cb201d134c02ae97f9
 
-APK SHA-256: 1081202faf3a30b3a60b9c0323aaea2a452911ee7a7f191cfa1b50dcc72c4b28
+Certificate SHA256: b262fd08c7a58f338027260d47a94a33e5c939d72752034dddb2f4f6bf73faae
 
-Signing certificate SHA-256: b262fd08c7a58f338027260d47a94a33e5c939d72752034dddb2f4f6bf73faae
-
-Logs: /workspace/.setup/v030-final-validation.log.
-JUnit XML: core/build/test-results/test and app/build/test-results/testDebugUnitTest.
-Details: next/MILESTONE_CD.md, next/FEATURE_MATRIX.md, next/SIWC_INVESTIGATION.md,
-next/SHOPIFY_SETUP.md. Historical A validation: TEST_RESULTS_0.2.0.md.
+Logs: /workspace/.setup/v040-final-validation.log, v040-final-lint.log,
+v040-broker-final.log, v040-docker-final-build.log, v040-docker-final-smoke.log.
+See next/MILESTONE_B.md, next/SHOPIFY_SETUP.md and next/FEATURE_MATRIX.md.

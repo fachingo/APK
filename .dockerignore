@@ -1,0 +1,14 @@
+.git
+.gradle
+**/build
+releases
+local.properties
+*.keystore
+*.jks
+**/__pycache__
+**/.pytest_cache
+*.sqlite*
+*.env
+app
+core
+wear

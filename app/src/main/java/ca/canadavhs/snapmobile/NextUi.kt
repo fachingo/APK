@@ -82,18 +82,7 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
     }},confirmButton={TextButton(enabled=selectedBulk.isNotEmpty(),onClick={vm.action {val count=vm.repo.applySoldPrices(choices.filter {it.first.groupId in selectedBulk},method,false);vm.repo.preferences.edit().putString("pricingMethod",method).apply();bulk=null;vm.message="Applied $count reviewed prices atomically."}}) {Text("Apply ${selectedBulk.size}")}},dismissButton={TextButton(onClick={bulk=null}) {Text("Cancel")}})}
 
 }
-@Composable fun ListingPlansScreen(vm:CaptureViewModel,back:()->Unit) {
-    val rows by vm.inventory.collectAsStateWithLifecycle();val plans by vm.repo.journal.nextDao().watchPlans().collectAsStateWithLifecycle(emptyList())
-    LazyColumn(Modifier.fillMaxSize().padding(24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        item {TextButton(onClick=back) {Text("← Back")};PageTitle("Listing preparation","Local drafts · Shopify connection pending")}
-        item {Text("Prepare and review draft data on this phone. Direct Shopify authentication and live development-store verification are still pending. No listing is uploaded or published by this screen.")}
-        items(rows.filter {!it.archived},key={it.groupId}) {item ->OutlinedCard(Modifier.fillMaxWidth()) {Column(Modifier.padding(16.dp)) {Text(item.title.ifBlank {"Untitled"},fontWeight=FontWeight.Bold);Text(item.itemId);TextButton(onClick={vm.action {val plan=vm.repo.prepareListing(item.groupId);vm.message="Local plan: ${plan.state}. No Shopify write occurred."}}) {Text("Prepare local draft")}
-            plans.firstOrNull {it.groupId==item.groupId}?.let {p ->Text("${p.state} · revision ${p.inventoryRevision}${if(p.inventoryRevision!=item.revision) " · item changed" else ""}")
-                val errors=JSONArray(p.errorsJson);for(i in 0 until errors.length()) Text("• ${errors.getString(i)}",color=MaterialTheme.colorScheme.error)
-            }
-        }}}
-    }
-}
+@Composable fun ListingPlansScreen(vm:CaptureViewModel,back:()->Unit) {ShopifyScreen(vm,back)}
 @Composable fun AiWorkspaceScreen(vm:CaptureViewModel,back:()->Unit,ai:AiWorkspaceModel=viewModel()) {
     val context=LocalContext.current;val chats by ai.chats.collectAsStateWithLifecycle();val active by ai.active.collectAsStateWithLifecycle()
     var selected by rememberSaveable {mutableStateOf<String?>(null)};var connections by rememberSaveable {mutableStateOf(false)};var newChat by remember {mutableStateOf(false)}

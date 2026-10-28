@@ -1,16 +1,16 @@
-# SnapIMS Next 0.3.0
+# SnapIMS Next 0.4.0
 
-**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.3.0-debug.apk)** · [SHA-256](releases/SnapIMS-Next-0.3.0-debug.apk.sha256)
+**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.4.0-debug.apk)** · [SHA-256](releases/SnapIMS-Next-0.4.0-debug.apk.sha256)
 
 Standalone native Android inventory for Canada VHS, built on the existing SnapIMS
 rules and compatible capture formats. No desktop process, local HTTP server or LAN
 connection is required for capture, inventory, search, review or backup.
 
-Milestone A is published, and this update adds local sold-evidence pricing and an AI
-workspace preview. Settings contains **Sold pricing**, **AI workspace** and **Listing
-plans**. Read [usage and limits](docs/next/MILESTONE_CD.md) and the [feature matrix](docs/next/FEATURE_MATRIX.md).
-The A–D program is not complete: direct Shopify writes and live development-store
-proof remain gated. **Continue with ChatGPT is an experimental native prototype;
+Milestone A is published. This update adds the Shopify milestone B implementation
+to the existing sold-evidence pricing and AI workspace previews. Settings contains
+**Sold pricing**, **AI workspace** and **Shopify**. Read [usage and limits](docs/next/MILESTONE_CD.md) and the [feature matrix](docs/next/FEATURE_MATRIX.md).
+The A–D program is not complete: Shopify authorization and development-store
+acceptance are unverified, and no broker is deployed. **Continue with ChatGPT is an experimental native prototype;
 physical Pixel sign-in, discovery and subscription streaming are still unverified.**
 Its contract uses the owner's externally verified official excerpts, independently
 of API-key mode, with no automatic switch to API billing.
@@ -21,7 +21,11 @@ of API-key mode, with no automatic switch to API billing.
   models, streamed responses, compatible inline attachments and one-time reviewed
   local tools. Unknown capabilities can be checked with explicit synthetic probes.
 - The optional local model endpoint is on this phone; inventory needs no server.
-- Local listing plans stay DRAFT preparation only. They do not upload/publish.
+- Shopify adds reviewed DRAFT creation, ordered images, SKU/price/weight/stock,
+  durable per-item batch checkpoints and safe reconciliation through an optional
+  hosted credential broker. Live publication requires a separate `SUBMIT` approval
+  and is disabled by default at the broker. [Setup and limits](docs/next/SHOPIFY_SETUP.md).
+- No Shopify client secret or token is embedded in the APK. Inventory needs no broker.
 
 ## Standalone inventory
 
@@ -75,9 +79,11 @@ OpenAI request on each shutter. See [recognition details](docs/RECOGNITION_0.1.1
 
 ## Update without losing captures
 
-Install 0.3.0 **over** 0.1.x or 0.2.0; do not uninstall or clear app storage.
-Application ID and signing key are unchanged, versionCode increases to 5. Explicit
-Room migrations 1→2→3→4 retain captures/archives and add inventory, pricing and chat tables.
+Install 0.4.0 **over** 0.1.x, 0.2.0 or 0.3.0; do not uninstall or clear app storage.
+Application ID and signing key are unchanged, versionCode increases to 6. Explicit
+Room migrations 1→2→3→4→5 retain captures/archives and add inventory, pricing, chat
+and Shopify job tables. Restored Shopify jobs require fresh pairing and manual
+reconciliation; temporary upload credentials are excluded from backups.
 Existing API-key credentials and camera preferences remain on the device. New
 protected backups exclude API keys and OAuth credentials, which must be reconnected on a different phone.
 Save and verify backups outside app-private storage before device reset/app removal.

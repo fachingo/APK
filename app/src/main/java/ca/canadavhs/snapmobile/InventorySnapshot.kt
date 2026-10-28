@@ -13,7 +13,7 @@ import java.io.FileOutputStream
 import java.util.zip.ZipFile
 import ca.canadavhs.snapmobile.core.sha256
 
-internal val snapshotTables = listOf("sessions","groups","photos","archives","events","recognition","inventory_batches","inventory","inventory_audit","transfer_jobs","pricing_evidence_native","chat_conversations","chat_messages","ai_capabilities","agent_approvals","listing_plans","siwc_proofs")
+internal val snapshotTables = listOf("sessions","groups","photos","archives","events","recognition","inventory_batches","inventory","inventory_audit","transfer_jobs","pricing_evidence_native","chat_conversations","chat_messages","ai_capabilities","agent_approvals","listing_plans","siwc_proofs","shopify_jobs","shopify_job_items")
 internal val snapshotPrimaryKeys = mapOf("inventory_batches" to "sessionId", "inventory" to "groupId")
 internal const val MAX_SNAPSHOT_BYTES = 32 * 1024 * 1024
 internal const val MAX_PACKAGE_FILES = 100_000
@@ -52,7 +52,7 @@ internal suspend fun CaptureRepository.buildSnapshot(): JSONObject = mutate {
     snapshotTables.forEach { table ->
         val rows = JSONArray()
         val clause = if(table == "transfer_jobs") " WHERE state!='RUNNING'" else ""
-        db.query("SELECT * FROM $table$clause").use { cursor -> while(cursor.moveToNext()) rows.put(cursorObject(cursor)) }
+        db.query("SELECT * FROM $table$clause").use { cursor -> while(cursor.moveToNext()) rows.put(cursorObject(cursor).also {if(table=="shopify_job_items") it.put("checkpointJson",redactShopifyCheckpoint(it.getString("checkpointJson")))}) }
         tables.put(table, rows)
     }
     val files = linkedMapOf<String, File>()
@@ -70,7 +70,7 @@ internal suspend fun CaptureRepository.buildSnapshot(): JSONObject = mutate {
     require(files.size <= MAX_PACKAGE_FILES) { "Export separate batches: backup exceeds the package file limit." }
     val manifestFiles = JSONArray()
     // Hashing is performed after the consistent metadata snapshot, outside camera's lock.
-    JSONObject().put("format","snapims.inventory.snapshot").put("version",1).put("schema",4)
+    JSONObject().put("format","snapims.inventory.snapshot").put("version",1).put("schema",5)
         .put("tables",tables).put("files",manifestFiles).put("file_paths",JSONArray(files.keys.toList()))
 }
 internal suspend fun CaptureRepository.hashSnapshotFiles(snapshot: JSONObject): JSONObject = withContext(Dispatchers.IO) {
@@ -89,12 +89,12 @@ internal suspend fun CaptureRepository.hashSnapshotFiles(snapshot: JSONObject): 
     snapshot
 }
 internal fun CaptureRepository.validateSnapshot(snapshot: JSONObject) {
-    require(snapshot.getString("format") == "snapims.inventory.snapshot" && snapshot.getInt("version") == 1 && snapshot.getInt("schema") in 3..4) { "Unsupported inventory snapshot version." }
+    require(snapshot.getString("format") == "snapims.inventory.snapshot" && snapshot.getInt("version") == 1 && snapshot.getInt("schema") in 3..5) { "Unsupported inventory snapshot version." }
     val tables = snapshot.getJSONObject("tables")
-    if(snapshot.getInt("schema")==3) {
-        val oldTables=snapshotTables.take(10).toSet()
-        require(tables.keys().asSequence().toSet()==oldTables) {"Incomplete legacy inventory snapshot."}
-        snapshotTables.drop(10).forEach {tables.put(it,JSONArray())};snapshot.put("schema",4)
+    if(snapshot.getInt("schema")<5) {
+        val count=if(snapshot.getInt("schema")==3) 10 else 17
+        require(tables.keys().asSequence().toSet()==snapshotTables.take(count).toSet()) {"Incomplete legacy inventory snapshot."}
+        snapshotTables.drop(count).forEach {tables.put(it,JSONArray())};snapshot.put("schema",5)
     }
     require(tables.keys().asSequence().toSet() == snapshotTables.toSet()) { "Incomplete inventory snapshot." }
     val files = snapshot.getJSONArray("files"); require(files.length() <= MAX_PACKAGE_FILES)
@@ -147,6 +147,15 @@ internal fun CaptureRepository.validateSnapshot(snapshot: JSONObject) {
                 "archives" -> if(row.getString("state") == "READY") {
                     val file = indexed["archives/${row.getString("filename")}"] ?: error("Backup is missing a completed archive.")
                     require(file.getLong("bytes") == row.getLong("bytes") && file.getString("sha256") == row.getString("sha256"))
+                }
+                "shopify_jobs" -> {
+                    requireBrokerUrl(row.getString("broker"));require(row.getString("kind") in listOf("CREATE_DRAFT","PUBLISH_LIVE"))
+                    require(row.getString("state") in listOf("QUEUED","RUNNING","WAITING_REMOTE","SUCCESS","PARTIAL_REVIEW","PAUSED","PAUSED_RECONNECT","CANCELLED"))
+                }
+                "shopify_job_items" -> {
+                    requireUuid(row.getString("jobId"));requireUuid(row.getString("groupId"));requireUuid(row.getString("creationKey"))
+                    inventoryFromJson(JSONObject(row.getString("snapshotJson")));JSONObject(row.getString("remoteJson"))
+                    require(row.getString("checkpointJson")==redactShopifyCheckpoint(row.getString("checkpointJson"))) {"Backup must not contain temporary upload credentials."}
                 }
                 "chat_messages" -> {
                     require(row.getString("role") in listOf("user","assistant","tool"))
@@ -229,6 +238,8 @@ internal suspend fun CaptureRepository.mergeSnapshot(snapshot: JSONObject, stage
                 require(sameId==null || sameId.groupId==row.getString("groupId")) { "Item ID already belongs to another physical-copy record. No data was overwritten." }
             }
             require(row.keys().asSequence().toSet() == columns.toSet()) { "Unsupported $table columns." }
+            if(table=="shopify_jobs" && row.getString("state")!="SUCCESS") row.put("state","PAUSED_RECONNECT").put("workId","").put("error","Restored job requires device pairing and manual reconciliation; no Shopify write was restarted.")
+            if(table=="shopify_job_items") row.put("checkpointJson",redactShopifyCheckpoint(row.getString("checkpointJson")))
             if(table == "recognition" && row.getString("state") in listOf("RUNNING","QUEUED")) {
                 row.put("state","ERROR").put("workId","").put("error","Restored job requires manual retry; no provider request was restarted.")
             }
@@ -273,3 +284,7 @@ internal suspend fun CaptureRepository.mergeSnapshot(snapshot: JSONObject, stage
     db.query("PRAGMA foreign_key_check").use { cursor -> check(!cursor.moveToFirst()) { "Restore contains broken record references." } }
     inserts.count { it.first == "inventory" }
 }
+
+internal fun redactShopifyCheckpoint(value:String):String = JSONObject(value).apply {
+    optJSONObject("photos")?.let {photos->photos.keys().forEach {id->photos.getJSONObject(id).apply {if(has("target")) {remove("target");if(!has("fileId")) {put("uploaded",false);put("stageEpoch",optInt("stageEpoch")+1)}}}}}
+}.toString()

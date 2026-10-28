@@ -8,3 +8,10 @@ captures/
 
 __pycache__/
 *.pyc
+
+.pytest_cache/
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+broker/.env
+broker/data/

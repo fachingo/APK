@@ -177,7 +177,7 @@ import coil.compose.AsyncImage
                 item { EditField("Vendor",draft.vendor) { draft=draft.copy(vendor=it.take(1000)) } }
                 item { EditField("Product type",draft.productType) { draft=draft.copy(productType=it.take(1000)) } }
                 item { EditField("Tags · comma separated",draft.tags) { draft=draft.copy(tags=it.take(4000)) } }
-                item { EditField("Description",draft.description,multiline=true) { draft=draft.copy(description=it.take(30000)) } }
+                item { EditField("Description · Shopify HTML",draft.description,multiline=true) { draft=draft.copy(description=it.take(30000)) } }
                 item { ChoiceField("Pooling",draft.poolMode,listOf("POOLED","UNIQUE")) { draft=draft.copy(poolMode=it) } }
                 item { Text("Shopify: ${item.shopifyState}\nProduct: ${item.shopifyProductId.ifBlank { "Not linked" }}\nVariant: ${item.shopifyVariantId.ifBlank { "Not linked" }}",style=MaterialTheme.typography.bodySmall) }
                 item { Text("Created ${item.createdAt}\nUpdated ${item.updatedAt}\nRevision ${item.revision}",style=MaterialTheme.typography.bodySmall) }

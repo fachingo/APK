@@ -3,7 +3,7 @@ package ca.canadavhs.snapmobile
 import ca.canadavhs.snapmobile.core.*
 import org.json.*
 
-/** Closed tool registry. No arbitrary SQL, shell, filesystem, publishing or messaging. */
+/** Closed tools. Approved draft jobs only; live publication stays in the operator screen. */
 internal class AgentTools(private val repo:CaptureRepository) {
     private val dao=repo.journal.nextDao()
     fun definitions(proposals:Boolean):JSONArray {
@@ -15,6 +15,8 @@ internal class AgentTools(private val repo:CaptureRepository) {
             .put(tool("recognition_results","Read existing recognition suggestions and operator-confirmed titles; does not run or bill a provider.",mapOf("group_id" to string("Exact inventory group UUID"))))
             .put(tool("pricing_evidence","Read imported sold comparisons for an exact title. Never invent prices.",mapOf("title" to string("Exact inventory title"))))
             .put(tool("approval_status","Read a local operator approval's current status.",mapOf("approval_id" to string("Approval UUID"))))
+        tools.put(tool("shopify_job_status","Read saved Shopify job/item checkpoints on this phone. Does not contact Shopify.",mapOf("job_id" to string("Exact Shopify job UUID"))))
+        if(proposals) tools.put(tool("propose_shopify_draft","Propose one Shopify DRAFT upload to the paired development store. Requires a separate operator approval of listing data and photo transfer. No live publication.",mapOf("group_id" to string("Exact ready inventory group UUID"),"location_id" to string("Selected Shopify Location GID"))))
         if(proposals) tools.put(tool("propose_apply_recognition","Propose applying an already operator-confirmed title from current photos. Separate approval required; no new recognition request.",mapOf("group_id" to string("Exact group UUID"),"recognition_id" to string("Completed recognition UUID"))))
             .put(tool("propose_inventory_update","Propose metadata only; requires a separate operator review. Cannot set a price or publish.",mapOf("group_id" to string("Exact inventory group UUID"),"patch_json" to string("JSON object containing only title, condition, conditionNotes, location, tags, description or quantity"))))
             .put(tool("propose_sold_price","Propose applying imported fresh CAD sold evidence. Requires operator approval; cannot generate prices.",mapOf("group_id" to string("Exact group UUID"),"evidence_id" to string("Imported evidence UUID"),"method" to JSONObject().put("type","string").put("enum",JSONArray(listOf("AVERAGE","MEDIAN"))))))
@@ -50,12 +52,26 @@ internal class AgentTools(private val repo:CaptureRepository) {
                 require(args.keys().asSequence().toSet()==setOf("approval_id"));val row=dao.approval(args.getString("approval_id")) ?: error("Approval not found.")
                 require(row.conversationId==chat.id);JSONObject().put("state",row.state).put("result",JSONObject(row.resultJson.ifEmpty {"{}"}))
             }
-            "propose_inventory_update","propose_sold_price","propose_listing_plan","propose_apply_recognition" -> {
+            "shopify_job_status" -> {
+                require(args.keys().asSequence().toSet()==setOf("job_id"));val job=repo.journal.shopifyDao().job(args.getString("job_id")) ?: error("Shopify job not found")
+                JSONObject().put("jobId",job.id).put("kind",job.kind).put("shop",job.shop).put("state",job.state).put("error",job.error).put("items",JSONArray(repo.journal.shopifyDao().items(job.id).map {r->JSONObject().put("itemId",r.itemId).put("state",r.state).put("step",r.step).put("remote",JSONObject(r.remoteJson)).put("error",r.error)}))
+            }
+            "propose_inventory_update","propose_sold_price","propose_listing_plan","propose_apply_recognition","propose_shopify_draft" -> {
                 check(chat.proposalsEnabled) {"Change proposals are disabled for this chat."}
-                val expected=when(name) {"propose_inventory_update"->setOf("group_id","patch_json");"propose_sold_price"->setOf("group_id","evidence_id","method");"propose_apply_recognition"->setOf("group_id","recognition_id");else->setOf("group_id")}
+                val expected=when(name) {"propose_shopify_draft"->setOf("group_id","location_id");"propose_inventory_update"->setOf("group_id","patch_json");"propose_sold_price"->setOf("group_id","evidence_id","method");"propose_apply_recognition"->setOf("group_id","recognition_id");else->setOf("group_id")}
                 require(args.keys().asSequence().toSet()==expected)
                 val item=repo.journal.inventoryDao().item(args.getString("group_id")) ?: error("Item not found.")
                 val payload=JSONObject(args.toString()).put("expectedRevision",item.revision)
+                if(name=="propose_shopify_draft") {
+                    check(repo.preferences.getBoolean("shopifyPaired",false)) {"Pair Shopify in Settings first."}
+                    val base=repo.preferences.getString("shopifyBroker","").orEmpty();requireBrokerUrl(base)
+                    check(repo.shopifyProblems(item,repo.dao.photos(item.groupId).filter {!it.deleted}).isEmpty()) {"Review and mark the item ready first."}
+                    val health=ShopifyBrokerClient(repo.context,base).call(newId(),"health",JSONObject())
+                    check(health.getBoolean("developmentStore")) {"Only development-store drafts are supported."}
+                    payload.put("broker",base).put("health",health).put("connectionFingerprint",shopifyConnectionFingerprint(repo.context,base))
+                    payload.put("reviewedListing",shopifySnapshot(item,repo.dao.photos(item.groupId).filter {!it.deleted}.sortedBy {it.position},effectiveBarcode(item,repo.dao.group(item.groupId),repo.dao.photos(item.groupId))))
+                    payload.put("approvalNotice","Approval sends listing data and all selected photographs to Shopify as a DRAFT. No live publication.")
+                }
                 if(name=="propose_apply_recognition") {
                     val r=repo.dao.recognition(args.getString("recognition_id")) ?: error("Recognition not found.")
                     check(r.groupId==item.groupId && r.state=="SUCCEEDED" && !r.acceptedTitle.isNullOrBlank()) {"Confirm this recognition title in Batches first."}
@@ -76,13 +92,21 @@ internal class AgentTools(private val repo:CaptureRepository) {
         val json=inventoryJson(item);patch.keys().forEach {key->json.put(key,patch.get(key))};json.put("ready",false)
         return inventoryFromJson(json)
     }
-    suspend fun decide(id:String,accept:Boolean,replaceManual:Boolean=false):String=repo.mutate {
+    suspend fun decide(id:String,accept:Boolean,replaceManual:Boolean=false):String {
+        var scheduled:String?=null
+        val message=repo.mutate {
         val row=dao.approval(id) ?: error("Approval no longer exists.");check(row.state=="PENDING") {"This approval was already handled."}
         if(!accept) {dao.update(row.copy(state="REJECTED",completedAt=System.currentTimeMillis()));return@mutate "Proposal rejected."}
         val payload=JSONObject(row.payloadJson);val group=payload.getString("group_id")
         if(binding(group)!=row.bindingHash) {dao.update(row.copy(state="EXPIRED",resultJson="{\"error\":\"Item or photos changed; request a new proposal\"}",completedAt=System.currentTimeMillis()));return@mutate "Item changed. This proposal expired; request a fresh one."}
         val revision=payload.getLong("expectedRevision")
             val result=when(row.action) {
+                "propose_shopify_draft" -> {
+                    val base=payload.getString("broker")
+                    check(repo.preferences.getBoolean("shopifyPaired",false) && repo.preferences.getString("shopifyBroker","")==base && shopifyConnectionFingerprint(repo.context,base)==payload.getString("connectionFingerprint")) {"Shopify connection changed. Request a new proposal."}
+                    val job=repo.queueShopifyLocked(setOf(group),payload.getJSONObject("health"),base,payload.getString("location_id"))
+                    scheduled=job;JSONObject().put("shopifyJobId",job).put("state","QUEUED_DRAFT")
+                }
                 "propose_inventory_update" -> {val item=repo.journal.inventoryDao().item(group) ?: error("Item not found.");repo.saveInventoryLocked(validatePatch(item,JSONObject(payload.getString("patch_json"))),revision);JSONObject().put("updated",group)}
                 "propose_sold_price" -> {repo.applySoldPriceLocked(group,payload.getString("evidence_id"),payload.getString("method"),revision,replaceManual);JSONObject().put("priced",group)}
                 "propose_apply_recognition" -> {
@@ -94,5 +118,8 @@ internal class AgentTools(private val repo:CaptureRepository) {
                 else -> error("Unsupported approved action.")
             }
             dao.update(row.copy(state="APPLIED",resultJson=result.toString(),completedAt=System.currentTimeMillis()));"Approved action completed locally."
+        }
+        scheduled?.let {repo.enqueueShopify(it)}
+        return if(scheduled!=null) "Approved Shopify draft job queued. Check Shopify jobs for verified remote completion." else message
     }
 }

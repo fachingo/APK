@@ -96,6 +96,7 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, val d
         backfillInventory()
         recoverTransferJobs()
         recoverRecognition()
+        journal.shopifyDao().active().forEach {enqueueShopify(it.id)}
     }
     suspend fun next() {
         val session = mutate {
