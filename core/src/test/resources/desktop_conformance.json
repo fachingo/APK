@@ -1,0 +1,138 @@
+{
+  "source": "fachingo/SnapIMS@5c790dce schema16",
+  "money": [
+    {
+      "amount": "0.005",
+      "discount": "0",
+      "cents": 1,
+      "basis_points": 0,
+      "final": 1
+    },
+    {
+      "amount": "12.345",
+      "discount": "10.125",
+      "cents": 1235,
+      "basis_points": 1013,
+      "final": 1110
+    },
+    {
+      "amount": "CAD $1,234.567",
+      "discount": "33.33",
+      "cents": 123457,
+      "basis_points": 3333,
+      "final": 82309
+    },
+    {
+      "amount": "0.01",
+      "discount": "50",
+      "cents": 1,
+      "basis_points": 5000,
+      "final": 1
+    },
+    {
+      "amount": "1000000",
+      "discount": "100",
+      "cents": 100000000,
+      "basis_points": 10000,
+      "final": 0
+    },
+    {
+      "amount": "19.99",
+      "discount": "12.5",
+      "cents": 1999,
+      "basis_points": 1250,
+      "final": 1749
+    }
+  ],
+  "conditions": [
+    "Not Graded",
+    "Fair",
+    "Good",
+    "Very Good",
+    "Like New",
+    "Sealed",
+    "Damaged",
+    "Mold Review"
+  ],
+  "identities": [
+    {
+      "batch": "20261028-090000-Mobile",
+      "location": "A1",
+      "sequence": 1,
+      "item_id": "20261028-090000-Mobile-A1-001",
+      "photos": [
+        "20261028-090000-Mobile-A1-001-F.jpg",
+        "20261028-090000-Mobile-A1-001-02.jpg",
+        "20261028-090000-Mobile-A1-001-03.jpg"
+      ]
+    },
+    {
+      "batch": "20261028-090000",
+      "location": "",
+      "sequence": 101,
+      "item_id": "20261028-090000--101",
+      "photos": [
+        "20261028-090000--101-F.jpg",
+        "20261028-090000--101-02.jpg",
+        "20261028-090000--101-03.jpg"
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "payload": "CVHS1:BATCH:START",
+      "kind": "batch_start",
+      "value": null
+    },
+    {
+      "payload": " cvhs1:item:next ",
+      "kind": "item_next",
+      "value": null
+    },
+    {
+      "payload": "CVHS1:ITEM:CONT",
+      "kind": "item_cont",
+      "value": null
+    },
+    {
+      "payload": "CVHS1:FLAG:RARE",
+      "kind": "flag_rare",
+      "value": null
+    },
+    {
+      "payload": "CVHS1:FLAG:REVIEW",
+      "kind": "flag_review",
+      "value": null
+    },
+    {
+      "payload": "CVHS1:LOC:A10",
+      "kind": "location",
+      "value": "A10"
+    },
+    {
+      "payload": "CVHS1:LOC:Q1",
+      "kind": "location",
+      "value": "Q1"
+    },
+    {
+      "payload": "CVHS1:LOC:J10",
+      "kind": "location",
+      "value": "J10"
+    },
+    {
+      "payload": "CVHS1:LOC:K1",
+      "kind": null,
+      "value": null
+    },
+    {
+      "payload": "CVHS1:LOC:",
+      "kind": null,
+      "value": null
+    },
+    {
+      "payload": "https://example.com",
+      "kind": null,
+      "value": null
+    }
+  ]
+}

@@ -1,0 +1,962 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 3,
+    "identityHash": "58bcc77bfb4cc9bb317cb30217c2c5ed",
+    "entities": [
+      {
+        "tableName": "sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `createdAt` TEXT NOT NULL, `location` TEXT NOT NULL, `finished` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "location",
+            "columnName": "location",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "finished",
+            "columnName": "finished",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "groups",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `number` INTEGER NOT NULL, `createdAt` TEXT NOT NULL, `location` TEXT NOT NULL, `closed` INTEGER NOT NULL, `rare` INTEGER NOT NULL, `review` INTEGER NOT NULL, `note` TEXT NOT NULL, `barcodeOverride` TEXT, `archiveId` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "number",
+            "columnName": "number",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "location",
+            "columnName": "location",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "closed",
+            "columnName": "closed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rare",
+            "columnName": "rare",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "review",
+            "columnName": "review",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "barcodeOverride",
+            "columnName": "barcodeOverride",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "archiveId",
+            "columnName": "archiveId",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_groups_sessionId",
+            "unique": false,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_groups_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          },
+          {
+            "name": "index_groups_sessionId_number",
+            "unique": true,
+            "columnNames": [
+              "sessionId",
+              "number"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_groups_sessionId_number` ON `${TABLE_NAME}` (`sessionId`, `number`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "sessions",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "sessionId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "photos",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `groupId` TEXT NOT NULL, `position` INTEGER NOT NULL, `role` TEXT NOT NULL, `capturedAt` TEXT NOT NULL, `state` TEXT NOT NULL, `bytes` INTEGER NOT NULL, `sha256` TEXT NOT NULL, `deleted` INTEGER NOT NULL, `barcodeJson` TEXT NOT NULL, `scanState` TEXT NOT NULL, `error` TEXT NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`groupId`) REFERENCES `groups`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "groupId",
+            "columnName": "groupId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "role",
+            "columnName": "role",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capturedAt",
+            "columnName": "capturedAt",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bytes",
+            "columnName": "bytes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sha256",
+            "columnName": "sha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deleted",
+            "columnName": "deleted",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "barcodeJson",
+            "columnName": "barcodeJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scanState",
+            "columnName": "scanState",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "error",
+            "columnName": "error",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_photos_groupId",
+            "unique": false,
+            "columnNames": [
+              "groupId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_photos_groupId` ON `${TABLE_NAME}` (`groupId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "groups",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "groupId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "archives",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `part` INTEGER NOT NULL, `filename` TEXT NOT NULL, `groupIds` TEXT NOT NULL, `targetBytes` INTEGER NOT NULL, `manifestJson` TEXT NOT NULL, `state` TEXT NOT NULL, `bytes` INTEGER NOT NULL, `sha256` TEXT NOT NULL, `error` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "part",
+            "columnName": "part",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "filename",
+            "columnName": "filename",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "groupIds",
+            "columnName": "groupIds",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetBytes",
+            "columnName": "targetBytes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "manifestJson",
+            "columnName": "manifestJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bytes",
+            "columnName": "bytes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sha256",
+            "columnName": "sha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "error",
+            "columnName": "error",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_archives_sessionId",
+            "unique": false,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_archives_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          },
+          {
+            "name": "index_archives_sessionId_part",
+            "unique": true,
+            "columnNames": [
+              "sessionId",
+              "part"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_archives_sessionId_part` ON `${TABLE_NAME}` (`sessionId`, `part`)"
+          }
+        ]
+      },
+      {
+        "tableName": "events",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `groupId` TEXT, `action` TEXT NOT NULL, `createdAt` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "groupId",
+            "columnName": "groupId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "action",
+            "columnName": "action",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "recognition",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `groupId` TEXT NOT NULL, `provider` TEXT NOT NULL, `model` TEXT NOT NULL, `inputJson` TEXT NOT NULL, `inputFingerprint` TEXT NOT NULL, `state` TEXT NOT NULL, `resultJson` TEXT NOT NULL, `error` TEXT NOT NULL, `acceptedTitle` TEXT, `requestedAt` INTEGER NOT NULL, `completedAt` INTEGER, `workId` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "groupId",
+            "columnName": "groupId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "provider",
+            "columnName": "provider",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "model",
+            "columnName": "model",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inputJson",
+            "columnName": "inputJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inputFingerprint",
+            "columnName": "inputFingerprint",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "resultJson",
+            "columnName": "resultJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "error",
+            "columnName": "error",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "acceptedTitle",
+            "columnName": "acceptedTitle",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "requestedAt",
+            "columnName": "requestedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedAt",
+            "columnName": "completedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "workId",
+            "columnName": "workId",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_recognition_groupId",
+            "unique": false,
+            "columnNames": [
+              "groupId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_recognition_groupId` ON `${TABLE_NAME}` (`groupId`)"
+          },
+          {
+            "name": "index_recognition_requestedAt",
+            "unique": false,
+            "columnNames": [
+              "requestedAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_recognition_requestedAt` ON `${TABLE_NAME}` (`requestedAt`)"
+          }
+        ]
+      },
+      {
+        "tableName": "inventory_batches",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sessionId` TEXT NOT NULL, `batchId` TEXT NOT NULL, PRIMARY KEY(`sessionId`), FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batchId",
+            "columnName": "batchId",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "sessionId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_inventory_batches_batchId",
+            "unique": true,
+            "columnNames": [
+              "batchId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_inventory_batches_batchId` ON `${TABLE_NAME}` (`batchId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "sessions",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "sessionId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "inventory",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`groupId` TEXT NOT NULL, `itemId` TEXT NOT NULL, `batchId` TEXT NOT NULL, `title` TEXT NOT NULL, `releaseYear` INTEGER, `edition` TEXT NOT NULL, `distributor` TEXT NOT NULL, `condition` TEXT NOT NULL, `conditionNotes` TEXT NOT NULL, `location` TEXT NOT NULL, `barcode` TEXT NOT NULL, `priceCents` INTEGER, `discountBasisPoints` INTEGER NOT NULL, `quantity` INTEGER NOT NULL, `poolMode` TEXT NOT NULL, `vendor` TEXT NOT NULL, `productType` TEXT NOT NULL, `tags` TEXT NOT NULL, `description` TEXT NOT NULL, `weightGrams` INTEGER NOT NULL, `rare` INTEGER NOT NULL, `review` INTEGER NOT NULL, `ready` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `priceSource` TEXT NOT NULL, `priceEvidenceJson` TEXT NOT NULL, `recognitionId` TEXT NOT NULL, `captureNote` TEXT NOT NULL, `shopifyProductId` TEXT NOT NULL, `shopifyVariantId` TEXT NOT NULL, `shopifyInventoryItemId` TEXT NOT NULL, `shopifyState` TEXT NOT NULL, `revision` INTEGER NOT NULL, `createdAt` TEXT NOT NULL, `updatedAt` TEXT NOT NULL, PRIMARY KEY(`groupId`), FOREIGN KEY(`groupId`) REFERENCES `groups`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "groupId",
+            "columnName": "groupId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "itemId",
+            "columnName": "itemId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batchId",
+            "columnName": "batchId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "releaseYear",
+            "columnName": "releaseYear",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "edition",
+            "columnName": "edition",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "distributor",
+            "columnName": "distributor",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "condition",
+            "columnName": "condition",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "conditionNotes",
+            "columnName": "conditionNotes",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "location",
+            "columnName": "location",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "barcode",
+            "columnName": "barcode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "priceCents",
+            "columnName": "priceCents",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "discountBasisPoints",
+            "columnName": "discountBasisPoints",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "quantity",
+            "columnName": "quantity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "poolMode",
+            "columnName": "poolMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vendor",
+            "columnName": "vendor",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "productType",
+            "columnName": "productType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tags",
+            "columnName": "tags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weightGrams",
+            "columnName": "weightGrams",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rare",
+            "columnName": "rare",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "review",
+            "columnName": "review",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ready",
+            "columnName": "ready",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "archived",
+            "columnName": "archived",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "priceSource",
+            "columnName": "priceSource",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "priceEvidenceJson",
+            "columnName": "priceEvidenceJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recognitionId",
+            "columnName": "recognitionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "captureNote",
+            "columnName": "captureNote",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shopifyProductId",
+            "columnName": "shopifyProductId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shopifyVariantId",
+            "columnName": "shopifyVariantId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shopifyInventoryItemId",
+            "columnName": "shopifyInventoryItemId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shopifyState",
+            "columnName": "shopifyState",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revision",
+            "columnName": "revision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "groupId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_inventory_itemId",
+            "unique": true,
+            "columnNames": [
+              "itemId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_inventory_itemId` ON `${TABLE_NAME}` (`itemId`)"
+          },
+          {
+            "name": "index_inventory_batchId",
+            "unique": false,
+            "columnNames": [
+              "batchId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_inventory_batchId` ON `${TABLE_NAME}` (`batchId`)"
+          },
+          {
+            "name": "index_inventory_title",
+            "unique": false,
+            "columnNames": [
+              "title"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_inventory_title` ON `${TABLE_NAME}` (`title`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "groups",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "groupId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "inventory_audit",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `groupId` TEXT NOT NULL, `action` TEXT NOT NULL, `beforeJson` TEXT NOT NULL, `afterJson` TEXT NOT NULL, `occurredAt` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "groupId",
+            "columnName": "groupId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "action",
+            "columnName": "action",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "beforeJson",
+            "columnName": "beforeJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "afterJson",
+            "columnName": "afterJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "occurredAt",
+            "columnName": "occurredAt",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_inventory_audit_groupId",
+            "unique": false,
+            "columnNames": [
+              "groupId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_inventory_audit_groupId` ON `${TABLE_NAME}` (`groupId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "transfer_jobs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `kind` TEXT NOT NULL, `state` TEXT NOT NULL, `completed` INTEGER NOT NULL, `total` INTEGER NOT NULL, `filename` TEXT NOT NULL, `sha256` TEXT NOT NULL, `error` TEXT NOT NULL, `createdAt` TEXT NOT NULL, `updatedAt` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completed",
+            "columnName": "completed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "total",
+            "columnName": "total",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "filename",
+            "columnName": "filename",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sha256",
+            "columnName": "sha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "error",
+            "columnName": "error",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '58bcc77bfb4cc9bb317cb30217c2c5ed')"
+    ]
+  }
+}

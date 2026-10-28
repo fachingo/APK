@@ -5,3 +5,6 @@ local.properties
 *.jks
 *.keystore
 captures/
+
+__pycache__/
+*.pyc

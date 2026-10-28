@@ -1,0 +1,12 @@
+{
+  "item_ids": [
+    "20261028-160246-B2-001",
+    "20261028-160246-B2-002"
+  ],
+  "format": "snapims.inventory.snapshot",
+  "batch_id": "20261028-160246",
+  "items": 2,
+  "photos": 4,
+  "sha256": "e708fbb7b803771564943b8b0bb51d36c98402b528af7cdc357f7b6774633a56",
+  "output": "/workspace/.setup/desktop-to-native-fixture/desktop-to-phone.zip"
+}

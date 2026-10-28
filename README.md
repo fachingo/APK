@@ -1,10 +1,32 @@
-# SnapIMS Mobile 0.1.2
+# SnapIMS Next 0.2.0
 
-**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Mobile-0.1.2-debug.apk)** · [SHA-256](releases/SnapIMS-Mobile-0.1.2-debug.apk.sha256)
+**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.2.0-debug.apk)** · [SHA-256](releases/SnapIMS-Next-0.2.0-debug.apk.sha256)
 
-Native camera companion for Canada VHS, with durable offline sessions, explicit
-Capture/Next grouping, barcode scanning, verified ZIP exports and reviewable recognition.
-This is a debug-signed acceptance update for arm64 Google Pixel devices.
+Standalone native Android inventory for Canada VHS, built on the existing SnapIMS
+rules and compatible capture formats. No desktop process, local HTTP server or LAN
+connection is required for capture, inventory, search, review or backup.
+
+This is **Milestone A** of the [owner’s master directive](docs/next/MASTER_DIRECTIVE.md),
+with the ordered A–D continuation and SIWC investigation recorded in
+[the feature matrix](docs/next/FEATURE_MATRIX.md). It does not claim verified Shopify
+publishing or ChatGPT subscription sign-in. The current official docs are blocked
+in this environment and no eligible account/physical phone is attached.
+
+## Standalone inventory
+
+- Permanent physical-copy Item ID / SKU, separate from barcode and capture UUID.
+- Search/filter and full on-phone metadata, condition, location, price/discount,
+  stock, weight and listing-readiness editing, with optimistic revisions and audit.
+- Add/retake/reorder/regroup/remove/restore photographs on finished items; previous
+  originals and historical ZIP exports remain intact.
+- Passphrase-protected, photo-inclusive backup/merge restore; duplicate-safe portable
+  and native capture ZIP imports, desktop-compatible CSV and read-only desktop export.
+- Real local inventory counts and offline operation; no fake sales or pricing data.
+
+Read [Milestone A usage and limits](docs/next/MILESTONE_A.md),
+[architecture/compatibility](docs/next/ARCHITECTURE_AND_COMPATIBILITY.md) and
+[build/CI instructions](docs/next/BUILD_AND_CI.md). GitHub Actions builds APKs/tests;
+update-compatible CI signing needs the retained key configured as a repository secret.
 
 ## Camera update
 
@@ -42,13 +64,12 @@ OpenAI request on each shutter. See [recognition details](docs/RECOGNITION_0.1.1
 
 ## Update without losing captures
 
-Install 0.1.2 **over** 0.1.0 or 0.1.1; do not uninstall or clear app storage.
-Application ID and signing key are unchanged, versionCode increases to 3, and Room
-remains version 2 with the existing tested 1→2 migration for 0.1.0 updates.
-Capture data, recognition preferences and encrypted API keys are retained.
-Keep verified ZIP backups before device resets or app removal.
-Android private data is removed by uninstall/clear-storage; automatic backup is disabled.
-The debug signing key must be retained for future updates; never commit signing keys.
+Install 0.2.0 **over** 0.1.0, 0.1.1 or 0.1.2; do not uninstall or clear app storage.
+Application ID and signing key are unchanged, versionCode increases to 4. Explicit
+Room migrations 1→2→3 retain existing captures/archives and add inventory records.
+Existing API-key credentials and camera preferences remain on the device. New
+protected backups exclude API keys, which must be reconnected on a different phone.
+Save and verify backups outside app-private storage before device reset/app removal.
 
 ## Build
 

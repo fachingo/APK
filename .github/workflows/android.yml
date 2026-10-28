@@ -1,0 +1,60 @@
+name: Android APK
+on:
+  push:
+    branches: [main]
+    paths: ['app/**', 'core/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', '.github/workflows/android.yml']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANDROID_USER_HOME: ${{ github.workspace }}/.ci-android-user
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install pinned SDK
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
+      - name: Optional update-compatible debug signing
+        env:
+          CI_KEYSTORE: ${{ secrets.SNAPIMS_DEBUG_KEYSTORE_BASE64 }}
+        shell: python
+        run: |
+          import base64, os
+          from pathlib import Path
+          directory = Path(os.environ['ANDROID_USER_HOME'])
+          directory.mkdir(parents=True, exist_ok=True)
+          if os.environ.get('CI_KEYSTORE'):
+              target = directory / 'debug.keystore'
+              target.write_bytes(base64.b64decode(os.environ['CI_KEYSTORE'], validate=True))
+              target.chmod(0o600)
+          else:
+              print('No update-signing secret configured: CI APK uses a new debug identity and cannot update an installed official APK.')
+      - name: Tests and APKs
+        run: ./gradlew --no-daemon :core:test :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Lint after kapt completes
+        run: ./gradlew --no-daemon :app:lintDebug
+      - name: APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: SnapIMS-Next-${{ github.sha }}
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/androidTest/debug/*.apk
+      - name: Test and lint evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Validation-${{ github.sha }}
+          path: |
+            core/build/test-results/
+            app/build/test-results/
+            app/build/reports/lint-results-debug.*

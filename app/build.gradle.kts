@@ -10,8 +10,8 @@ android {
         minSdk = 28
         targetSdk = 36
         ndk { abiFilters += "arm64-v8a" }
-        versionCode = 3
-        versionName = "0.1.2"
+        versionCode = 4
+        versionName = "0.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true }
@@ -63,6 +63,10 @@ dependencies {
 
 // Give the host-side Android runtime a writable cache without changing shell HOME.
 tasks.withType<Test>().configureEach {
+    // Robolectric/WorkManager keep process-global schedulers. Separate classes
+    // prevent teardown callbacks from crossing native test-runtime boundaries.
+    forkEvery = 1
+    maxParallelForks = 1
     val testHome = layout.buildDirectory.dir("test-home").get().asFile
     doFirst { testHome.mkdirs() }
     systemProperty("user.home", testHome.absolutePath)

@@ -42,6 +42,7 @@ class CameraLayoutTest {
     private val compose = createAndroidComposeRule<MainActivity>()
     @get:Rule val rules: RuleChain = RuleChain.outerRule(seed).around(compose)
     @Test fun landscapeKeepsShutterNextAndResolutionVisible() {
+        compose.onNodeWithText("Capture").performClick()
         compose.waitUntil(10000) { compose.onAllNodesWithText("Landscape batch").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("shutter").assertIsDisplayed()
         compose.onNodeWithContentDescription("Next product").assertIsDisplayed()
@@ -57,6 +58,7 @@ class CameraLayoutTest {
     }
     private fun checkSettingsAndPortraitRotation() {
         compose.onNodeWithText("Settings").performClick()
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Photo resolution"))
         compose.onNodeWithText("Photo resolution").assertIsDisplayed()
         compose.onNodeWithText("1.2 MP · smaller files ▾").performClick()
         compose.onNodeWithText("6 MP · more detail").performClick()
@@ -69,6 +71,7 @@ class CameraLayoutTest {
         assertTrue(info.configChanges and android.content.pm.ActivityInfo.CONFIG_ORIENTATION != 0)
         assertTrue(info.configChanges and android.content.pm.ActivityInfo.CONFIG_SCREEN_SIZE != 0)
         assertEquals(before, System.identityHashCode(compose.activity))
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Photo resolution"))
         compose.onNodeWithText("Photo resolution").assertIsDisplayed()
         compose.onNodeWithText("6 MP · more detail ▾").assertIsDisplayed()
         compose.onNodeWithText("Capture").performClick()

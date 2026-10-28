@@ -4,7 +4,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera.any" android:required="true" />
-    <application android:name=".CaptureApplication" android:label="SnapIMS" android:icon="@drawable/ic_app"
+    <application android:name=".CaptureApplication" android:label="SnapIMS Next" android:icon="@drawable/ic_app"
         android:allowBackup="false" android:theme="@style/Theme.SnapMobile" android:usesCleartextTraffic="false">
         <activity android:name=".MainActivity" android:exported="true" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>

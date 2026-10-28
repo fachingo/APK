@@ -124,7 +124,7 @@ suspend fun mobileManifest(repo: CaptureRepository, archive: ArchiveRow, groups:
         .put("session", JSONObject().put("id", session.id).put("name", session.name).put("created_at", session.createdAt))
         .put("groups", JSONArray(groups.map { group ->
             val list = photos.getValue(group.id); val barcode = barcodeInfo(group, list); val code = barcode.optString("selected").takeUnless { it == "null" }
-            JSONObject().put("recognition", repo.recognitionManifest(group.id)).put("id", group.id).put("number", group.number).put("captured_at", group.createdAt).put("location", group.location)
+            JSONObject().put("inventory", repo.journal.inventoryDao().item(group.id)?.let(::inventoryJson) ?: JSONObject.NULL).put("recognition", repo.recognitionManifest(group.id)).put("id", group.id).put("number", group.number).put("captured_at", group.createdAt).put("location", group.location)
                 .put("rare", group.rare).put("review", group.review || barcode.getString("status") in setOf("AMBIGUOUS", "SCAN_ERROR") || list.none { it.role == "FRONT" } || list.none { it.role == "BACK" })
                 .put("note", group.note).put("barcode", barcode)
                 .put("photos", JSONArray(list.mapIndexed { i, p -> JSONObject().put("id", p.id).put("order", i + 1).put("role", p.role).put("captured_at", p.capturedAt).put("filename", photoFilename(group.createdAt, code, group.id, i, Role.valueOf(p.role))).put("bytes", p.bytes).put("sha256", p.sha256) }))

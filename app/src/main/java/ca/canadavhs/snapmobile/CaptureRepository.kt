@@ -28,24 +28,25 @@ fun syncDirectory(directory: File) {
     val fd = Os.open(directory.path, OsConstants.O_RDONLY, 0)
     try { Os.fsync(fd) } finally { Os.close(fd) }
 }
-class CaptureRepository(val context: Context, val journal: CaptureJournal, private val directorySync: (File) -> Unit = ::syncDirectory) {
+class CaptureRepository(val context: Context, val journal: CaptureJournal, val dataRoot: File = context.filesDir, private val storageFreeBytes: (File) -> Long = { it.usableSpace }, private val directorySync: (File) -> Unit = ::syncDirectory) {
+    fun freeSpace(folder: File) = storageFreeBytes(folder)
     fun sync(folder: File) = directorySync(folder)
     val dao = journal.dao()
     private val lock = Mutex()
     private val fileLock = Mutex()
-    val originals = File(context.filesDir, "originals").apply { mkdirs() }
-    val archiveDir = File(context.filesDir, "archives").apply { mkdirs() }
+    val originals = File(dataRoot, "originals").apply { mkdirs() }
+    val archiveDir = File(dataRoot, "archives").apply { mkdirs() }
     val preferences = context.getSharedPreferences("capture-settings", Context.MODE_PRIVATE)
     fun original(id: String) = File(originals, "$id.jpg")
     fun pendingFile(id: String) = File(originals, "$id.pending")
     private suspend fun event(session: String, group: String?, action: String) = dao.insert(EventRow(sessionId = session, groupId = group, action = action))
-    private suspend fun <T> mutate(block: suspend () -> T): T = withContext(Dispatchers.IO) { lock.withLock { journal.withTransaction { block() } } }
+    internal suspend fun <T> mutate(block: suspend () -> T): T = withContext(Dispatchers.IO) { lock.withLock { journal.withTransaction { block() } } }
     suspend fun start(name: String, location: String): SessionRow = mutate {
         check(dao.active() == null) { "Finish the current batch before starting another." }
         require(name.isNotBlank() && name.length <= 80) { "Use a batch name of 1–80 characters." }
         require(validLocation(location)) { "Location must be A1–J10, Q1, or blank." }
         val session = SessionRow(name = name.trim(), location = location)
-        dao.insert(session); dao.insert(GroupRow(sessionId = session.id, number = 1, location = location))
+        dao.insert(session); ensureInventoryBatch(session); dao.insert(GroupRow(sessionId = session.id, number = 1, location = location))
         event(session.id, null, "CVHS1:BATCH:START"); session
     }
     suspend fun current(): GroupRow = dao.active()?.let { dao.groups(it.id).last { g -> !g.closed } } ?: error("Start a batch first.")
@@ -56,11 +57,12 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, priva
     }
     suspend fun reserve(): PhotoRow = mutate {
         val group = current(); editable(group, allowPending = true)
+        ensureInventoryItem(group)
         check(dao.pending().size < 3) { "Three photos are saving. Please wait a moment." }
-        check(originals.usableSpace > 100L * 1024 * 1024) { "Less than 100 MB free. Export and back up captures, then free space before continuing." }
+        check(freeSpace(originals) > 100L * 1024 * 1024) { "Less than 100 MB free. Export and back up captures, then free space before continuing." }
         val photos = dao.photos(group.id).filter { !it.deleted }
         val photo = PhotoRow(groupId = group.id, position = (photos.maxOfOrNull { it.position } ?: -1) + 1, role = defaultRole(photos.size).name)
-        dao.insert(photo); photo
+        dao.insert(photo); invalidateInventory(group.id, "PHOTO_RESERVED"); photo
     }
     private fun completeJpeg(file: File): Boolean {
         if (!file.exists() || file.length() < 4) return false
@@ -91,6 +93,8 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, priva
         // Retry valid but previously interrupted writes without deleting incomplete files.
         dao.pendingScans().forEach { enqueueScan(it) }
         dao.unfinishedArchives().forEach { enqueueArchive(it.id) }
+        backfillInventory()
+        recoverTransferJobs()
         recoverRecognition()
     }
     suspend fun next() {
@@ -129,40 +133,55 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, priva
     suspend fun location(value: String) = mutate {
         require(validLocation(value)) { "Use A1–J10, Q1, or blank." }
         val group = current(); editable(group)
-        dao.update(dao.session(group.sessionId).copy(location = value)); dao.update(group.copy(location = value)); event(group.sessionId, group.id, "CVHS1:LOC:$value")
+        dao.update(dao.session(group.sessionId).copy(location = value)); dao.update(group.copy(location = value))
+        journal.inventoryDao().item(group.id)?.let { old ->
+            val saved=old.copy(location=value,ready=false,revision=old.revision+1,updatedAt=java.time.OffsetDateTime.now().toString())
+            journal.inventoryDao().update(saved);inventoryAudit(old,saved,"LOCATION_CHANGED")
+        }
+        event(group.sessionId, group.id, "CVHS1:LOC:$value")
     }
     suspend fun flags(id: String, rare: Boolean, review: Boolean, note: String) = mutate {
         val group = dao.group(id); editable(group); dao.update(group.copy(rare = rare, review = review, note = note.take(1000)))
+        journal.inventoryDao().item(id)?.let { item ->
+            val changed = item.copy(rare = rare, review = review, captureNote = note.take(1000), poolMode = if (rare) "UNIQUE" else item.poolMode, ready = false, revision = item.revision + 1, updatedAt = java.time.OffsetDateTime.now().toString())
+            journal.inventoryDao().update(changed); inventoryAudit(item, changed, "CAPTURE_FLAGS")
+        }
         event(group.sessionId, id, "FLAGS:rare=$rare,review=$review")
     }
     suspend fun barcode(id: String, value: String?) = mutate {
         val group = dao.group(id); editable(group)
         val raw = value?.trim()
         if (!raw.isNullOrEmpty()) require(raw.length in listOf(8, 12, 13, 14) && (Barcodes.checksum(raw) || (raw.length == 8 && Barcodes.candidate(raw, "UPC_E").valid))) { "Enter a valid UPC/EAN with its check digit, or leave blank for no barcode." }
-        dao.update(group.copy(barcodeOverride = raw)); event(group.sessionId, id, "BARCODE_CORRECTED")
+        dao.update(group.copy(barcodeOverride = raw))
+        journal.inventoryDao().item(id)?.let { old ->
+            val saved=old.copy(barcode=raw ?: "",ready=false,revision=old.revision+1,updatedAt=java.time.OffsetDateTime.now().toString())
+            journal.inventoryDao().update(saved);inventoryAudit(old,saved,"BARCODE_CORRECTED")
+        }
+        event(group.sessionId, id, "BARCODE_CORRECTED")
     }
     suspend fun deletePhoto(id: String) = mutate {
         val photo = dao.photo(id); val group = dao.group(photo.groupId); editable(group)
-        dao.update(photo.copy(deleted = true)); event(group.sessionId, group.id, "PHOTO_REMOVED:$id")
+        dao.update(photo.copy(deleted = true)); invalidateInventory(group.id, "PHOTO_REMOVED"); event(group.sessionId, group.id, "PHOTO_REMOVED:$id")
     }
     suspend fun restorePhoto(id: String) = mutate {
-        val p = dao.photo(id); editable(dao.group(p.groupId)); dao.update(p.copy(deleted = false, position = (dao.photos(p.groupId).maxOfOrNull { it.position } ?: -1) + 1))
+        val p = dao.photo(id); editable(dao.group(p.groupId)); dao.update(p.copy(deleted = false, position = (dao.photos(p.groupId).maxOfOrNull { it.position } ?: -1) + 1)); invalidateInventory(p.groupId, "PHOTO_RESTORED")
     }
     suspend fun role(id: String, role: Role) = mutate {
-        val photo = dao.photo(id); editable(dao.group(photo.groupId)); dao.update(photo.copy(role = role.name))
+        val photo = dao.photo(id); editable(dao.group(photo.groupId)); dao.update(photo.copy(role = role.name)); invalidateInventory(photo.groupId, "PHOTO_ROLE")
     }
     suspend fun reorder(id: String, delta: Int) = mutate {
         val photo = dao.photo(id); editable(dao.group(photo.groupId))
         val photos = dao.photos(photo.groupId).filter { !it.deleted }.toMutableList(); val index = photos.indexOfFirst { it.id == id }
         require(index + delta in photos.indices) { "Already at the end." }
         java.util.Collections.swap(photos, index, index + delta)
-        photos.forEachIndexed { i, p -> dao.update(p.copy(position = i)) }
+        photos.forEachIndexed { i, p -> dao.update(p.copy(position = i)) }; invalidateInventory(photo.groupId, "PHOTO_REORDERED")
     }
     suspend fun move(id: String, delta: Int) = mutate {
         val photo = dao.photo(id); val source = dao.group(photo.groupId); editable(source)
         val target = dao.groups(source.sessionId).firstOrNull { it.number == source.number + delta } ?: error("No neighboring group.")
         editable(target)
         dao.update(photo.copy(groupId = target.id, position = (dao.photos(target.id).maxOfOrNull { it.position } ?: -1) + 1))
+        invalidateInventory(source.id, "PHOTO_MOVED_OUT"); invalidateInventory(target.id, "PHOTO_MOVED_IN")
         event(source.sessionId, source.id, "PHOTO_MOVED:$id:${target.id}")
     }
     fun archiveLimit(): Long = preferences.getInt("archiveMb", 500).toLong() * 1_000_000

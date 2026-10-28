@@ -68,8 +68,9 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
     val photos by vm.photos.collectAsStateWithLifecycle(); val archives by vm.archives.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val wide = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
-    val destinations = listOf("Capture" to Icons.Outlined.CameraAlt, "Batches" to Icons.Outlined.PhotoLibrary, "Transfers" to Icons.Outlined.Outbox, "Settings" to Icons.Outlined.Tune)
-    var screen by rememberSaveable { mutableIntStateOf(0) }
+    val destinations = listOf("Home" to Icons.Outlined.Home, "Capture" to Icons.Outlined.CameraAlt, "Inventory" to Icons.Outlined.Inventory2, "Batches" to Icons.Outlined.PhotoLibrary, "Settings" to Icons.Outlined.Tune)
+    val destinationRoutes = listOf(4,0,5,1,3)
+    var screen by rememberSaveable { mutableIntStateOf(4) }
     var light by remember { mutableStateOf(vm.repo.preferences.getBoolean("light", false)) }
     var startDialog by remember { mutableStateOf(false) }
     var finishDialog by remember { mutableStateOf(false) }
@@ -110,13 +111,13 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
         Scaffold(snackbarHost = { SnackbarHost(snackbar) }, bottomBar = {
             if (!wide) NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
                 destinations.forEachIndexed { i, entry ->
-                    NavigationBarItem(selected = screen == i, onClick = { if (!vm.busy) screen = i }, enabled = !vm.busy, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first) })
+                    NavigationBarItem(selected = screen == destinationRoutes[i] || (destinationRoutes[i] == 3 && screen in listOf(2,6)), onClick = { if (!vm.busy && !vm.maintenance) screen = destinationRoutes[i] }, enabled = !vm.busy && !vm.maintenance, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first) })
                 }
             }
         }) { padding ->
             Row(Modifier.fillMaxSize().padding(padding)) {
                 if (wide) NavigationRail {
-                    destinations.forEachIndexed { i, entry -> NavigationRailItem(selected = screen == i, enabled = !vm.busy, onClick = { if (!vm.busy) screen = i }, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first, fontSize = 10.sp) }) }
+                    destinations.forEachIndexed { i, entry -> NavigationRailItem(selected = screen == destinationRoutes[i] || (destinationRoutes[i] == 3 && screen in listOf(2,6)), enabled = !vm.busy && !vm.maintenance, onClick = { if (!vm.busy && !vm.maintenance) screen = destinationRoutes[i] }, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first, fontSize = 10.sp) }) }
                 }
                 Box(Modifier.weight(1f).fillMaxHeight()) {
                 when (screen) {
@@ -124,7 +125,7 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
                     1 -> BatchesScreen(vm, sessions, groups, photos, archives, onStart = { startDialog = true })
                     2 -> Column(Modifier.fillMaxSize().padding(24.dp)) {
                         PageTitle("Transfers", "Portable archives · originals stay on this device")
-                        Text("Save a ZIP to Files or share it with your workstation, then run the documented SnapIMS mobile importer.", style = MaterialTheme.typography.bodyMedium)
+                        Text("Save verified capture ZIPs to Files or share them. Your inventory remains usable on this phone. Open Settings → Backup & import for protected backups and inventory packages.", style = MaterialTheme.typography.bodyMedium)
                         Spacer(Modifier.height(12.dp))
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) { items(archives.reversed(), key = { it.id }) { a ->
                             Surface(shape = RoundedCornerShape(20.dp), tonalElevation = 2.dp) { Column(Modifier.padding(16.dp)) {
@@ -136,14 +137,17 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
                             } }
                         }; if (archives.isEmpty()) item { EmptyState("No archives yet", "Next closes a product. Finish Batch or Finalize Part packages complete groups.") } }
                     }
-                    3 -> SettingsScreen(vm, light) { light = it }
+                    3 -> SettingsScreen(vm, light, onBackups = { screen = 6 }, onExports = { screen = 2 }) { light = it }
+                    4 -> InventoryHome(vm, capture = { screen = 0 }, inventory = { screen = 5 }, batches = { screen = 1 }, backups = { screen = 6 })
+                    5 -> InventoryScreen(vm, reviewPhotos = { screen = 1 })
+                    6 -> BackupScreen(vm) { screen = 3 }
                 }
                 if (!vm.initialized) Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { Box(contentAlignment = Alignment.Center) { Text("Recovering your capture journal…") } }
             }
         }
         }
         if (startDialog) StartBatchDialog(vm) { startDialog = false }
-        if (finishDialog) AlertDialog(onDismissRequest = { finishDialog = false }, title = { Text("Finish this batch?") }, text = { Text("The open product will be finalized, including incomplete front/back sets. Archives will be verified in the background. Originals stay on this device. Finished groups cannot be edited.") }, confirmButton = { TextButton(enabled = !vm.pendingCapture, onClick = { if (!vm.pendingCapture) { finishDialog = false; vm.action { vm.repo.finish() } } }) { Text("Finish batch") } }, dismissButton = { TextButton(onClick = { finishDialog = false }) { Text("Keep capturing") } })
+        if (finishDialog) AlertDialog(onDismissRequest = { finishDialog = false }, title = { Text("Finish this batch?") }, text = { Text("The open product will be finalized, including incomplete front/back sets. Archives will be verified in the background. Originals stay on this device. Inventory details and photo corrections remain available in Inventory.") }, confirmButton = { TextButton(enabled = !vm.pendingCapture, onClick = { if (!vm.pendingCapture) { finishDialog = false; vm.action { vm.repo.finish() } } }) { Text("Finish batch") } }, dismissButton = { TextButton(onClick = { finishDialog = false }) { Text("Keep capturing") } })
     }
 }
 @Composable fun PageTitle(title: String, subtitle: String) { Text(title, fontSize = 30.sp, fontWeight = FontWeight.Bold); Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant); Spacer(Modifier.height(20.dp)) }
@@ -201,6 +205,18 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
                 Surface(shape = RoundedCornerShape(12.dp), color = Lime) { Text(nextRole.name, Modifier.padding(12.dp), color = Color(0xFF17200C), fontWeight = FontWeight.Bold, fontSize = 12.sp) }
             }
             Column(Modifier.align(Alignment.CenterEnd).padding(4.dp).heightIn(max = if (landscape) 150.dp else 280.dp).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
+                CameraControl(Icons.Outlined.QrCodeScanner, "Read CVHS QR command", !vm.pendingCapture) {
+                    vm.scanCommand(engine) { command ->
+                        when(command.kind) {
+                            "START" -> if(session==null) onStart() else vm.message="Batch is already started; duplicate START ignored."
+                            "END" -> if(session!=null) onFinish() else vm.message="Start a batch before END."
+                            "NEXT" -> vm.action {if(session!=null && vm.repo.dao.photos(vm.repo.current().id).any {!it.deleted && it.state=="READY"}) vm.repo.next() else vm.message="No open photographed item; NEXT ignored."}
+                            "CONT" -> vm.message="CONT compatibility card: continue this item; no boundary added."
+                            "LOCATION" -> vm.action {vm.repo.applyQrLocation(command.value);vm.message="QR location saved. If an item has photos, it applies after NEXT."}
+                            "RARE","REVIEW" -> vm.action {val current=vm.repo.current();vm.repo.flags(current.id,command.kind=="RARE" || current.rare,command.kind=="REVIEW" || current.review,current.note)}
+                        }
+                    }
+                }
                 CameraControl(Icons.Outlined.Cameraswitch, "Switch front/rear lens", !vm.busy) { front = !front }
                 CameraControl(if (torch) Icons.Outlined.FlashlightOn else Icons.Outlined.FlashlightOff, "Torch", !vm.busy) { torch = !torch; engine.torch(torch) }
                 CameraControl(if (flash == ImageCapture.FLASH_MODE_OFF) Icons.Outlined.FlashOff else Icons.Outlined.FlashOn, "Flash", !vm.busy) { flash = if (flash == ImageCapture.FLASH_MODE_OFF) ImageCapture.FLASH_MODE_ON else ImageCapture.FLASH_MODE_OFF; vm.flash = flash }
@@ -355,14 +371,15 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
         } }, confirmButton = { TextButton(onClick = { inspected = null }) { Text("Done") } })
     }
 }
-@Composable fun SettingsScreen(vm: CaptureViewModel, light: Boolean, appearance: (Boolean) -> Unit) {
+@Composable fun SettingsScreen(vm: CaptureViewModel, light: Boolean, onBackups: () -> Unit = {}, onExports: () -> Unit = {}, appearance: (Boolean) -> Unit) {
     val prefs = vm.repo.preferences
     val context = LocalContext.current
     var showLicenses by remember { mutableStateOf(false) }
     var archiveMb by remember { mutableStateOf(prefs.getInt("archiveMb", 500).toString()) }
     var location by remember { mutableStateOf(prefs.getString("defaultLocation", "") ?: "") }
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(vertical = 24.dp)) {
-        item { PageTitle("Settings", "Built for capture, even without a connection") }
+        item { PageTitle("Settings", "Your collection, your controls") }
+        item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { OutlinedButton(onClick = onBackups) { Text("Backup & import") }; OutlinedButton(onClick = onExports) { Text("Transfers") } } }
         item { Text("CAMERA", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
         item { ResolutionSettings(prefs) }
         item { PreferenceSwitch("Fast capture", prefs.getBoolean("fastCapture", true)) { prefs.edit().putBoolean("fastCapture", it).apply() } }
@@ -377,10 +394,10 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
         item { Text("ARCHIVES & RETENTION", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
         item { OutlinedTextField(archiveMb, { value -> archiveMb = value.filter(Char::isDigit).take(5); val n = archiveMb.toIntOrNull(); if (n != null && n in 1..10000) prefs.edit().putInt("archiveMb", n).apply() }, label = { Text("Archive target · MB") }, supportingText = { Text("1–10,000 MB · whole products only; oversized products stay together") }, isError = archiveMb.toIntOrNull() !in 1..10000, singleLine = true) }
         item { OutlinedTextField(location, { location = it.uppercase().take(3); if (validLocation(location)) prefs.edit().putString("defaultLocation", location).apply() }, label = { Text("Default location") }, supportingText = { Text("A1–J10 or Q1, optional") }, isError = !validLocation(location), singleLine = true) }
-        item { Text("Choose an export destination each time using Save to Files. Exported groups are locked to keep imports repeatable. Removing a photo keeps its source file. No automatic deletion or cloud backup. Uninstalling Android apps removes private files: save and verify all ZIPs before uninstalling or clearing storage.", style = MaterialTheme.typography.bodySmall) }
+        item { Text("Choose an export destination each time using Save to Files. Existing capture ZIPs remain unchanged; make inventory and photo corrections in Inventory. Removing a photo keeps its source file. No automatic deletion or cloud backup. Uninstalling Android apps removes private files: save and verify all ZIPs before uninstalling or clearing storage.", style = MaterialTheme.typography.bodySmall) }
         item { PreferenceSwitch("Light appearance", light) { prefs.edit().putBoolean("light", it).apply(); appearance(it) } }
         item { TextButton(onClick = { showLicenses = true }) { Text("Third-party notices & licenses") } }
-        item { Text("SnapIMS Mobile 0.1.2 · camera update\nDevelopment APK; physical Pixel validation is required before inventory use.", style = MaterialTheme.typography.bodySmall) }
+        item { Text("SnapIMS Next 0.2.0 · standalone inventory", style = MaterialTheme.typography.bodySmall) }
     }
     if (showLicenses) NoticesDialog(context) { showLicenses = false }
 
