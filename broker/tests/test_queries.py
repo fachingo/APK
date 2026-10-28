@@ -11,8 +11,9 @@ fixtures={
 'file_create':dict(owned,source='https://storage.googleapis.com/fixture',filename='fixture-F.jpg',alt='fixture'),'files_find':{'filename':'fixture-F.jpg'},'file_status':{'fileId':f},
 'attach':dict(owned,productId=p,fileId=f),'reorder':dict(owned,productId=p,fileIds=[f]),'remote_job':{'jobId':'gid://shopify/Job/1'},'activate_product':dict(owned,productId=p),
 'publish':dict(owned,productId=p,publicationId=pub),'publication_status':dict(owned,productId=p,publicationId=pub)}
+fixtures.update(browse={'query':'Fixture','status':'DRAFT','cursor':''},claim=dict(owned,itemId='fixture-A1-001',productId=p,locationId=l,expectedVersion='a'*64),metadata_update=dict(owned,itemId='fixture-A1-001',productId=p,locationId=l,expectedVersion='a'*64,patch={'title':'Reviewed'}))
 def test_closed_registry_graphql_documents_have_valid_syntax():
     # Syntax only. Live Shopify schema compatibility remains unverified.
-    assert len(fixtures)==19
+    assert len(fixtures)==22
     for kind,args in fixtures.items():
         parse(prepare(kind,args,True).query)

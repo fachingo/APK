@@ -78,7 +78,7 @@ interface JournalDao {
     @Update suspend fun update(row: ArchiveRow)
     @Query("DELETE FROM groups WHERE id=:id AND id NOT IN (SELECT groupId FROM photos)") suspend fun removeEmptyGroup(id: String)
 }
-@Database(entities = [SessionRow::class, GroupRow::class, PhotoRow::class, ArchiveRow::class, EventRow::class, RecognitionRow::class, InventoryBatchRow::class, InventoryRow::class, InventoryAuditRow::class, TransferJobRow::class, PricingEvidenceRow::class, ChatConversationRow::class, ChatMessageRow::class, AiCapabilityRow::class, AgentApprovalRow::class, ListingPlanRow::class, SiwcProofRow::class, ShopifyJobRow::class, ShopifyItemJobRow::class, MarketSaleRow::class, MarketImportRow::class, PriceDecisionRow::class, MarketSearchRow::class, AgentTaskRow::class], version = 7, exportSchema = true)
+@Database(entities = [SessionRow::class, GroupRow::class, PhotoRow::class, ArchiveRow::class, EventRow::class, RecognitionRow::class, InventoryBatchRow::class, InventoryRow::class, InventoryAuditRow::class, TransferJobRow::class, PricingEvidenceRow::class, ChatConversationRow::class, ChatMessageRow::class, AiCapabilityRow::class, AgentApprovalRow::class, ListingPlanRow::class, SiwcProofRow::class, ShopifyJobRow::class, ShopifyItemJobRow::class, MarketSaleRow::class, MarketImportRow::class, PriceDecisionRow::class, MarketSearchRow::class, AgentTaskRow::class, ShopifyReviewRow::class], version = 8, exportSchema = true)
 abstract class CaptureJournal : RoomDatabase() { abstract fun dao(): JournalDao; abstract fun inventoryDao(): InventoryDao; abstract fun nextDao(): NextDao; abstract fun shopifyDao():ShopifyDao
     abstract fun marketDao():MarketDao; abstract fun agentTaskDao():AgentTaskDao }
 class CaptureApplication : Application() {
@@ -86,7 +86,7 @@ class CaptureApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         val journal = Room.databaseBuilder(this, CaptureJournal::class.java, "capture-journal.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
             .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onOpen(db: androidx.sqlite.db.SupportSQLiteDatabase) { db.execSQL("PRAGMA synchronous=FULL") }

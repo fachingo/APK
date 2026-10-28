@@ -67,7 +67,7 @@ internal suspend fun CaptureRepository.resumeShopify(id:String,base:String,healt
     check(health.getBoolean("developmentStore"))
     mutate {val jobs=journal.shopifyDao();val old=jobs.job(id) ?: error("Job missing")
         check(old.shopId==health.getString("shopId") && old.shop==health.getString("shop")) {"Reconnect to the original store."}
-        check(jobs.items(id).none {it.state=="NEEDS_REVIEW"}) {"A changed item requires review; automatic retry is disabled."}
+        check(jobs.items(id).none {it.state=="NEEDS_REVIEW"}) {"An item or restored review requires fresh approval. Cancel remaining work and prepare a new review."}
         jobs.items(id).filter {it.state!="SUCCESS"}.forEach {jobs.update(it.copy(state="QUEUED",error=""))}
         jobs.update(old.copy(broker=base,connectionFingerprint=shopifyConnectionFingerprint(context,base),state="QUEUED",error="",updatedAt=System.currentTimeMillis()))
     };enqueueShopify(id)
@@ -76,7 +76,7 @@ internal class ShopifyWait:Exception()
 internal class ShopifyPipeline(private val repo:CaptureRepository,private val gateway:ShopifyGateway,private val vault:ShopifyUploadVault=ShopifyUploadVault(repo.context)) {
     private val jobs=repo.journal.shopifyDao()
     private suspend fun persist(row:ShopifyItemJobRow,step:String,remote:JSONObject,checkpoint:JSONObject,state:String="RUNNING"):ShopifyItemJobRow {
-        val saved=row.copy(step=step,remoteJson=remote.toString(),checkpointJson=checkpoint.toString(),state=state,error="",updatedAt=System.currentTimeMillis());repo.mutate {jobs.update(saved)};return saved
+        val saved=row.copy(step=step,remoteJson=remote.toString(),checkpointJson=checkpoint.toString(),state=state,error="",updatedAt=System.currentTimeMillis());repo.mutate {check(jobs.job(row.jobId)?.state in listOf("QUEUED","RUNNING","WAITING_REMOTE")) {"Job paused or cancelled."};jobs.update(saved)};return saved
     }
     private suspend fun current(job:ShopifyJobRow,row:ShopifyItemJobRow) {
         currentCoroutineContext().ensureActive()
@@ -86,6 +86,7 @@ internal class ShopifyPipeline(private val repo:CaptureRepository,private val ga
         if(item.revision!=row.expectedRevision || shopifyFingerprint(item,photos)!=row.inputFingerprint) throw ShopifyBrokerException("STALE_ITEM","Item or photographs changed after approval. Remote IDs are retained for review.")
     }
     suspend fun run(job:ShopifyJobRow,initial:ShopifyItemJobRow) {
+        if(job.kind in listOf("LINK_EXISTING","UPDATE_METADATA")) {ShopifyManagementPipeline(repo,gateway).run(job,initial);return}
         if(initial.state=="SUCCESS") return
         var row=initial;val snapshot=JSONObject(row.snapshotJson);val remote=JSONObject(row.remoteJson);val cp=JSONObject(row.checkpointJson)
         suspend fun save(step:String) {row=persist(row,step,remote,cp)}
@@ -188,7 +189,7 @@ internal class ShopifyPipeline(private val repo:CaptureRepository,private val ga
         catch(e:ShopifyWait) {persist(row,row.step,remote,cp,"WAITING_REMOTE");throw e}
         catch(e:Exception) {
             val state=when {e is ShopifyBrokerException && e.code=="STALE_ITEM"->"NEEDS_REVIEW";e is ShopifyBrokerException && e.code=="UNCERTAIN"->"UNCERTAIN";e is ShopifyBrokerException && (e.httpStatus>=500 || e.httpStatus==429)->"RETRYABLE";else->"ERROR"}
-            repo.mutate {jobs.update(row.copy(state=state,remoteJson=remote.toString(),checkpointJson=cp.toString(),error=e.message.orEmpty().take(1500),attempts=row.attempts+1,updatedAt=System.currentTimeMillis()))};throw e
+            repo.mutate {if(jobs.job(row.jobId)?.state in listOf("QUEUED","RUNNING","WAITING_REMOTE")) jobs.update(row.copy(state=state,remoteJson=remote.toString(),checkpointJson=cp.toString(),error=e.message.orEmpty().take(1500),attempts=row.attempts+1,updatedAt=System.currentTimeMillis())) else jobs.item(row.id)?.let {latest->jobs.update(latest.copy(remoteJson=remote.toString(),checkpointJson=cp.toString(),updatedAt=System.currentTimeMillis()))}};throw e
         }
     }
     private suspend fun derivative(row:ShopifyItemJobRow,photo:JSONObject):File=withContext(Dispatchers.IO) {
@@ -231,7 +232,8 @@ class ShopifyWorker(context:Context,parameters:WorkerParameters):CoroutineWorker
             check(shopifyConnectionFingerprint(applicationContext,job.broker)==job.connectionFingerprint) {"Device connection changed. Pair and resume manually."}
             val gateway=ShopifyBrokerClient(applicationContext,job.broker);val health=gateway.call(newId(),"health",JSONObject())
             check(health.getString("shopId")==job.shopId && health.getBoolean("developmentStore") && health.getString("currency")=="CAD") {"Connected store differs from this approved development-store job."}
-            job=job.copy(state="RUNNING",error="");repo.mutate {jobs.update(job)}
+            val admitted=repo.mutate {val current=jobs.job(id);if(current?.state in listOf("QUEUED","RUNNING","WAITING_REMOTE")) {job=current!!.copy(state="RUNNING",error="");jobs.update(job);true} else false}
+            if(!admitted) return@withContext Result.success()
             val pipeline=ShopifyPipeline(repo,gateway);val started=System.currentTimeMillis();var wait=false
             for(item in jobs.items(id).filter {it.state in listOf("QUEUED","RUNNING","WAITING_REMOTE","RETRYABLE")}) {
                 if(System.currentTimeMillis()-started>70_000) {wait=true;break}
@@ -239,14 +241,14 @@ class ShopifyWorker(context:Context,parameters:WorkerParameters):CoroutineWorker
                 if(jobs.job(id)?.state in listOf("PAUSED","CANCELLED")) return@withContext Result.success()
             }
             val all=jobs.items(id);val state=if(all.all {it.state=="SUCCESS"}) "SUCCESS" else if(wait && runAttemptCount<20) "WAITING_REMOTE" else "PARTIAL_REVIEW"
-            repo.mutate {jobs.update(job.copy(state=state,error=if(state=="PARTIAL_REVIEW") "Review individual outcomes. Remote completion is independent of Android job completion." else "",updatedAt=System.currentTimeMillis()))}
+            repo.mutate {val current=jobs.job(id);if(current?.state in listOf("QUEUED","RUNNING","WAITING_REMOTE")) jobs.update(current!!.copy(state=state,error=if(state=="PARTIAL_REVIEW") "Review individual outcomes. Remote completion is independent of Android job completion." else "",updatedAt=System.currentTimeMillis()))}
             if(state=="WAITING_REMOTE") Result.retry() else Result.success()
         } catch(e:CancellationException) {throw e} catch(e:Exception) {
             if(e is ShopifyBrokerException && (e.httpStatus>=500 || e.httpStatus==429) && runAttemptCount<20) {
                 repo.mutate {val latest=jobs.job(id);if(latest?.state in listOf("QUEUED","RUNNING","WAITING_REMOTE")) jobs.update(latest!!.copy(state="WAITING_REMOTE",error=e.message.orEmpty().take(1500)))}
                 Result.retry()
             }
-            else {repo.mutate {jobs.update(job.copy(state="PAUSED_RECONNECT",error=e.message.orEmpty().take(1500),updatedAt=System.currentTimeMillis()))};Result.success()}
+            else {repo.mutate {val current=jobs.job(id);if(current?.state in listOf("QUEUED","RUNNING","WAITING_REMOTE")) jobs.update(current!!.copy(state="PAUSED_RECONNECT",error=e.message.orEmpty().take(1500),updatedAt=System.currentTimeMillis()))};Result.success()}
         }
     }
 }

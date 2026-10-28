@@ -79,10 +79,10 @@ class ShopifyWorkflowTest {
         val item=item();val id=repo.queueShopify(setOf(item.groupId),health(),base,location);val row=repo.journal.shopifyDao().items(id).single();val photo=repo.dao.photos(item.groupId).first()
         val checkpoint=JSONObject().put("photos",JSONObject().put(photo.id,JSONObject().put("target","PRIVATE_UPLOAD_CIPHER").put("uploaded",true).put("fileCreateSent",true)))
         repo.journal.shopifyDao().update(row.copy(checkpointJson=checkpoint.toString()))
-        val snapshot=repo.hashSnapshotFiles(repo.buildSnapshot());assertEquals(7,snapshot.getInt("schema"));assertFalse(snapshot.toString().contains("PRIVATE_UPLOAD_CIPHER"));assertFalse(snapshot.toString().contains("target"))
+        val snapshot=repo.hashSnapshotFiles(repo.buildSnapshot());assertEquals(8,snapshot.getInt("schema"));assertFalse(snapshot.toString().contains("PRIVATE_UPLOAD_CIPHER"));assertFalse(snapshot.toString().contains("target"))
         val stage=File(app.cacheDir,newId()).apply {mkdirs()};val files=snapshot.getJSONArray("files");for(i in 0 until files.length()) {val path=files.getJSONObject(i).getString("path");File(stage,path).apply {parentFile!!.mkdirs();repo.snapshotFile(path).copyTo(this)}}
         val destination=create();destination.mergeSnapshot(snapshot,stage);assertEquals("PAUSED_RECONNECT",destination.journal.shopifyDao().job(id)!!.state);assertTrue(JSONObject(destination.journal.shopifyDao().item(row.id)!!.checkpointJson).getJSONObject("photos").getJSONObject(photo.id).getBoolean("fileCreateSent"))
-        val legacy=JSONObject(snapshot.toString());legacy.put("schema",4);listOf("market_imports","price_decisions","market_searches","agent_tasks").forEach {legacy.getJSONObject("tables").remove(it)};legacy.getJSONObject("tables").remove("shopify_jobs");legacy.getJSONObject("tables").remove("shopify_job_items");destination.validateSnapshot(legacy);assertEquals(7,legacy.getInt("schema"))
+        val legacy=JSONObject(snapshot.toString());legacy.put("schema",4);listOf("market_imports","price_decisions","market_searches","agent_tasks","shopify_reviews").forEach {legacy.getJSONObject("tables").remove(it)};legacy.getJSONObject("tables").remove("shopify_jobs");legacy.getJSONObject("tables").remove("shopify_job_items");destination.validateSnapshot(legacy);assertEquals(8,legacy.getInt("schema"))
     }
     @Test fun agentDraftApprovalIsOneTimeAndQueuesOnlyAfterLocalReview():Unit=runBlocking {
         val item=item();repo.preferences.edit().putBoolean("shopifyPaired",true).putString("shopifyBroker",base).commit()
@@ -113,6 +113,15 @@ class ShopifyWorkflowTest {
         val remote=FakeShopify();pipeline(remote).run(job,items.first());val partial=repo.agentTaskStatus(t);assertEquals(1,partial.done);assertNotEquals("COMPLETE",partial.state);assertFalse(remote.published)
         repo.cancelAgentTask(t.id);val cancelled=repo.agentTaskStatus(repo.journal.agentTaskDao().get(t.id)!!);assertEquals("CANCELLED",cancelled.state);assertEquals(1,cancelled.done);assertEquals("SUCCESS",repo.journal.shopifyDao().item(items.first().id)!!.state)
         try {AgentTools(repo).decide(approval.id,true);fail()} catch(_:IllegalStateException) {}
+    }
+    @Test fun cancellationDuringAcceptedCreationKeepsRemoteIdsAndCancelledState():Unit=runBlocking {
+        val item=item();val id=repo.queueShopify(setOf(item.groupId),health(),base,location);val job=repo.journal.shopifyDao().job(id)!!;val row=repo.journal.shopifyDao().items(id).single();val remote=FakeShopify()
+        val gateway=object:ShopifyGateway {
+            override suspend fun call(operationId:String,operation:String,args:JSONObject):JSONObject {val result=remote.call(operationId,operation,args);if(operation=="create") repo.cancelShopify(id);return result}
+            override suspend fun upload(target:JSONObject,file:File)=remote.upload(target,file)
+        }
+        try {ShopifyPipeline(repo,gateway).run(job,row);fail()} catch(_:IllegalStateException) {}
+        val saved=repo.journal.shopifyDao().item(row.id)!!;assertEquals("CANCELLED",saved.state);assertEquals("CANCELLED",repo.journal.shopifyDao().job(id)!!.state);assertEquals("gid://shopify/Product/1",JSONObject(saved.remoteJson).getString("productId"));assertEquals(listOf("create"),remote.requests)
     }
     @Test fun uploadTargetsAndEncryptedVaultRejectRedirectionAndCrossPhotoReuse() {
         for(value in listOf("http://storage.googleapis.com/a","https://storage.googleapis.com.evil.invalid/a","https://user@storage.googleapis.com/a","https://127.0.0.1/a")) try {requireShopifyUploadUrl(value);fail(value)} catch(_:IllegalArgumentException) {}

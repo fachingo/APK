@@ -1,17 +1,18 @@
-# SnapIMS Next 0.6.0
+# SnapIMS Next 0.7.0
 
-**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.6.0-debug.apk)** · [SHA-256](releases/SnapIMS-Next-0.6.0-debug.apk.sha256) · [Source ZIP](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.6.0-source.zip)
+**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.7.0-debug.apk)** · [SHA-256](releases/SnapIMS-Next-0.7.0-debug.apk.sha256) · [Source ZIP](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.7.0-source.zip)
 
 Standalone native Android inventory for Canada VHS, built on the existing SnapIMS
 rules and compatible capture formats. No desktop process, local HTTP server or LAN
 connection is required for capture, inventory, search, review or backup.
 
-This update adds **approved workflows and Tasks**: single/batch recognition, atomic
-market-price decisions and Shopify draft batches, with readable review screens,
-explicit API-charge consent and durable progress/cancellation. Tasks also creates
-offline inventory review lists without an AI provider. [Usage and limits](docs/next/MILESTONE_D_WORKFLOWS.md).
-The offline market database, standalone inventory, camera and Shopify implementation
-are retained. See the [feature matrix](docs/next/FEATURE_MATRIX.md).
+This update continues the critical **Shopify milestone** with cursor-paged listing
+search, explicit linking of owned SnapIMS drafts, and selected metadata updates.
+Native upload/publication reviews are now saved, one-use receipts bound to the
+reviewed inventory, photos and barcode evidence. Existing Tasks, batch recognition,
+pricing, market imports and standalone capture remain available.
+[Shopify review and reconciliation guide](docs/next/SHOPIFY_RECONCILIATION.md) ·
+[Feature matrix](docs/next/FEATURE_MATRIX.md).
 The A–D program is not complete: Shopify authorization and development-store
 acceptance are unverified, and no broker is deployed. **Continue with ChatGPT is an experimental native prototype;
 physical Pixel sign-in, discovery and subscription streaming are still unverified.**
@@ -91,10 +92,11 @@ OpenAI request on each shutter. See [recognition details](docs/RECOGNITION_0.1.1
 
 ## Update without losing captures
 
-Install 0.6.0 **over** 0.1.x, 0.2.0, 0.3.0, 0.4.0 or 0.5.0; do not uninstall or clear app storage.
-Application ID and signing key are unchanged, versionCode increases to 8. Explicit
-Room migrations 1→2→3→4→5→6→7 retain captures/archives and add inventory, permanent
+Install 0.7.0 **over** 0.1.x, 0.2.0, 0.3.0, 0.4.0, 0.5.0 or 0.6.0; do not uninstall or clear app storage.
+Application ID and signing key are unchanged, versionCode increases to 9. Explicit
+Room migrations 1→2→3→4→5→6→7→8 retain captures/archives and add inventory, permanent
 market evidence/decision history, chat, Shopify jobs and approved task receipts.
+Pending AI approvals from earlier versions expire for fresh barcode-aware review.
 Restored unfinished tasks pause for fresh review; old unbound API recognition jobs
 require an explicit manual retry after upgrade. Large market evidence
 is streamed into consistent SQLite members of complete protected backups. Restored Shopify jobs require fresh pairing and manual

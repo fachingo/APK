@@ -131,3 +131,19 @@ These are local mock/crypto/SQLite tests. Real acceptance is one development-sto
 draft, all metadata/images/IDs, interruption/resume/no duplicate, then a multi-item
 batch. Live publication needs its own explicit approval and test. No production
 Canada VHS data may be used to satisfy acceptance.
+
+
+## 0.7.0 listing management
+
+The closed registry adds bounded `browse`, read-verified `claim`, and scalar
+`metadata_update`. Redeploy this version before opening Android listing management.
+Claims only register resource IDs after exact SKU/ownership/duplicate checks; no
+ownership metafield/tag is stamped onto an unrelated listing. Metadata uses a field
+allowlist, reviewed remote version and protected-field hashes. An uncertain response
+is read-reconciled without resending the mutation. Cached operation results contain
+IDs/status only; inventory and original photographs remain on the phone.
+
+See ../docs/next/SHOPIFY_RECONCILIATION.md for scope and the non-atomic preflight/write
+limitation. Read-only catalog results can inspect active/archive products; Android
+management writes remain restricted to CAD development-store drafts. Mock checks and
+container startup are not real authorization or Shopify schema acceptance.

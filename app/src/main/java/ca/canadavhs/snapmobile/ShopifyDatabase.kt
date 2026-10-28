@@ -14,6 +14,10 @@ data class ShopifyItemJobRow(@PrimaryKey val id:String=newId(),val jobId:String,
     val inputFingerprint:String,val snapshotJson:String,val creationKey:String,val state:String="QUEUED",val step:String="VALIDATE",val remoteJson:String="{}",val checkpointJson:String="{}",
     val error:String="",val attempts:Int=0,val createdAt:Long=System.currentTimeMillis(),val updatedAt:Long=createdAt)
 @Dao interface ShopifyDao {
+    @Query("SELECT * FROM shopify_reviews ORDER BY createdAt DESC LIMIT 100") fun watchReviews():Flow<List<ShopifyReviewRow>>
+    @Query("SELECT * FROM shopify_reviews WHERE id=:id") suspend fun review(id:String):ShopifyReviewRow?
+    @Insert suspend fun insert(row:ShopifyReviewRow)
+    @Update suspend fun update(row:ShopifyReviewRow)
     @Query("SELECT * FROM shopify_jobs ORDER BY createdAt DESC") fun watchJobs():Flow<List<ShopifyJobRow>>
     @Query("SELECT * FROM shopify_job_items ORDER BY createdAt DESC") fun watchItems():Flow<List<ShopifyItemJobRow>>
     @Query("SELECT * FROM shopify_jobs WHERE id=:id") suspend fun job(id:String):ShopifyJobRow?

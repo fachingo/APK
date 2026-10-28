@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from decimal import Decimal
 from urllib.parse import urlsplit
-from .security import BrokerError
+from .security import BrokerError,canonical,digest
 
 
 @dataclass(frozen=True)
@@ -64,6 +64,25 @@ def upload_url(value):
     return value
 
 
+METADATA_FIELDS={"title":255,"descriptionHtml":60000,"vendor":255,"productType":255}
+
+def metadata_patch(value):
+    if not isinstance(value,dict) or not value or not set(value)<=METADATA_FIELDS.keys():
+        raise BrokerError("INVALID_PATCH","Choose only title, description, vendor or product type.")
+    return {key:text(v,METADATA_FIELDS[key],1 if key=="title" else 0) for key,v in value.items()}
+
+def reviewed_hash(value):
+    if not isinstance(value,str) or not re.fullmatch(r"[a-f0-9]{64}",value):
+        raise BrokerError("INVALID_VERSION","A fresh reviewed Shopify version is required.")
+    return value
+
+def product_version(product):
+    return digest(canonical({k:v for k,v in product.items() if k!="reviewVersion"}))
+
+def protected_hash(product,fields):
+    return digest(canonical({k:v for k,v in product.items() if k not in set(fields)|{"updatedAt","reviewVersion"}}))
+
+
 def prepare(kind: str, values: dict, allow_publish=False) -> Operation:
     if not isinstance(values,dict):
         raise BrokerError("INVALID_INPUT","Operation arguments must be an object.")
@@ -76,13 +95,30 @@ def prepare(kind: str, values: dict, allow_publish=False) -> Operation:
         fields([])
         publication = "publications(first:100){nodes{id name}}" if allow_publish else ""
         return Operation("query SnapIMSConnection{shop{id name myshopifyDomain currencyCode plan{partnerDevelopment}} currentAppInstallation{accessScopes{handle}} locations(first:100){nodes{id name isActive}} "+publication+"}",{})
+    if kind == "browse":
+        fields(["query","status","cursor"])
+        query=text(values["query"],200);status=text(values["status"],20);cursor=text(values["cursor"],2000)
+        if status not in ("","DRAFT","ACTIVE","ARCHIVED"):
+            raise BrokerError("INVALID_STATUS","Choose draft, active, archived or all listings.")
+        terms=[]
+        if query.strip():terms.append('title:"'+query.strip().replace('\\','\\\\').replace('"','\\"')+'"')
+        if status:terms.append("status:"+status.lower())
+        return Operation("""query SnapIMSCatalog($query:String!,$after:String){products(first:20,after:$after,query:$query,sortKey:UPDATED_AT,reverse:true){nodes{id title status vendor productType updatedAt identity:metafield(namespace:"snapims",key:"item_id"){value} metafield(namespace:"snapims",key:"creation_key"){value} variants(first:2){nodes{id sku inventoryItem{id}} pageInfo{hasNextPage}}} pageInfo{hasNextPage endCursor}}}""",{"query":" AND ".join(terms),"after":cursor or None},"products")
+    if kind in ("claim","metadata_update"):
+        fields(["creationKey","itemId","productId","locationId","expectedVersion"]+(["patch"] if kind=="metadata_update" else []))
+        key=item_key();sku(values["itemId"]);reviewed_hash(values["expectedVersion"]);gid(values["locationId"],"Location");product=gid(values["productId"],"Product")
+        if kind=="claim":
+            read=prepare("product",{"productId":product,"locationId":values["locationId"]})
+            return Operation(read.query,read.variables,read.field,True,False,key)
+        patch=metadata_patch(values["patch"])
+        return Operation("mutation SnapIMSMetadata($product:ProductUpdateInput!){productUpdate(product:$product){product{id status updatedAt} userErrors{field message}}}",{"product":{"id":product,**patch}},"productUpdate",True,kind=="metadata_update",key)
     if kind == "find":
         fields(["itemId","creationKey"])
         identity, key=sku(values["itemId"]),item_key()
         return Operation("""query SnapIMSFind($sku:String!,$marker:String!){variants:productVariants(first:10,query:$sku){nodes{id sku inventoryItem{id} product{id title status}} pageInfo{hasNextPage}} products(first:10,query:$marker){nodes{id status metafield(namespace:"snapims",key:"creation_key"){value} identity:metafield(namespace:"snapims",key:"item_id"){value} variants(first:2){nodes{id sku inventoryItem{id}}}} pageInfo{hasNextPage}}}""",{"sku":"sku:"+identity,"marker":"tag:snapims-"+key})
     if kind == "product":
         fields(["productId","locationId"])
-        return Operation("""query SnapIMSVerify($id:ID!,$location:ID!){product(id:$id){id title status vendor productType tags descriptionHtml updatedAt metafield(namespace:"snapims",key:"creation_key"){value} variants(first:2){nodes{id sku price barcode inventoryItem{id tracked requiresShipping measurement{weight{value unit}} inventoryLevel(locationId:$location){quantities(names:["available"]){name quantity}}}}} media(first:100){nodes{id alt preview{status}} pageInfo{hasNextPage}}}}""",{"id":gid(values["productId"],"Product"),"location":gid(values["locationId"],"Location")},"product")
+        return Operation("""query SnapIMSVerify($id:ID!,$location:ID!){product(id:$id){id title status vendor productType tags descriptionHtml updatedAt identity:metafield(namespace:"snapims",key:"item_id"){value} metafield(namespace:"snapims",key:"creation_key"){value} variants(first:2){nodes{id sku price barcode inventoryItem{id tracked requiresShipping measurement{weight{value unit}} inventoryLevel(locationId:$location){quantities(names:["available"]){name quantity}}}} pageInfo{hasNextPage}} media(first:100){nodes{id alt preview{status}} pageInfo{hasNextPage}}}}""",{"id":gid(values["productId"],"Product"),"location":gid(values["locationId"],"Location")},"product")
     if kind == "quantity":
         fields(["inventoryItemId","locationId"])
         return Operation("""query SnapIMSStock($id:ID!,$location:ID!){inventoryItem(id:$id){inventoryLevel(locationId:$location){quantities(names:["available"]){name quantity}}}}""",{"id":gid(values["inventoryItemId"],"InventoryItem"),"location":gid(values["locationId"],"Location")},"inventoryItem")

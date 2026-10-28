@@ -28,3 +28,11 @@ The owner subsequently supplied externally verified SIWC excerpts; the native pr
 external acceptance remains explicitly gated; do not claim those live workflows passed.
 
 0.3.0 implements independent local C/D work and offline B listing preparation. See MILESTONE_CD.md for delivered scope and remaining live gates.
+
+
+## 0.7.0 next critical milestone continuation
+
+Continue unfinished B before secondary business modules: add typed listing browse,
+explicit owned-draft link/reconciliation, scalar metadata updates, durable native
+reviews and barcode-aware approval binding. Preserve D and local C/A. Real external
+acceptance is still gated; see SHOPIFY_RECONCILIATION.md for exact delivered scope.

@@ -1,21 +1,23 @@
-# Feature completion matrix — 0.6.0 preview
+# Feature completion matrix — 0.7.0 preview
 
 Status follows delivered code and executed evidence. The A–D program is not complete.
 
 | Milestone / capability | Status |
 | --- | --- |
-| A: native camera/NEXT/zoom/resolution/landscape/original preservation | Published 0.2.0; retained in 0.6.0. Physical Pixel acceptance unrun |
+| A: native camera/NEXT/zoom/resolution/landscape/original preservation | Published 0.2.0; retained in 0.7.0. Physical Pixel acceptance unrun |
 | A: standalone inventory/search/editor/conditions/IDs/readiness/audit | Implemented; deterministic integration/UI tests |
 | A: finished-item photo corrections/retake | Implemented; originals and prior ZIP bytes preserved |
-| A: protected photo-inclusive backup/merge and duplicate-safe imports | Implemented; 0.5.0 includes streamed market SQLite, decisions, chat/attachments and credential-redacted Shopify checkpoints; tasks and recognition bindings in schema7; legacy schema3–6 supported |
+| A: protected photo-inclusive backup/merge and duplicate-safe imports | Implemented; 0.5.0 includes streamed market SQLite, decisions, chat/attachments and credential-redacted Shopify checkpoints; tasks and recognition bindings in schema7; saved Shopify review receipts in schema8; legacy schema3–7 supported |
 | A: interoperability/CSV/read-only desktop export/CI workflow | Delivered; hosted CI execution not claimed |
 | A: 100 real products / 300 physical photographs | Unrun; synthetic 100×300 stress test passed |
 | B: current official Shopify auth/API review | Owner externally supplied current official requirements; implemented from that contract. Cloud independent fetch still blocked |
 | B: real dev-store draft/images/batch/interruption/reconciliation | Native/broker implementation and mock tests delivered. **UNRUN** real authorization/dev-store acceptance; no host/store credentials bound |
 | B: native Shopify pipeline | Implemented reviewed DRAFT creation, immutable SKU/CAD price/weight/stock1, staged JPEGs, async files, attachment/order verification, IDs, WorkManager retry/pause/cancel and explicit publication |
 | B: hosted confidential credential broker | Source + non-root container startup tested; signed device pairing, OAuth/client credentials, revocation/rates/audits/rotation and narrow owned-resource operations. Not deployed |
-| B: server JSONL bulk operations / unrelated existing-product linkage | Not implemented. Native per-item batches are available; foreign existing products remain protected for manual review |
-| C: full offline market database | Implemented Room7 immutable source observations/versions, disk-staged preview/atomic incremental import, source deduplication and large SQLite backup members |
+| B: listing browser / owned draft reconciliation | Implemented cursor-paged title/status browse, exact immutable SKU + existing identity-marker link, duplicate detection and scoped scalar metadata updates. Protected version checks and uncertain-result read reconciliation; mocked transport/native/UI tests, live acceptance UNRUN |
+| B: native saved upload/publication approvals | Room8 one-use receipts bind store/device/local revisions/photos/barcode evidence, exact listing fields and selected channel; SUBMIT remains required for publication. Pending earlier AI reviews expire on upgrade; restored management jobs need fresh approval |
+| B: server JSONL bulk operations / unrelated product adoption | Not implemented. Native per-item batches are available. Unmarked/foreign products, bulk ownership stamping, destructive synchronization and full existing-product price/stock/media editing remain outside this release |
+| C: full offline market database | Implemented Room8 immutable source observations/versions, disk-staged preview/atomic incremental import, source deduplication and large SQLite backup members |
 | C: fast search and browser | Runtime FTS5→FTS4→indexed fallback, bounded pages, exact/partial/normalized/typo/barcode/filter/sort, source details, distributions and saved/recent searches |
 | C: actual uploaded Harvester export | All75,054 USD rows imported with source bytes unchanged, repeat adds0, all records persist after restart. Four generic titles remain browsable and are not guessed movie evidence |
 | C: 100k dataset / physical Pixel | 100,000 generated records plus75,054 actual rows validated on host; physical Pixel import/offline latency UNRUN |

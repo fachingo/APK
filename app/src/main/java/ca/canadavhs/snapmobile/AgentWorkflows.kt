@@ -7,7 +7,7 @@ internal val workflowActions=setOf("propose_recognition","propose_recognition_ba
 internal suspend fun CaptureRepository.workflowBinding(groups:List<String>):String {
     val rows=JSONArray()
     groups.sorted().forEach {id->val item=journal.inventoryDao().item(id) ?: error("Item not found.");val photos=dao.photos(id).filter {!it.deleted}
-        rows.put(JSONObject().put("item",inventoryJson(item)).put("photos",JSONArray(photos.map {p->JSONObject().put("id",p.id).put("sha",p.sha256).put("position",p.position).put("role",p.role).put("state",p.state).put("bytes",p.bytes)})))
+        rows.put(JSONObject().put("barcodeOverride",dao.group(id).barcodeOverride ?: JSONObject.NULL).put("item",inventoryJson(item)).put("photos",JSONArray(photos.map {p->JSONObject().put("id",p.id).put("sha",p.sha256).put("position",p.position).put("role",p.role).put("state",p.state).put("bytes",p.bytes).put("barcodeJson",p.barcodeJson).put("scanState",p.scanState)})))
     };return sha256(canonicalJson(rows).toByteArray())
 }
 internal class AgentWorkflows(private val repo:CaptureRepository) {

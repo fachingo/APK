@@ -13,7 +13,7 @@ import java.io.FileOutputStream
 import java.util.zip.ZipFile
 import ca.canadavhs.snapmobile.core.sha256
 
-internal val snapshotTables = listOf("sessions","groups","photos","archives","events","recognition","inventory_batches","inventory","inventory_audit","transfer_jobs","pricing_evidence_native","chat_conversations","chat_messages","ai_capabilities","agent_approvals","listing_plans","siwc_proofs","shopify_jobs","shopify_job_items","market_imports","price_decisions","market_searches","agent_tasks")
+internal val snapshotTables = listOf("sessions","groups","photos","archives","events","recognition","inventory_batches","inventory","inventory_audit","transfer_jobs","pricing_evidence_native","chat_conversations","chat_messages","ai_capabilities","agent_approvals","listing_plans","siwc_proofs","shopify_jobs","shopify_job_items","market_imports","price_decisions","market_searches","agent_tasks","shopify_reviews")
 internal val snapshotPrimaryKeys = mapOf("inventory_batches" to "sessionId", "inventory" to "groupId")
 internal const val MAX_SNAPSHOT_BYTES = 32 * 1024 * 1024
 internal const val MAX_PACKAGE_FILES = 100_000
@@ -71,7 +71,7 @@ internal suspend fun CaptureRepository.buildSnapshot(): JSONObject = mutate {
     require(files.size <= MAX_PACKAGE_FILES) { "Export separate batches: backup exceeds the package file limit." }
     val manifestFiles = JSONArray()
     // Hashing is performed after the consistent metadata snapshot, outside camera's lock.
-    JSONObject().put("format","snapims.inventory.snapshot").put("version",1).put("schema",7)
+    JSONObject().put("format","snapims.inventory.snapshot").put("version",1).put("schema",8)
         .put("tables",tables).put("files",manifestFiles).put("file_paths",JSONArray(files.keys.toList()))
 }
 internal suspend fun CaptureRepository.hashSnapshotFiles(snapshot: JSONObject): JSONObject = withContext(Dispatchers.IO) {
@@ -90,14 +90,14 @@ internal suspend fun CaptureRepository.hashSnapshotFiles(snapshot: JSONObject): 
     snapshot
 }
 internal fun CaptureRepository.validateSnapshot(snapshot: JSONObject) {
-    require(snapshot.getString("format") == "snapims.inventory.snapshot" && snapshot.getInt("version") == 1 && snapshot.getInt("schema") in 3..7) { "Unsupported inventory snapshot version." }
+    require(snapshot.getString("format") == "snapims.inventory.snapshot" && snapshot.getInt("version") == 1 && snapshot.getInt("schema") in 3..8) { "Unsupported inventory snapshot version." }
     val tables = snapshot.getJSONObject("tables")
-    if(snapshot.getInt("schema")<7) {
-        val count=when(snapshot.getInt("schema")) {3->10;4->17;5->19;else->22}
+    if(snapshot.getInt("schema")<8) {
+        val count=when(snapshot.getInt("schema")) {3->10;4->17;5->19;6->22;else->23}
         require(tables.keys().asSequence().toSet()==snapshotTables.take(count).toSet()) {"Incomplete legacy inventory snapshot."}
         snapshotTables.drop(count).forEach {tables.put(it,JSONArray())}
-        val recognition=tables.getJSONArray("recognition");for(i in 0 until recognition.length()) recognition.getJSONObject(i).put("authBinding","").put("approvalId","")
-        snapshot.put("schema",7)
+        if(snapshot.getInt("schema")<7) {val recognition=tables.getJSONArray("recognition");for(i in 0 until recognition.length()) recognition.getJSONObject(i).put("authBinding","").put("approvalId","")}
+        snapshot.put("schema",8)
     }
     require(tables.keys().asSequence().toSet() == snapshotTables.toSet()) { "Incomplete inventory snapshot." }
     val files = snapshot.getJSONArray("files"); require(files.length() <= MAX_PACKAGE_FILES)
@@ -162,8 +162,12 @@ internal fun CaptureRepository.validateSnapshot(snapshot: JSONObject) {
                     require(row.getLong("priceCents") in 0..ca.canadavhs.snapmobile.core.InventoryRules.maxPriceCents)
                     require(row.getString("currency")=="CAD");JSONArray(row.getString("evidenceJson"));JSONObject(row.getString("provenanceJson"))
                 }
+                "shopify_reviews" -> {
+                    require(row.getString("kind") in listOf("CREATE_DRAFT","PUBLISH_LIVE","LINK_EXISTING","UPDATE_METADATA"))
+                    require(row.getString("state") in listOf("PENDING","APPLIED","REJECTED","EXPIRED"));JSONObject(row.getString("payloadJson"));JSONObject(row.getString("resultJson"))
+                }
                 "shopify_jobs" -> {
-                    requireBrokerUrl(row.getString("broker"));require(row.getString("kind") in listOf("CREATE_DRAFT","PUBLISH_LIVE"))
+                    requireBrokerUrl(row.getString("broker"));require(row.getString("kind") in listOf("CREATE_DRAFT","PUBLISH_LIVE","LINK_EXISTING","UPDATE_METADATA"))
                     require(row.getString("state") in listOf("QUEUED","RUNNING","WAITING_REMOTE","SUCCESS","PARTIAL_REVIEW","PAUSED","PAUSED_RECONNECT","CANCELLED"))
                 }
                 "shopify_job_items" -> {
@@ -239,6 +243,8 @@ internal suspend fun CaptureRepository.mergeSnapshot(snapshot: JSONObject, stage
     val db = journal.openHelper.writableDatabase
     val tables = snapshot.getJSONObject("tables")
     val inserts = mutableListOf<Triple<String,List<String>,List<Any?>>>()
+    val sourceJobs=tables.getJSONArray("shopify_jobs")
+    val managementJobs=(0 until sourceJobs.length()).map {sourceJobs.getJSONObject(it)}.filter {it.getString("kind") in listOf("LINK_EXISTING","UPDATE_METADATA")}.map {it.getString("id")}.toSet()
     // Preflight every record, including conflicts, before installing any file or row.
     snapshotTables.forEach { table ->
         val columns = mutableListOf<String>()
@@ -247,6 +253,7 @@ internal suspend fun CaptureRepository.mergeSnapshot(snapshot: JSONObject, stage
         val rows = tables.getJSONArray(table)
         for(i in 0 until rows.length()) {
             val row = JSONObject(rows.getJSONObject(i).toString())
+            if(table=="shopify_reviews" && row.getString("state")=="PENDING") row.put("state","EXPIRED").put("resultJson","{\"error\":\"Restored review requires fresh verification\"}")
             if(table=="agent_tasks" && row.getString("state") !in listOf("COMPLETE","CANCELLED")) row.put("state","PAUSED_REVIEW").put("error","Restored task requires fresh review; no external action restarted.")
             if(table=="inventory") {
                 val sameId=journal.inventoryDao().itemById(row.getString("itemId"))
@@ -254,7 +261,10 @@ internal suspend fun CaptureRepository.mergeSnapshot(snapshot: JSONObject, stage
             }
             require(row.keys().asSequence().toSet() == columns.toSet()) { "Unsupported $table columns." }
             if(table=="shopify_jobs" && row.getString("state")!="SUCCESS") row.put("state","PAUSED_RECONNECT").put("workId","").put("error","Restored job requires device pairing and manual reconciliation; no Shopify write was restarted.")
-            if(table=="shopify_job_items") row.put("checkpointJson",redactShopifyCheckpoint(row.getString("checkpointJson")))
+            if(table=="shopify_job_items") {
+                row.put("checkpointJson",redactShopifyCheckpoint(row.getString("checkpointJson")))
+                if(row.getString("jobId") in managementJobs && row.getString("state")!="SUCCESS") row.put("state","NEEDS_REVIEW").put("error","Restored management job requires a fresh saved review. Cancel remaining work and inspect the listing again.")
+            }
             if(table == "recognition" && row.getString("state") in listOf("RUNNING","QUEUED")) {
                 row.put("state","ERROR").put("workId","").put("error","Restored job requires manual retry; no provider request was restarted.")
             }

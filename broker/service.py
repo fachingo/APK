@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from urllib.parse import urlencode,urlsplit
 import httpx
 from .security import State,BrokerError,canonical,digest
-from .operations import prepare,uuid,gid,upload_url
+from .operations import prepare,uuid,gid,upload_url,product_version,protected_hash,metadata_patch
 
 
 @dataclass(frozen=True)
@@ -200,7 +200,7 @@ class Service:
 
     def _bind(self,result,kind,key):
         resources=[]
-        if kind=="create":
+        if kind in ("create","claim"):
             product=result.get("product") or {}
             if product.get("id"):
                 resources.append((product["id"],key,"Product"))
@@ -223,6 +223,27 @@ class Service:
             db.execute("UPDATE operations SET state='COMPLETE',result=?,updated=? WHERE id=?",(self.state.encrypt("operation:"+identifier,result),int(time.time()),identifier))
         return result
 
+    def _management_product(self,args,version=True):
+        op=prepare("product",{"productId":args["productId"],"locationId":args["locationId"]})
+        product=self.graphql(op.query,op.variables).get("product")
+        if not isinstance(product,dict):
+            raise BrokerError("PRODUCT_MISSING","The reviewed Shopify product no longer exists.",409)
+        variants=product.get("variants") or {};nodes=variants.get("nodes",[])
+        if product.get("id")!=args["productId"] or product.get("status")!="DRAFT" or (product.get("metafield") or {}).get("value")!=args["creationKey"] or (product.get("identity") or {}).get("value")!=args["itemId"] or len(nodes)!=1 or variants.get("pageInfo",{}).get("hasNextPage",True) or nodes[0].get("sku")!=args["itemId"]:
+            raise BrokerError("IDENTITY_REVIEW","Only a single-variant DRAFT with matching SnapIMS identity markers and exact SKU can be linked or updated.",409)
+        find=prepare("find",{"itemId":args["itemId"],"creationKey":args["creationKey"]})
+        matches=self.graphql(find.query,find.variables)
+        variants=matches.get("variants",{});marked=matches.get("products",{})
+        sku_ids={v.get("product",{}).get("id") for v in variants.get("nodes",[]) if v.get("sku")==args["itemId"]}
+        marker_ids={p.get("id") for p in marked.get("nodes",[]) if (p.get("metafield") or {}).get("value")==args["creationKey"]}
+        if variants.get("pageInfo",{}).get("hasNextPage") or marked.get("pageInfo",{}).get("hasNextPage") or sku_ids!={args["productId"]} or marker_ids!={args["productId"]}:
+            raise BrokerError("DUPLICATE_REVIEW","SKU or ownership marker search is incomplete or ambiguous. Reconcile duplicate listings in Shopify first.",409)
+        if product.get("media",{}).get("pageInfo",{}).get("hasNextPage",True):
+            raise BrokerError("MEDIA_REVIEW","A complete image list is required for a protected metadata review.",409)
+        if version and product_version(product)!=args["expectedVersion"]:
+            raise BrokerError("REMOTE_CHANGED","Shopify changed after review. Prepare a fresh review; no metadata update was sent.",409)
+        return product
+
     def _reconcile(self,identifier,kind,args,context):
         key=context["scopeKey"]
         if kind=="create":
@@ -240,6 +261,12 @@ class Service:
             if data.get("pageInfo",{}).get("hasNextPage") or len(matches)!=1:
                 raise BrokerError("UNCERTAIN","File creation outcome is uncertain. No duplicate file was created; review the saved photo marker.",409)
             result={"files":matches,"reconciled":True}
+        elif kind=="metadata_update":
+            product=self._management_product(args,False);patch=metadata_patch(args["patch"])
+            actual={k:product.get(k) for k in patch}
+            if digest(canonical(actual))!=context.get("desiredHash") or protected_hash(product,patch)!=context.get("protectedHash"):
+                raise BrokerError("UNCERTAIN","The metadata result cannot be verified against the approved fields. Inspect Shopify and prepare a fresh review; no update was resent.",409)
+            result={"product":{k:product[k] for k in ("id","status","updatedAt")},"reconciled":True}
         else:
             raise BrokerError("UNCERTAIN","Operation outcome needs review.",409)
         return self._finish(identifier,kind,key,result)
@@ -267,8 +294,14 @@ class Service:
         operation=prepare(kind,args,self.config.allow_publish)
         if not operation.write:
             data=self.graphql(operation.query,operation.variables)
-            return data.get(operation.field) if operation.field else data
-        self._write_guard(kind,args,operation)
+            result=data.get(operation.field) if operation.field else data
+            if kind=="product" and isinstance(result,dict):result=dict(result,reviewVersion=product_version(result))
+            return result
+        if kind!="claim":self._write_guard(kind,args,operation)
+        else:
+            # Claim changes only the broker's resource ledger; health/write policy still applies.
+            from dataclasses import replace
+            self._write_guard(kind,args,replace(operation,scope_key=""))
         request_hash=digest(canonical({"operation":kind,"arguments":args}))
         context={"scopeKey":operation.scope_key}
         if kind=="create":context["itemHash"]=digest(args["itemId"].encode())
@@ -288,7 +321,7 @@ class Service:
                 db.execute("INSERT INTO operations(id,kind,request_hash,state,updated,context) VALUES(?,?,?,'INFLIGHT',?,?)",(identifier,kind,request_hash,int(time.time()),json.dumps(context)))
                 reconcile=False
         if reconcile:
-            return self._reconcile(identifier,kind,args,context)
+            return self._reconcile(identifier,kind,args,json.loads(row["context"]))
         dispatched=False
         try:
             # Before first creation, reject any existing exact SKU or owned marker.
@@ -297,6 +330,15 @@ class Service:
                 existing=self.graphql(find.query,find.variables)
                 if any(v.get("sku")==args["itemId"] for v in existing.get("variants",{}).get("nodes",[])) or existing.get("products",{}).get("nodes"):
                     raise BrokerError("DUPLICATE_REVIEW","A SKU or operation marker already exists. Reconcile explicitly; no product was overwritten.",409)
+            if kind in ("claim","metadata_update"):
+                product=self._management_product(args)
+                if kind=="claim":
+                    minimal={"product":{"id":product["id"],"status":product["status"],"variants":{"nodes":[{"id":v["id"],"inventoryItem":{"id":v["inventoryItem"]["id"]}} for v in product["variants"]["nodes"]]}}}
+                    result=self._finish(identifier,kind,operation.scope_key,minimal)
+                    self.state.audit(device,kind,"COMPLETE",request_hash)
+                    return result
+                context.update(desiredHash=digest(canonical(metadata_patch(args["patch"]))),protectedHash=protected_hash(product,args["patch"]))
+                with self.state.connect() as db:db.execute("UPDATE operations SET context=? WHERE id=?",(json.dumps(context),identifier))
             dispatched=True
             data=self.graphql(operation.query,operation.variables)
             result=data.get(operation.field)
@@ -319,5 +361,5 @@ class Service:
             with self.state.connect() as db:db.execute("UPDATE operations SET state=?,updated=? WHERE id=?",(status,int(time.time()),identifier))
             self.state.audit(device,kind,status,request_hash)
             if uncertain:
-                raise BrokerError("UNCERTAIN","Shopify may have accepted this creation. Retry reconciles its marker; it never blindly creates again.",409) from None
+                raise BrokerError("UNCERTAIN","Shopify may have accepted this request. Retry verifies its outcome; an uncertain write is never blindly repeated.",409) from None
             raise
