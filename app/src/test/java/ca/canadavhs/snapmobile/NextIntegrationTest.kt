@@ -33,7 +33,7 @@ class NextIntegrationTest {
         try {repo.applySoldPrice(item.groupId,e.id,"MEDIAN",item.revision);fail()} catch(_:IllegalStateException) {}
         val priced=repo.applySoldPrice(item.groupId,e.id,"MEDIAN",item.revision,true);assertEquals(1200L,priced.priceCents);assertEquals("SOLD_MEDIAN",priced.priceSource);assertFalse(priced.ready)
         val changed=repo.saveInventory(priced.copy(title="Aliens"),priced.revision);assertEquals("STALE_COMPARABLES",changed.priceSource)
-        assertFalse(evidence(true).usable())
+        assertTrue(evidence(true).usable());assertFalse(evidence(true).fresh())
     }
     @Test fun typedProposalsRequireApprovalBindRevisionAndCannotInventPrices():Unit=runBlocking {
         val item=item();val chat=ChatConversationRow(title="Fixture",provider="OPENAI",model="gpt-4.1-mini",authMode="API_KEY",toolsEnabled=true,proposalsEnabled=true);repo.journal.nextDao().insert(chat);val tools=AgentTools(repo)
@@ -53,7 +53,7 @@ class NextIntegrationTest {
         repo.journal.nextDao().insert(ChatMessageRow(conversationId=chat.id,role="user",body="Fixture",attachmentsJson=attachments.toString()))
         val pending=ChatMessageRow(conversationId=chat.id,role="assistant",body="Partial fixture",status="STREAMING");repo.journal.nextDao().insert(pending)
         val approval=AgentApprovalRow(conversationId=chat.id,action="fixture",payloadJson="{}",bindingHash="fixture");repo.journal.nextDao().insert(approval)
-        val snapshot=repo.hashSnapshotFiles(repo.buildSnapshot());assertEquals(5,snapshot.getInt("schema"));assertFalse(snapshot.toString().contains("accessToken"))
+        val snapshot=repo.hashSnapshotFiles(repo.buildSnapshot());assertEquals(6,snapshot.getInt("schema"));assertFalse(snapshot.toString().contains("accessToken"))
         val stage=File(app.cacheDir,"stage-${newId()}").apply {mkdirs()};val files=snapshot.getJSONArray("files")
         for(i in 0 until files.length()) {val p=files.getJSONObject(i).getString("path");val target=File(stage,p);target.parentFile!!.mkdirs();repo.snapshotFile(p).copyTo(target)}
         val destination=create();destination.mergeSnapshot(snapshot,stage)

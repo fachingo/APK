@@ -1,15 +1,14 @@
-# SnapIMS Next 0.4.0 validation
+# SnapIMS Next 0.5.0 validation
 
 | Check | Executed result |
 |---|---|
-| CaptureRulesTest | 10 passed |
-| DesktopConformanceTest | 4 passed |
-| LocalRecognitionTest | 6 passed |
-| PricingConformanceTest | 3 passed |
 | AiProtocolTest | 5 passed |
 | CameraLayoutTest | 1 passed |
 | CameraUpdateTest | 6 passed |
 | JournalIntegrationTest | 6 passed |
+| MarketDatabaseTest | 14 passed |
+| MarketDatasetValidationTest | 1 passed |
+| MarketUiTest | 1 passed |
 | NextIntegrationTest | 7 passed |
 | RecognitionClientTest | 7 passed |
 | RecognitionStorageTest | 7 passed |
@@ -19,43 +18,55 @@
 | StandaloneInventoryTest | 9 passed |
 | StandaloneUiTest | 1 passed |
 | WorkspaceUiTest | 1 passed |
-| Android/core host tests | **89 passed, 0 failed, 0 skipped** |
-| Broker mock/crypto/SQLite tests | **13 passed** |
-| Total executed tests | **102 passed** |
-| App and instrumentation APKs | Built; physical instrumentation execution UNRUN |
-| Android lint | 0 errors; 57 warnings remain |
-| Upgrade migrations | Explicit1→2→3→4→5, capture/files preserved; latest Room schema validated |
-| Signing vs0.3.0 / 16KB alignment | Same signing identity; alignment passed |
-| Native Shopify interruption | Synthetic timeout after server creation; stable request key, one product, no duplicate on retry |
-| Native Shopify files/batches | Two photos, async processing stays WAITING_REMOTE, metadata/stock/IDs verified; success skips; separate live SUBMIT approval |
-| Mutation safety | Changed local item rejected, unexpected stock protected, production guard, quantity1, closed owned-resource writes |
-| Restore | Schema3/4 upgrades; Shopify upload secrets redacted; restored jobs PAUSED_RECONNECT; identity retained |
-| Agent approval | DRAFT job absent before approval, one-time approval and job commit together, local status read, no implicit live publication |
-| Broker security | P256 signed requests, body binding, replay/clock, one-use pairing, revocation, encrypted token renewal, foreign-resource and production denial |
-| Broker creation recovery | Immutable request hashes, cached minimal result, uncertain create/file read-only reconciliation, no blind duplicate |
-| GraphQL registry syntax | All19 operation documents parse; actual Shopify schema acceptance UNRUN |
-| Container | Builds; non-root UID10001 startup/HTTP health and0600 state file verified; no Shopify requests |
-| Shopify UI | Actual seeded Room inventory rendered, pairing/connection gates disabled until configured; PNG inspected |
-| Retained A/C/D regression | Camera/layout/recognition, immutable inventory/photos,100×300 synthetic backup stress, source pricing/statistics, approvals, streaming/billing isolation passed |
-| Physical Pixel / real Shopify authorization and development-store draft | **UNRUN**: no bound device/store/credentials; no broker deployed |
-| SIWC physical Pixel sign-in/catalog/completed stream | **UNRUN**: no physical eligible account bound |
-| Live provider calls / real sold dataset | **UNRUN** for this release's0.3 pricing fixtures; supplied Harvester CSV belongs to the next pricing extension |
+| CaptureRulesTest | 10 passed |
+| DesktopConformanceTest | 4 passed |
+| LocalRecognitionTest | 6 passed |
+| MarketCsvTest | 2 passed |
+| PricingConformanceTest | 3 passed |
+| Unique native/core host tests | **107 passed, 0 failed, 0 skipped** |
+| Broker mock/crypto/SQLite tests retained from0.4.0 | **13 passed**; broker source unchanged |
+| Total unique executed checks | **120 tests passed** |
+| App / instrumentation APK | Built; physical instrumentation execution UNRUN |
+| Android lint | **0 errors**, 62 warnings remain |
+| Source upgrade | Explicit1→2→3→4→5→6; existing captures/files/inventory retained; latest Room migration validates |
+| Signing /16KB alignment | Same certificate as0.4.0; alignment passed |
+| Actual supplied CSV | All75,054 records imported through native Android code; all USD; source hash unchanged; repeated import added0 |
+| Combined dataset restart |100,000 synthetic +75,054 actual =175,054 current observations retained after closing/reopening persistent SQLite |
+| Generic titles | Four real format-only/generic titles preserved, searchable and excluded from automatic movie-price inference |
+| 100k host query benchmark | FTS4; owner-import run median3ms, range2–21ms; final synthetic run median4ms |
+| Runtime search fallback | FTS5 probe, FTS4 multiword/prefix behavior, forced indexed fallback, typo/barcode/year/currency/price filters, bounded pages and rebuild |
+| Import integrity | Whole-row validation, source schema/SQLite integrity, stable source dedup, preserved versions, conflicting-source quarantine, malformed/tampered input rolls back |
+| Decimal/currency | Original sold + shipping, source rounding conformance, no silent FX, explicit dated USD→CAD rate, manual-price protection |
+| Historical reuse | Old sold data retained; historical approval/policy; price history stored separately and never becomes a fictitious sale |
+| Matching safeguards | Bundles/sequels protected; edition/year constraints; remake-year ambiguity requires review; premium/edition markers excluded from ordinary item pricing |
+| Price approval freshness | Added matching evidence invalidates an older review; title/edition/year/barcode edits invalidate incompatible associations |
+| Data types | Imported sold observations separate from manual/approved prices; typed asking-price/AI data rejected at sold-import boundary |
+| Price knowledge | Manual decisions search local evidence; approved source IDs/hash/method/FX retained; prior asking-price reuse requires opt-in/approval |
+| Backup/restore | Market evidence streams to SQLite member, decisions/photos metadata preserved; atomic Room merge; schema3/4/5 accepted |
+| Native Market UI | Real seeded Room source records, search/results, source details, histogram and distinct operator-history view; no network request; screenshot inspected |
+| Retained A/B/C/D | Camera/landscape/offline recognition, inventory identity/photo corrections,100×300 synthetic backup, pricing/agent approvals, AI streaming/billing isolation, Shopify jobs passed |
+| Physical Pixel import / offline search timing / shutter accuracy | **UNRUN**: no physical Pixel attached; host timings are not device timings |
+| Original Harvester production SQLite migration | **UNRUN**: only the actual uploaded CSV export was supplied; no claim that an unavailable production DB was migrated |
+| Shopify live auth/dev-store acceptance | **UNRUN**; no broker deployed or real-store credential bound |
+| SIWC physical sign-in/catalog/completed stream | **UNRUN**; no eligible physical-device account bound |
 
-No production Canada VHS data, real Shopify account or paid provider was mutated.
-Host/mocked tests are not real API or hardware acceptance. A–D remains incomplete
-until the documented external acceptance succeeds. Shopify server JSONL bulk and
-unrelated existing-product linkage/update are not implemented; native batches use
-per-item durable operations. SIWC never silently switches to billable API usage.
+The full final regression passed107 unique host tests. A final targeted rerun of
+MarketDatabaseTest after a year-filter predicate correction passed its14 tests and
+rebuilt the APK. Those14 overlap the full suite and are not counted twice. The
+consolidated per-class JUnit evidence is retained at
+/workspace/.setup/v050-validated-junit. The native owner-data import/restart run is
+separate from the final100k synthetic regression; both used the same source importer.
 
-Capture test fixtures use real Linux directory fsync because Robolectric's stub is
-unsupported. UI/test JVMs are isolated; assertions are enabled. Lint ran separately
-after build/tests. Container startup caught and fixed copied-file ownership for its
-non-root user. Earlier failed development logs remain retained, with no checks disabled.
+No supplied sold records are bundled in the APK or public source. Install and
+import your CSV in Market database. No production Shopify listing, paid provider
+account or original desktop database was mutated. Source repositories outside APK
+remain unchanged. A–D external acceptance and physical SIWC proof are incomplete.
 
-APK SHA256: b48684209f2d5b6d42813373b4938d43f99177f015cd27cb201d134c02ae97f9
+Logs: /workspace/.setup/v050-full-validation1.log (actual CSV + full suite),
+v050-final-validation.log (final full regression), v050-final-year-filter.log,
+v050-final-lint.log. Owner-only raw data remains outside the repository.
+Historical validation: TEST_RESULTS_0.4.0.md. Usage/contracts: next/MARKET_DATABASE.md.
+
+APK SHA256: dee599d3682766d9719aab641927db961c1271711206e5b003afd3bb2d1d50f4
 
 Certificate SHA256: b262fd08c7a58f338027260d47a94a33e5c939d72752034dddb2f4f6bf73faae
-
-Logs: /workspace/.setup/v040-final-validation.log, v040-final-lint.log,
-v040-broker-final.log, v040-docker-final-build.log, v040-docker-final-smoke.log.
-See next/MILESTONE_B.md, next/SHOPIFY_SETUP.md and next/FEATURE_MATRIX.md.

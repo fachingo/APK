@@ -25,6 +25,9 @@ import java.io.File
 
 private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPlainString()}"
 @Composable fun PricingScreen(vm:CaptureViewModel,back:()->Unit) {
+    var historicalReuse by remember {mutableStateOf(vm.repo.preferences.getBoolean("reuseHistoricalSold",false))}
+    var marketOpen by remember {mutableStateOf(false)}
+    if(marketOpen) MarketDialog(vm,dismiss={marketOpen=false})
     val rows by vm.inventory.collectAsStateWithLifecycle();val evidence by vm.repo.journal.nextDao().watchEvidence().collectAsStateWithLifecycle(emptyList())
     val context=LocalContext.current;var selected by rememberSaveable {mutableStateOf<String?>(null)};var search by rememberSaveable {mutableStateOf("")}
     var decision by remember {mutableStateOf<Pair<InventoryRow,PricingEvidenceRow>?>(null)};var method by remember {mutableStateOf(vm.repo.preferences.getString("pricingMethod","MEDIAN") ?: "MEDIAN")};var overrideManualConfirmed by remember {mutableStateOf(false)}
@@ -40,12 +43,14 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
     BackHandler {back()}
     LazyColumn(Modifier.fillMaxSize().padding(horizontal=24.dp),contentPadding=PaddingValues(vertical=24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item {TextButton(onClick=back) {Text("← Back")};PageTitle("Sold comparisons","Actual imported evidence · reviewed prices")}
-        item {Text("Import a consistent SQLite export from the desktop pricing module. Only valid, fresh CAD evidence can be applied. Prices include sold price and shipping; no AI-generated prices.")}
-        item {OutlinedButton(enabled=!vm.maintenance,onClick={picker.launch(arrayOf("application/octet-stream","application/x-sqlite3","application/vnd.sqlite3","*/*"))}) {Text("Import pricing SQLite")};Text("${evidence.size} collections · ${evidence.count {it.usable()}} fresh",style=MaterialTheme.typography.bodySmall)}
+        item {Button(onClick={marketOpen=true}) {Text("Search Market database")}}
+        item {Row {Checkbox(historicalReuse,{historicalReuse=it;vm.repo.preferences.edit().putBoolean("reuseHistoricalSold",it).apply()});Text("Allow reviewed reuse after online cache expiry",Modifier.weight(1f))}}
+        item {Text("Import a consistent SQLite export from the desktop pricing module. Valid CAD evidence stays available offline; older evidence requires reviewed historical reuse. Prices include sold price and shipping; no AI-generated prices.")}
+        item {OutlinedButton(enabled=!vm.maintenance,onClick={picker.launch(arrayOf("application/octet-stream","application/x-sqlite3","application/vnd.sqlite3","*/*"))}) {Text("Import pricing SQLite")};Text("${evidence.size} collections · ${evidence.count {it.fresh()}} fresh",style=MaterialTheme.typography.bodySmall)}
         item {OutlinedButton(enabled=!vm.maintenance,onClick={
             val choices=rows.filter {!it.archived && it.priceSource!="MANUAL"}.mapNotNull {item->evidence.firstOrNull {it.titleKey==InventoryRules.normalizedTitle(item.title) && it.usable()}?.let {item to it}}.take(200)
             bulk=choices;selectedBulk=choices.map {it.first.groupId}.toSet()
-        }) {Text("Review a batch of fresh prices")}}
+        }) {Text("Review a batch of prices")}}
         item {OutlinedTextField(search,{search=it.take(200)},label={Text("Find inventory title")},modifier=Modifier.fillMaxWidth())}
         items(rows.filter {!it.archived && it.title.contains(search,true)},key={it.groupId}) {item ->
             val matches=evidence.filter {it.titleKey==InventoryRules.normalizedTitle(item.title)}
@@ -56,7 +61,7 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
                 if(selected==item.groupId) {
                     if(matches.isEmpty()) Text("No sold evidence for this exact title. Set a manual price in Inventory.")
                     matches.take(10).forEach {e ->val stats=runCatching {e.statistics()}.getOrNull()
-                        HorizontalDivider();Text("${e.status} · ${if(e.usable()) "Fresh" else "Review only"} · ${e.currency}")
+                        HorizontalDivider();Text("${e.status} · ${if(e.fresh()) "Fresh" else if(e.usable()) "Older history · retained offline" else "Review source data"} · ${e.currency}")
                         Text("Collected ${e.collectedAt}\nExpires ${e.expiresAt}",style=MaterialTheme.typography.bodySmall)
                         stats?.let {Text("${it.count} valid matches · average ${money(it.averageCents)} · median ${money(it.medianCents)}\nRange ${money(it.lowestCents)}–${money(it.highestCents)}")}
                         runCatching {e.comparables()}.getOrDefault(emptyList()).take(20).forEach {c ->Text("${c.title}\n${c.sold} + ${c.shipping} shipping · ${c.soldDate}\n${c.url}",style=MaterialTheme.typography.bodySmall)}
@@ -75,7 +80,7 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
         }},confirmButton={TextButton(enabled=item.priceSource!="MANUAL" || overrideManualConfirmed,onClick={vm.action {vm.repo.applySoldPrice(item.groupId,e.id,method,item.revision,overrideManualConfirmed);vm.repo.preferences.edit().putString("pricingMethod",method).apply();decision=null;vm.message="Reviewed sold price applied."}}) {Text("Apply")}},dismissButton={TextButton(onClick={decision=null}) {Text("Cancel")}})
     }
     bulk?.let {choices ->AlertDialog(onDismissRequest={bulk=null},title={Text("Review batch prices")},text={Column(Modifier.heightIn(max=500.dp).verticalScroll(rememberScrollState())) {
-        Text("Up to 200 exact-title fresh CAD matches. Manual prices are excluded. Every selected change clears readiness; changed records stop the entire batch.")
+        Text("Up to 200 exact-title CAD matches (older records require historical reuse enabled). Manual prices are excluded. Every selected change clears readiness; changed records stop the entire batch.")
         Row {FilterChip(selected=method=="MEDIAN",onClick={method="MEDIAN"},label={Text("Median")});FilterChip(selected=method=="AVERAGE",onClick={method="AVERAGE"},label={Text("Average")})}
         if(choices.isEmpty()) Text("No eligible fresh matches. Import evidence or review manual prices individually.")
         choices.forEach {(item,e)->val stats=e.statistics()!!;Row {Checkbox(item.groupId in selectedBulk,{checked->selectedBulk=if(checked) selectedBulk+item.groupId else selectedBulk-item.groupId});Column {Text(item.title);Text("${item.itemId} · ${money(if(method=="MEDIAN") stats.medianCents else stats.averageCents)} · ${stats.count} matches",style=MaterialTheme.typography.bodySmall)}}}

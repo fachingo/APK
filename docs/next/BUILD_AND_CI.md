@@ -26,3 +26,20 @@ Without it CI generates a different debug identity; its APK is a test artifact a
 cannot update an installed official APK. Official downloadable updates built in this
 workspace continue using the retained matching signing identity. Private production
 signing and distribution remain separate from debug acceptance builds.
+
+## Market data validation (0.5.0)
+
+Normal host tests generate100,000 explicit synthetic source observations, verify
+indexed queries, duplicate-safe repeat import and persistent restart. They bundle
+no owner market data. To exercise the exact supplied75,054-row Harvester export,
+run the native dataset acceptance test with a local private file:
+
+```bash
+./gradlew :app:testDebugUnitTest --tests '*MarketDatasetValidationTest' -PmarketCsv=/private/path/trawl_sales.csv
+```
+
+That acceptance fixture checks this known supplied dataset's count/currency/hash
+preservation and adds it after the100k synthetic fixture. Do not commit the file or
+its generated database. Host timings are not physical Pixel performance evidence.
+The last report is app/build/fixture-output/market-benchmark.json; copy it before
+another test run replaces results. Full tests/build then lint remain sequential.

@@ -82,12 +82,15 @@ fun inventoryProblems(item: InventoryRow, photos: List<PhotoRow>, repo: CaptureR
         if (active.any { it.state != "READY" }) add("Resolve unfinished photographs in Batches")
         if (ready.any { !repo.original(it.id).isFile || repo.original(it.id).length() != it.bytes }) add("An original photograph is missing or changed")
         if(item.weightGrams !in 1..1_000_000) add("Shipping weight must be 1–1,000,000 grams")
+        if(item.priceSource.startsWith("MARKET_")) {
+            if(runCatching {JSONObject(item.priceEvidenceJson).getString("titleKey")==InventoryRules.normalizedTitle(item.title)}.getOrDefault(false).not()) add("Market price belongs to a different title; review pricing")
+        }
         if(item.priceSource.startsWith("STALE")) add("Price evidence is stale; review the price")
         if(item.priceSource.startsWith("SOLD")) {
             val valid=runCatching { val evidence=JSONObject(item.priceEvidenceJson)
-                evidence.getString("titleKey")==InventoryRules.normalizedTitle(item.title) && OffsetDateTime.parse(evidence.getString("expiresAt"))>OffsetDateTime.now()
+                evidence.getString("titleKey")==InventoryRules.normalizedTitle(item.title)
             }.getOrDefault(false)
-            if(!valid) add("Sold-price evidence expired or changed; review pricing")
+            if(!valid) add("Sold-price evidence changed or is invalid; review pricing")
         }
     }
 }
@@ -101,13 +104,15 @@ internal suspend fun CaptureRepository.saveInventoryLocked(candidate: InventoryR
     var saved = inventoryFromJson(inventoryJson(candidate)).copy(title = candidate.title.trim(), ready = false,
         revision = old.revision + 1, updatedAt = OffsetDateTime.now().toString())
     if (old.priceCents != saved.priceCents) saved = saved.copy(priceSource = if(saved.priceCents == null) "UNPRICED" else "MANUAL", priceEvidenceJson = "{}")
-    else if (InventoryRules.normalizedTitle(old.title) != InventoryRules.normalizedTitle(saved.title) && old.priceSource.startsWith("SOLD")) saved = saved.copy(priceSource = "STALE_COMPARABLES")
+    else if ((InventoryRules.normalizedTitle(old.title) != InventoryRules.normalizedTitle(saved.title) || old.edition!=saved.edition || old.releaseYear!=saved.releaseYear || old.barcode!=saved.barcode) && (old.priceSource.startsWith("SOLD") || old.priceSource.startsWith("MARKET_") || old.priceSource=="OPERATOR_APPROVED")) saved = saved.copy(priceSource = "STALE_COMPARABLES")
     if(candidate.ready) {
         val errors = inventoryProblems(saved,dao.photos(saved.groupId),this)
         check(errors.isEmpty()) { errors.joinToString(". ") }; saved = saved.copy(ready = true)
     }
     if(old.shopifyProductId.isNotBlank()) saved = saved.copy(shopifyState = "LOCAL_CHANGES")
-    inventory.update(saved); inventoryAudit(old,saved,"EDITED"); saved
+    inventory.update(saved); inventoryAudit(old,saved,"EDITED")
+    if(old.priceCents!=saved.priceCents && saved.priceCents!=null) recordPriceDecision(saved,"MANUAL_ESTIMATE","MANUAL")
+    saved
 }
 suspend fun CaptureRepository.archiveInventory(groupId: String, archived: Boolean) = mutate {
     val inventory = journal.inventoryDao(); val old = inventory.item(groupId) ?: error("Item not found.")
@@ -127,6 +132,6 @@ internal suspend fun CaptureRepository.applyRecognitionLocked(id:String):Invento
         distributor = old.distributor.ifBlank { result.optString("distributor").take(1000) },
         releaseYear = old.releaseYear ?: result.optInt("year").takeIf { it in 1800..2200 },
         recognitionId = id, ready = false, revision = old.revision + 1, updatedAt = OffsetDateTime.now().toString(),
-        priceSource = if(InventoryRules.normalizedTitle(old.title) != InventoryRules.normalizedTitle(title) && old.priceSource.startsWith("SOLD")) "STALE_COMPARABLES" else old.priceSource)
+        priceSource = if(InventoryRules.normalizedTitle(old.title) != InventoryRules.normalizedTitle(title) && (old.priceSource.startsWith("SOLD") || old.priceSource.startsWith("MARKET_"))) "STALE_COMPARABLES" else old.priceSource)
     inventory.update(saved); inventoryAudit(old,saved,"RECOGNITION_APPLIED"); saved
 }

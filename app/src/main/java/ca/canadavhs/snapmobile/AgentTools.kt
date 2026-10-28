@@ -15,6 +15,8 @@ internal class AgentTools(private val repo:CaptureRepository) {
             .put(tool("recognition_results","Read existing recognition suggestions and operator-confirmed titles; does not run or bill a provider.",mapOf("group_id" to string("Exact inventory group UUID"))))
             .put(tool("pricing_evidence","Read imported sold comparisons for an exact title. Never invent prices.",mapOf("title" to string("Exact inventory title"))))
             .put(tool("approval_status","Read a local operator approval's current status.",mapOf("approval_id" to string("Approval UUID"))))
+        tools.put(tool("market_search","Search the offline sold-market library. Approximate matches are browsing only. Amounts keep original currency and include shipping; never invent FX rates.",mapOf("query" to string("Title or barcode"),"currency" to string("ISO currency code, or empty for all"))))
+            .put(tool("market_recommendation","Read a conservative offline sold-evidence recommendation for a saved item. Does not apply it. Operator must review in Market database, including any currency conversion.",mapOf("group_id" to string("Inventory group UUID"),"currency" to string("Original evidence ISO currency"))))
         tools.put(tool("shopify_job_status","Read saved Shopify job/item checkpoints on this phone. Does not contact Shopify.",mapOf("job_id" to string("Exact Shopify job UUID"))))
         if(proposals) tools.put(tool("propose_shopify_draft","Propose one Shopify DRAFT upload to the paired development store. Requires a separate operator approval of listing data and photo transfer. No live publication.",mapOf("group_id" to string("Exact ready inventory group UUID"),"location_id" to string("Selected Shopify Location GID"))))
         if(proposals) tools.put(tool("propose_apply_recognition","Propose applying an already operator-confirmed title from current photos. Separate approval required; no new recognition request.",mapOf("group_id" to string("Exact group UUID"),"recognition_id" to string("Completed recognition UUID"))))
@@ -51,6 +53,16 @@ internal class AgentTools(private val repo:CaptureRepository) {
             "approval_status" -> {
                 require(args.keys().asSequence().toSet()==setOf("approval_id"));val row=dao.approval(args.getString("approval_id")) ?: error("Approval not found.")
                 require(row.conversationId==chat.id);JSONObject().put("state",row.state).put("result",JSONObject(row.resultJson.ifEmpty {"{}"}))
+            }
+            "market_search" -> {
+                require(args.keys().asSequence().toSet()==setOf("query","currency"));val q=args.getString("query");val currency=args.getString("currency");require(q.length in 1..200 && (currency.isBlank() || currency.matches(Regex("[A-Z]{3}"))))
+                val page=repo.searchMarket(MarketFilters(query=q,currency=currency),0,10)
+                JSONObject().put("approximate",page.approximate).put("correctedQuery",page.correctedQuery).put("groups",JSONArray(page.groups.map {r->JSONObject().put("title",r.title).put("currency",r.currency).put("sampleCount",r.samples).put("lowCentsIncludingShipping",r.low).put("highCentsIncludingShipping",r.high).put("newestSale",r.newest).put("edition",r.edition)}))
+            }
+            "market_recommendation" -> {
+                require(args.keys().asSequence().toSet()==setOf("group_id","currency"));val currency=args.getString("currency");require(currency.matches(Regex("[A-Z]{3}")))
+                val r=repo.recommendMarket(args.getString("group_id"),currency)
+                if(r==null) JSONObject().put("compatibleSoldCount",0).put("message","No compatible evidence; no price invented.") else JSONObject().put("currency",r.currency).put("count",r.stats.count).put("medianCents",r.stats.medianCents).put("averageCents",r.stats.averageCents).put("newestSale",r.newest).put("oldestSale",r.oldest).put("message","Original currency including shipping. Review and approve locally; no inventory change or FX inference occurred.")
             }
             "shopify_job_status" -> {
                 require(args.keys().asSequence().toSet()==setOf("job_id"));val job=repo.journal.shopifyDao().job(args.getString("job_id")) ?: error("Shopify job not found")

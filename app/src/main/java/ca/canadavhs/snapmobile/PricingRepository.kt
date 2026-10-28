@@ -23,8 +23,10 @@ fun PricingEvidenceRow.comparables():List<SoldComparable> {
 }
 fun PricingEvidenceRow.statistics()=PricingRules.statistics(comparables().filter {PricingRules.listingMatches(queriedTitle,it.title)})
 fun PricingEvidenceRow.usable(now:OffsetDateTime=OffsetDateTime.now()):Boolean = try {
-    currency=="CAD" && status.equals("Complete",true) && OffsetDateTime.parse(collectedAt)<=now.plusMinutes(5) && OffsetDateTime.parse(expiresAt)>now && statistics()!=null
+    currency=="CAD" && status.equals("Complete",true) && OffsetDateTime.parse(collectedAt)<=now.plusMinutes(5) && run {OffsetDateTime.parse(expiresAt);statistics()!=null}
 } catch(_:Exception) {false}
+
+fun PricingEvidenceRow.fresh(now:OffsetDateTime=OffsetDateTime.now()):Boolean=usable(now) && runCatching {OffsetDateTime.parse(expiresAt)>now}.getOrDefault(false)
 
 /** Reads a consistent, exported desktop SQLite file. Never opens or changes the desktop database. */
 suspend fun CaptureRepository.importPricingDatabase(file:File):Int=withContext(Dispatchers.IO) {
@@ -69,14 +71,15 @@ internal suspend fun CaptureRepository.applySoldPriceLocked(groupId:String,evide
     check(old.priceSource!="MANUAL" || overrideManual) {"Explicitly confirm replacing the manual price."}
     val evidence=journal.nextDao().evidence(evidenceId) ?: error("Pricing evidence not found.")
     check(evidence.titleKey==InventoryRules.normalizedTitle(old.title) && evidence.usable()) {"Evidence is expired, missing, or does not match this title. Review manually."}
+    check(evidence.fresh() || preferences.getBoolean("reuseHistoricalSold",false)) {"This stored evidence is older than its online cache period. Enable reviewed historical reuse or use Market database; it has not been deleted."}
     val stats=evidence.statistics() ?: error("No valid sold comparables.")
     val price=if(method=="AVERAGE") stats.averageCents else stats.medianCents
     require(price in 0..InventoryRules.maxPriceCents)
     val provenance=JSONObject().put("evidenceId",evidence.id).put("sourceId",evidence.sourceId).put("collectionId",evidence.collectionId)
-        .put("hash",evidence.evidenceHash).put("method",method).put("count",stats.count).put("currency","CAD")
+        .put("historicalReuseApproved",!evidence.fresh()).put("hash",evidence.evidenceHash).put("method",method).put("count",stats.count).put("currency","CAD")
         .put("collectedAt",evidence.collectedAt).put("expiresAt",evidence.expiresAt).put("titleKey",evidence.titleKey)
     val saved=old.copy(priceCents=price,priceSource="SOLD_$method",priceEvidenceJson=provenance.toString(),ready=false,revision=old.revision+1,updatedAt=OffsetDateTime.now().toString())
-    journal.inventoryDao().update(saved);inventoryAudit(old,saved,"SOLD_PRICE_APPLIED");saved
+    journal.inventoryDao().update(saved);inventoryAudit(old,saved,"SOLD_PRICE_APPLIED");recordPriceDecision(saved,"OPERATOR_APPROVED_PRICE",method,JSONArray().put(evidence.id),provenance);saved
 }
 
 /** Local draft preparation only. No network write or uploaded status is implied. */

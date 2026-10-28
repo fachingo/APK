@@ -1,0 +1,94 @@
+{
+  "source_profile": {
+    "file": "trawl_sales(3).csv",
+    "bytes": 18262380,
+    "sha256": "1f26549c6cbdd87e22911e1f48c4decea740fde0ada138768bce7c0c17e20e09",
+    "rows": 75054,
+    "columns": [
+      "id",
+      "title",
+      "site",
+      "item_id",
+      "category_id",
+      "date_sold",
+      "sale_price",
+      "shipping_price",
+      "currency",
+      "condition",
+      "url",
+      "image_url"
+    ],
+    "currencies": {
+      "USD": 75054
+    },
+    "sites": {
+      "EBAY_US": 75054
+    },
+    "missing": {},
+    "invalid": {},
+    "duplicate_local_ids": 0,
+    "duplicate_source_sale_rows": 0,
+    "conflicting_source_sale_keys": 0,
+    "generic_format_only_titles": 4,
+    "first_sale": "2020-09-19T00:00:00+00:00",
+    "last_sale": "2026-10-15T15:38:00+00:00"
+  },
+  "owner_import_run": {
+    "syntheticPreviewMs": 9827,
+    "syntheticImportMs": 44513,
+    "repeatImportMs": 24947,
+    "syntheticRecords": 100000,
+    "queryTimesMs": [
+      21,
+      4,
+      5,
+      2,
+      2,
+      3,
+      3,
+      3,
+      4,
+      3,
+      2,
+      5
+    ],
+    "medianQueryMs": 3,
+    "index": "FTS4",
+    "physicalPixelBenchmark": "UNRUN",
+    "ownerCsvRows": 75054,
+    "ownerCsvSha256": "1f26549c6cbdd87e22911e1f48c4decea740fde0ada138768bce7c0c17e20e09",
+    "ownerCsvImportMs": 84760,
+    "ownerCsvSourceUnchanged": true,
+    "ownerCsvRepeatedAdded": 0,
+    "totalCurrentRowsAfterRestart": 175054,
+    "restartPreserved": true
+  },
+  "final_synthetic_run": {
+    "syntheticPreviewMs": 8150,
+    "syntheticImportMs": 43255,
+    "repeatImportMs": 21171,
+    "syntheticRecords": 100000,
+    "queryTimesMs": [
+      29,
+      5,
+      3,
+      3,
+      5,
+      3,
+      11,
+      2,
+      2,
+      4,
+      13,
+      3
+    ],
+    "medianQueryMs": 4,
+    "index": "FTS4",
+    "physicalPixelBenchmark": "UNRUN",
+    "ownerCsvValidation": "Not requested in this run; no owner data bundled",
+    "totalCurrentRowsAfterRestart": 100000,
+    "restartPreserved": true
+  },
+  "physical_pixel": "UNRUN",
+  "data_bundled": false
+}

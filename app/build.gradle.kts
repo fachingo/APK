@@ -10,8 +10,8 @@ android {
         minSdk = 28
         targetSdk = 36
         ndk { abiFilters += "arm64-v8a" }
-        versionCode = 6
-        versionName = "0.4.0"
+        versionCode = 7
+        versionName = "0.5.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true }
@@ -72,6 +72,7 @@ tasks.withType<Test>().configureEach {
     doFirst { testHome.mkdirs() }
     systemProperty("user.home", testHome.absolutePath)
     systemProperty("snapims.schemaDir", layout.projectDirectory.dir("schemas").asFile.absolutePath)
+    providers.gradleProperty("marketCsv").orNull?.let {systemProperty("snapims.marketCsv",it)}
     systemProperty("snapims.testOutput", layout.buildDirectory.dir("fixture-output").get().asFile.absolutePath)
     systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
 }

@@ -32,6 +32,7 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, val d
     fun freeSpace(folder: File) = storageFreeBytes(folder)
     fun sync(folder: File) = directorySync(folder)
     val dao = journal.dao()
+    internal val marketBusy=kotlinx.coroutines.flow.MutableStateFlow(false)
     private val lock = Mutex()
     private val fileLock = Mutex()
     val originals = File(dataRoot, "originals").apply { mkdirs() }

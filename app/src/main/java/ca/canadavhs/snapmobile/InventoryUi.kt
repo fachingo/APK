@@ -110,6 +110,7 @@ import coil.compose.AsyncImage
     var year by remember(item.groupId) { mutableStateOf(item.releaseYear?.toString() ?: "") }
     var quantity by remember(item.groupId) { mutableStateOf(item.quantity.toString()) }
     var weight by remember(item.groupId) { mutableStateOf(item.weightGrams.toString()) }
+    var marketOpen by remember {mutableStateOf(false)}
     var advanced by remember { mutableStateOf(false) }; var showRecognition by remember { mutableStateOf(false) }
     var archiveConfirmation by remember { mutableStateOf(false) }
     var history by remember { mutableStateOf<List<InventoryAuditRow>>(emptyList()) }; var showHistory by remember { mutableStateOf(false) }
@@ -152,6 +153,7 @@ import coil.compose.AsyncImage
                 OutlinedTextField(price,{price=it.take(30)},modifier=Modifier.weight(1f),label={Text("Price · CAD")},singleLine=true)
                 OutlinedTextField(discount,{discount=it.take(12)},modifier=Modifier.weight(1f),label={Text("Discount · %")},singleLine=true)
             } }
+            item {OutlinedButton(onClick={marketOpen=true}) {Text("Search market & approved prices")}}
             item { Text("Source: ${draft.priceSource.lowercase().replace('_',' ')}. Entering a price records a manual decision.",style=MaterialTheme.typography.bodySmall) }
             item { Row(horizontalArrangement=Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(quantity,{quantity=it.take(10)},modifier=Modifier.weight(1f),label={Text("Quantity")},singleLine=true)
@@ -191,6 +193,7 @@ import coil.compose.AsyncImage
             } }
         }
     }
+    if(marketOpen) MarketDialog(vm,item.groupId,dismiss={marketOpen=false},applied={marketOpen=false;onClose()})
     if(showRecognition && group!=null) RecognitionDialog(vm,group,suggestions) {showRecognition=false}
 }
 @Composable internal fun EditField(label: String, value: String, multiline: Boolean=false, change: (String)->Unit) {

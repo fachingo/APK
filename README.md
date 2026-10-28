@@ -1,22 +1,32 @@
-# SnapIMS Next 0.4.0
+# SnapIMS Next 0.5.0
 
-**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.4.0-debug.apk)** · [SHA-256](releases/SnapIMS-Next-0.4.0-debug.apk.sha256)
+**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.5.0-debug.apk)** · [SHA-256](releases/SnapIMS-Next-0.5.0-debug.apk.sha256)
 
 Standalone native Android inventory for Canada VHS, built on the existing SnapIMS
 rules and compatible capture formats. No desktop process, local HTTP server or LAN
 connection is required for capture, inventory, search, review or backup.
 
-Milestone A is published. This update adds the Shopify milestone B implementation
-to the existing sold-evidence pricing and AI workspace previews. Settings contains
-**Sold pricing**, **AI workspace** and **Shopify**. Read [usage and limits](docs/next/MILESTONE_CD.md) and the [feature matrix](docs/next/FEATURE_MATRIX.md).
+This update makes the full offline **Market database** a core pricing feature.
+Settings contains **Market database**, **Sold pricing**, **AI workspace** and
+**Shopify**. The existing standalone inventory, camera and Shopify implementation
+are retained. Read [usage and limits](docs/next/MILESTONE_CD.md) and the [feature matrix](docs/next/FEATURE_MATRIX.md).
 The A–D program is not complete: Shopify authorization and development-store
 acceptance are unverified, and no broker is deployed. **Continue with ChatGPT is an experimental native prototype;
 physical Pixel sign-in, discovery and subscription streaming are still unverified.**
 Its contract uses the owner's externally verified official excerpts, independently
 of API-key mode, with no automatic switch to API billing.
 
-- Pricing imports actual desktop sold-evidence SQLite exports, preserves provenance,
-  calculates source-compatible statistics and requires individual/bulk review.
+- Market database imports the supplied Harvester CSV, supported Harvester SQLite,
+  desktop workbench SQLite and native market archives. Historical records remain
+  searchable offline with FTS5/FTS4/indexed fallbacks, typo suggestions, barcode and
+  edition/year/date/price filters, source listings and price distributions.
+- Native validation loaded all **75,054 supplied USD records** plus **100,000
+  synthetic records**, confirmed safe repeat import and restart persistence. The
+  uploaded data is kept out of the public APK/source. [Usage and import contract](docs/next/MARKET_DATABASE.md).
+- Sold evidence and operator decisions stay separate. Pricing preserves currency,
+  includes shipping, uses source-compatible Decimal rounding and requires review.
+  Applying USD evidence to CAD inventory requires an explicitly entered rate/date.
+  Older evidence is retained with configurable historical-reuse warnings.
 - AI chat stores local history and supports explicit provider connections, dynamic
   models, streamed responses, compatible inline attachments and one-time reviewed
   local tools. Unknown capabilities can be checked with explicit synthetic probes.
@@ -79,10 +89,11 @@ OpenAI request on each shutter. See [recognition details](docs/RECOGNITION_0.1.1
 
 ## Update without losing captures
 
-Install 0.4.0 **over** 0.1.x, 0.2.0 or 0.3.0; do not uninstall or clear app storage.
-Application ID and signing key are unchanged, versionCode increases to 6. Explicit
-Room migrations 1→2→3→4→5 retain captures/archives and add inventory, pricing, chat
-and Shopify job tables. Restored Shopify jobs require fresh pairing and manual
+Install 0.5.0 **over** 0.1.x, 0.2.0, 0.3.0 or 0.4.0; do not uninstall or clear app storage.
+Application ID and signing key are unchanged, versionCode increases to 7. Explicit
+Room migrations 1→2→3→4→5→6 retain captures/archives and add inventory, permanent
+market evidence/decision history, chat and Shopify job tables. Large market evidence
+is streamed into consistent SQLite members of complete protected backups. Restored Shopify jobs require fresh pairing and manual
 reconciliation; temporary upload credentials are excluded from backups.
 Existing API-key credentials and camera preferences remain on the device. New
 protected backups exclude API keys and OAuth credentials, which must be reconnected on a different phone.
