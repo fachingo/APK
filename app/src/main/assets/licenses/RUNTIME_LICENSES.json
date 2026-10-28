@@ -1273,78 +1273,6 @@
     ]
   },
   {
-    "component": "com.google.android.datatransport:transport-api:2.2.1",
-    "licenses": [
-      {
-        "name": "The Apache Software License, Version 2.0",
-        "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
-      }
-    ]
-  },
-  {
-    "component": "com.google.android.datatransport:transport-backend-cct:2.3.3",
-    "licenses": [
-      {
-        "name": "The Apache Software License, Version 2.0",
-        "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
-      }
-    ]
-  },
-  {
-    "component": "com.google.android.datatransport:transport-runtime:2.2.6",
-    "licenses": [
-      {
-        "name": "The Apache Software License, Version 2.0",
-        "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
-      }
-    ]
-  },
-  {
-    "component": "com.google.android.gms:play-services-base:18.5.0",
-    "licenses": [
-      {
-        "name": "Android Software Development Kit License",
-        "url": "https://developer.android.com/studio/terms.html"
-      }
-    ]
-  },
-  {
-    "component": "com.google.android.gms:play-services-basement:18.4.0",
-    "licenses": [
-      {
-        "name": "Android Software Development Kit License",
-        "url": "https://developer.android.com/studio/terms.html"
-      }
-    ]
-  },
-  {
-    "component": "com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.1",
-    "licenses": [
-      {
-        "name": "ML Kit Terms of Service",
-        "url": "https://developers.google.com/ml-kit/terms"
-      }
-    ]
-  },
-  {
-    "component": "com.google.android.gms:play-services-tasks:18.2.0",
-    "licenses": [
-      {
-        "name": "Android Software Development Kit License",
-        "url": "https://developer.android.com/studio/terms.html"
-      }
-    ]
-  },
-  {
-    "component": "com.google.android.odml:image:1.0.0-beta1",
-    "licenses": [
-      {
-        "name": "Android Software Development Kit License",
-        "url": "https://developer.android.com/studio/terms.html"
-      }
-    ]
-  },
-  {
     "component": "com.google.auto.value:auto-value-annotations:1.6.3",
     "licenses": [
       {
@@ -1376,42 +1304,6 @@
     "licenses": [
       {
         "name": "Apache 2.0",
-        "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
-      }
-    ]
-  },
-  {
-    "component": "com.google.firebase:firebase-annotations:16.0.0",
-    "licenses": [
-      {
-        "name": "The Apache Software License, Version 2.0",
-        "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
-      }
-    ]
-  },
-  {
-    "component": "com.google.firebase:firebase-components:16.1.0",
-    "licenses": [
-      {
-        "name": "The Apache Software License, Version 2.0",
-        "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
-      }
-    ]
-  },
-  {
-    "component": "com.google.firebase:firebase-encoders-json:17.1.0",
-    "licenses": [
-      {
-        "name": "The Apache Software License, Version 2.0",
-        "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
-      }
-    ]
-  },
-  {
-    "component": "com.google.firebase:firebase-encoders:16.1.0",
-    "licenses": [
-      {
-        "name": "The Apache Software License, Version 2.0",
         "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
       }
     ]
@@ -1453,47 +1345,11 @@
     ]
   },
   {
-    "component": "com.google.mlkit:barcode-scanning-common:17.0.0",
+    "component": "com.google.zxing:core:3.5.4",
     "licenses": [
       {
-        "name": "ML Kit Terms of Service",
-        "url": "https://developers.google.com/ml-kit/terms"
-      }
-    ]
-  },
-  {
-    "component": "com.google.mlkit:barcode-scanning:17.3.0",
-    "licenses": [
-      {
-        "name": "ML Kit Terms of Service",
-        "url": "https://developers.google.com/ml-kit/terms"
-      }
-    ]
-  },
-  {
-    "component": "com.google.mlkit:common:18.11.0",
-    "licenses": [
-      {
-        "name": "ML Kit Terms of Service",
-        "url": "https://developers.google.com/ml-kit/terms"
-      }
-    ]
-  },
-  {
-    "component": "com.google.mlkit:vision-common:17.3.0",
-    "licenses": [
-      {
-        "name": "ML Kit Terms of Service",
-        "url": "https://developers.google.com/ml-kit/terms"
-      }
-    ]
-  },
-  {
-    "component": "com.google.mlkit:vision-interfaces:16.3.0",
-    "licenses": [
-      {
-        "name": "ML Kit Terms of Service",
-        "url": "https://developers.google.com/ml-kit/terms"
+        "name": "The Apache Software License, Version 2.0",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
       }
     ]
   },
@@ -1687,15 +1543,6 @@
     ]
   },
   {
-    "component": "org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2",
-    "licenses": [
-      {
-        "name": "Apache-2.0",
-        "url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
-      }
-    ]
-  },
-  {
     "component": "org.jetbrains.kotlinx:kotlinx-serialization-bom:1.7.3",
     "licenses": [
       {
@@ -1737,6 +1584,60 @@
       {
         "name": "The Apache License, Version 2.0",
         "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
+      }
+    ]
+  },
+  {
+    "component": "vendored:Tesseract4Android:4.9.0",
+    "licenses": [
+      {
+        "name": "Apache-2.0",
+        "url": "https://github.com/adaptech-cz/Tesseract4Android/tree/4.9.0"
+      }
+    ]
+  },
+  {
+    "component": "native:Tesseract:5.5.1",
+    "licenses": [
+      {
+        "name": "Apache-2.0",
+        "url": "https://github.com/tesseract-ocr/tesseract"
+      }
+    ]
+  },
+  {
+    "component": "native:Leptonica:1.85.0",
+    "licenses": [
+      {
+        "name": "BSD-2-Clause",
+        "url": "https://github.com/DanBloomberg/leptonica"
+      }
+    ]
+  },
+  {
+    "component": "native:libjpeg:9f",
+    "licenses": [
+      {
+        "name": "IJG",
+        "url": "https://ijg.org/"
+      }
+    ]
+  },
+  {
+    "component": "native:libpng:1.6.48",
+    "licenses": [
+      {
+        "name": "libpng-2.0",
+        "url": "https://github.com/pnggroup/libpng"
+      }
+    ]
+  },
+  {
+    "component": "data:tessdata_fast-eng:4.1.0",
+    "licenses": [
+      {
+        "name": "Apache-2.0",
+        "url": "https://github.com/tesseract-ocr/tessdata_fast/tree/4.1.0"
       }
     ]
   }

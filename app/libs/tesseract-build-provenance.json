@@ -1,0 +1,18 @@
+{
+  "upstream": "https://github.com/adaptech-cz/Tesseract4Android",
+  "tag": "4.9.0",
+  "commit": "15c534717b1cb58261b58d4e4c1200c7f81f668c",
+  "source_archive_sha256": "4569f9093d641d13188ba2dd36a74396661eaa3f9e44637ff1cac9a36076a20e",
+  "aar_sha256": "776f6e1a1cf8f3a2006eac0d428bcb1a679d0c4f3d895f4c466cc83d168bcca5",
+  "abi": "arm64-v8a",
+  "ndk": "27.2.12479018",
+  "cmake": "3.22.1",
+  "tesseract": "5.5.1",
+  "leptonica": "1.85.0",
+  "traineddata": {
+    "upstream": "https://github.com/tesseract-ocr/tessdata_fast",
+    "tag": "4.1.0",
+    "file": "eng.traineddata",
+    "sha256": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2"
+  }
+}

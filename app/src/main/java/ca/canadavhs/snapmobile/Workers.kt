@@ -7,13 +7,8 @@ import androidx.room.withTransaction
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import ca.canadavhs.snapmobile.core.*
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.barcode.common.Barcode
-import com.google.mlkit.vision.barcode.BarcodeScannerOptions
-import com.google.mlkit.vision.common.InputImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.tasks.await
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -48,26 +43,18 @@ class BarcodeWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         val id = inputData.getString("id") ?: return@withContext Result.failure()
         val photo = repo.dao.photo(id)
         if (photo.deleted || photo.state != "READY") return@withContext Result.success()
-        val scanner = BarcodeScanning.getClient(BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS).build())
         var bitmap: android.graphics.Bitmap? = null
         try {
-            // Decode a derivative, preserving original bytes and using EXIF for rotation.
-            val file = repo.original(id)
-            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }; BitmapFactory.decodeFile(file.path, bounds)
-            val options = BitmapFactory.Options().apply { inSampleSize = Integer.highestOneBit((maxOf(bounds.outWidth, bounds.outHeight) / 2200).coerceAtLeast(1)) }
-            bitmap = BitmapFactory.decodeFile(file.path, options) ?: error("Cannot decode barcode preview")
-            val rotation = ExifInterface(file).rotationDegrees
-            val found = scanner.process(InputImage.fromBitmap(bitmap, rotation)).await()
-            val formats = mapOf(Barcode.FORMAT_UPC_A to "UPC_A", Barcode.FORMAT_UPC_E to "UPC_E", Barcode.FORMAT_EAN_13 to "EAN_13", Barcode.FORMAT_EAN_8 to "EAN_8", Barcode.FORMAT_CODE_128 to "CODE_128", Barcode.FORMAT_CODE_39 to "CODE_39", Barcode.FORMAT_ITF to "ITF")
-            val values = found.mapNotNull { b -> val raw = b.rawValue ?: return@mapNotNull null; val format = formats[b.format] ?: return@mapNotNull null; Barcodes.candidate(raw, format) }
-            val array = JSONArray(values.distinct().map { JSONObject().put("raw", it.raw).put("format", it.format).put("normalized", it.normalized).put("valid", it.valid).put("provider", "bundled-mlkit-17.3.0").put("photo_id", id) })
-            // Read again: a concurrent tombstone/reorder must never be overwritten.
+            bitmap = recognitionBitmap(repo.original(id), 2200)
+            val values = LocalBarcodeDecoder.decode(bitmap.width, bitmap.height, bitmap.argbPixels())
+            val array = JSONArray(values.map { JSONObject().put("raw", it.raw).put("format", it.format).put("normalized", it.normalized).put("valid", it.valid).put("provider", "zxing-3.5.4").put("photo_id", id) })
             repo.journal.withTransactionCompat { val latest = repo.dao.photo(id); repo.dao.update(latest.copy(barcodeJson = array.toString(), scanState = "DONE", error = "")) }
             Result.success()
-        } catch (e: Exception) {
+        } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+        catch (_: Exception) {
             repo.journal.withTransactionCompat { val latest = repo.dao.photo(id); repo.dao.update(latest.copy(scanState = "ERROR", error = "Barcode scan failed; manual correction or rescan is available.")) }
             Result.failure()
-        } finally { scanner.close(); bitmap?.recycle() }
+        } finally { bitmap?.recycle() }
     }
 }
 // Keep concurrent worker updates transactional without holding a camera mutation lock.
@@ -139,7 +126,7 @@ suspend fun mobileManifest(repo: CaptureRepository, archive: ArchiveRow, groups:
         .put("session", JSONObject().put("id", session.id).put("name", session.name).put("created_at", session.createdAt))
         .put("groups", JSONArray(groups.map { group ->
             val list = photos.getValue(group.id); val barcode = barcodeInfo(group, list); val code = barcode.optString("selected").takeUnless { it == "null" }
-            JSONObject().put("id", group.id).put("number", group.number).put("captured_at", group.createdAt).put("location", group.location)
+            JSONObject().put("recognition", repo.recognitionManifest(group.id)).put("id", group.id).put("number", group.number).put("captured_at", group.createdAt).put("location", group.location)
                 .put("rare", group.rare).put("review", group.review || barcode.getString("status") in setOf("AMBIGUOUS", "SCAN_ERROR") || list.none { it.role == "FRONT" } || list.none { it.role == "BACK" })
                 .put("note", group.note).put("barcode", barcode)
                 .put("photos", JSONArray(list.mapIndexed { i, p -> JSONObject().put("id", p.id).put("order", i + 1).put("role", p.role).put("captured_at", p.capturedAt).put("filename", photoFilename(group.createdAt, code, group.id, i, Role.valueOf(p.role))).put("bytes", p.bytes).put("sha256", p.sha256) }))

@@ -75,3 +75,14 @@ hardware controls, force-close timing, low-storage behavior and 100 physical tap
 300 actual photographs require a device. A synthetic stress run is distinct from
 that physical sustained capture acceptance. Do not advance to milestones 2/3 or
 claim production quality until milestone 1 passes these hardware gates.
+
+
+## 0.1.1 update
+
+The owner requested OpenAI API-key recognition and offline open-source OCR/barcodes.
+ZXing now handles deterministic barcode decoding; Tesseract provides separately
+labelled offline OCR. The non-pricing Responses schema is derived from the existing
+desktop schema. New recognition attempts are capture metadata in Room schema 2,
+with an additive 1→2 migration, source fingerprints and explicit confirmation.
+Existing desktop inventory, pricing and Shopify logic remains authoritative.
+See RECOGNITION_0.1.1.md for the implementation, dependencies and remaining gates.

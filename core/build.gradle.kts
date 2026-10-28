@@ -1,3 +1,3 @@
 plugins { kotlin("jvm") }
 kotlin { jvmToolchain(21) }
-dependencies { testImplementation(kotlin("test")); testImplementation("junit:junit:4.13.2") }
+dependencies { implementation("com.google.zxing:core:3.5.4"); testImplementation(kotlin("test")); testImplementation("junit:junit:4.13.2") }

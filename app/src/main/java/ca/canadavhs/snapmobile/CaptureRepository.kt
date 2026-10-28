@@ -85,6 +85,7 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, priva
         // Retry valid but previously interrupted writes without deleting incomplete files.
         dao.pendingScans().forEach { enqueueScan(it) }
         dao.unfinishedArchives().forEach { enqueueArchive(it.id) }
+        recoverRecognition()
     }
     suspend fun next() {
         val session = mutate {

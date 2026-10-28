@@ -1,25 +1,15 @@
-# Third-party notices
+# Third-party notices — 0.1.1
 
-The APK includes the original runtime library notice payloads under
-`assets/licenses/`, accessible in Settings → Third-party notices & licenses.
-Long files are paged so opening legal notices cannot create an unbounded text layout.
+The APK includes the resolved runtime library notices under assets/licenses,
+accessible from Settings. Long files are paged. RUNTIME_LICENSES.json lists Maven,
+native/data components, versions, licenses and original sources.
 
-- [Runtime component/license inventory](RUNTIME_LICENSES.json): 193 resolved components,
-  including BOM/metadata modules. License metadata is resolved from their Maven POMs,
-  inherited parent POMs, or the original javax.inject source header.
-- [Packaged notices](../app/src/main/assets/licenses/NOTICE.txt): primary attributions
-  and links to Google ML Kit/Android SDK terms.
-- Apache 2.0, BSD-3-Clause and MIT full license texts are included.
-- Original Google ML Kit / Play services third_party_licenses text and metadata are
-  retained with component/version names.
-- BUNDLED_NOTICES.txt preserves 106 distributed license/notice files from resolved
-  runtime JAR/AAR artifacts, including CameraX's BSD attribution and checker-qual's
-  MIT notice. Original payloads remain authoritative.
+ZXing 3.5.4 provides deterministic barcode decoding. Tesseract4Android 4.9.0 wraps
+Tesseract 5.5.1, Leptonica 1.85.0, libjpeg 9f and libpng 1.6.48. Their original license
+and attribution payloads are included. English tessdata_fast 4.1.0 data is Apache 2.0.
+app/libs/tesseract-build-provenance.json records the pinned source, toolchain and hashes.
 
-Kotlin/Compose/CameraX/Room/WorkManager/Lifecycle/Activity/ExifInterface, Coil and
-kotlinx.coroutines remain third-party components. No movie artwork, proprietary
-catalog database, custom typeface or third-party photograph is shipped.
-
-The JDK/Android SDK/Gradle distributions retain their original tooling licenses
-in the cloud tools directories. Test dependencies are used by test artifacts, not
-the main application. No release signing key or API credential is bundled.
+AndroidX, Kotlin/coroutines, Coil, OkHttp/Okio and supporting runtime components retain
+their original notices. Full Apache 2.0, BSD and MIT license texts and distributed
+notices are preserved. JDK/SDK/Gradle distributions retain their tooling licenses.
+No API key, release signing key, proprietary catalog or product photograph is shipped.

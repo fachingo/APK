@@ -1,4 +1,5 @@
 import java.io.File
+import java.security.MessageDigest
 
 plugins { id("com.android.application"); kotlin("android"); kotlin("plugin.compose"); kotlin("kapt") }
 android {
@@ -8,8 +9,9 @@ android {
         applicationId = "ca.canadavhs.snapmobile"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        ndk { abiFilters += "arm64-v8a" }
+        versionCode = 2
+        versionName = "0.1.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true }
@@ -39,9 +41,10 @@ dependencies {
     implementation("androidx.room:room-ktx:2.8.5")
     kapt("androidx.room:room-compiler:2.8.5")
     implementation("androidx.work:work-runtime-ktx:2.12.0")
-    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    implementation(files("libs/tesseract4android-4.9.0-arm64-v8a.aar"))
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("androidx.exifinterface:exifinterface:1.4.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("io.coil-kt:coil-compose:2.7.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
@@ -60,6 +63,25 @@ tasks.withType<Test>().configureEach {
     val testHome = layout.buildDirectory.dir("test-home").get().asFile
     doFirst { testHome.mkdirs() }
     systemProperty("user.home", testHome.absolutePath)
+    systemProperty("snapims.schemaDir", layout.projectDirectory.dir("schemas").asFile.absolutePath)
     systemProperty("snapims.testOutput", layout.buildDirectory.dir("fixture-output").get().asFile.absolutePath)
     systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
 }
+
+
+val verifyOfflineRecognitionArtifacts = tasks.register("verifyOfflineRecognitionArtifacts") {
+    val nativeLibrary = layout.projectDirectory.file("libs/tesseract4android-4.9.0-arm64-v8a.aar").asFile
+    val expectedFile = layout.projectDirectory.file("libs/tesseract4android-4.9.0-arm64-v8a.aar.sha256").asFile
+    val language = layout.projectDirectory.file("src/main/assets/tessdata/eng.traineddata").asFile
+    inputs.files(nativeLibrary, expectedFile, language)
+    doLast {
+        fun digest(file: File): String {
+            val hash = MessageDigest.getInstance("SHA-256")
+            file.inputStream().use { input -> val buffer = ByteArray(65536); while (true) { val n = input.read(buffer); if (n < 0) break; hash.update(buffer, 0, n) } }
+            return hash.digest().joinToString("") { "%02x".format(it) }
+        }
+        check(digest(nativeLibrary) == expectedFile.readText().trim().substringBefore(' ')) { "Vendored Tesseract AAR integrity check failed." }
+        check(digest(language) == "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2") { "English OCR data integrity check failed." }
+    }
+}
+tasks.named("preBuild").configure { dependsOn(verifyOfflineRecognitionArtifacts) }

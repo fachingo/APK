@@ -2,6 +2,8 @@ package ca.canadavhs.snapmobile
 
 import android.app.Application
 import androidx.room.*
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import ca.canadavhs.snapmobile.core.newId
@@ -18,8 +20,36 @@ data class ArchiveRow(@PrimaryKey val id: String = newId(), val sessionId: Strin
 @Entity(tableName = "events")
 data class EventRow(@PrimaryKey val id: String = newId(), val sessionId: String, val groupId: String?, val action: String, val createdAt: String = OffsetDateTime.now().toString())
 
+@Entity(tableName = "recognition", indices = [Index("groupId"), Index("requestedAt")])
+data class RecognitionRow(
+    @PrimaryKey val id: String = newId(), val groupId: String, val provider: String,
+    val model: String, val inputJson: String, val inputFingerprint: String,
+    val state: String = "QUEUED", val resultJson: String = "", val error: String = "",
+    val acceptedTitle: String? = null, val requestedAt: Long = System.currentTimeMillis(),
+    val completedAt: Long? = null, val workId: String = ""
+)
+
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""CREATE TABLE IF NOT EXISTS recognition (
+            id TEXT NOT NULL PRIMARY KEY, groupId TEXT NOT NULL, provider TEXT NOT NULL,
+            model TEXT NOT NULL, inputJson TEXT NOT NULL, inputFingerprint TEXT NOT NULL,
+            state TEXT NOT NULL, resultJson TEXT NOT NULL, error TEXT NOT NULL,
+            acceptedTitle TEXT, requestedAt INTEGER NOT NULL, completedAt INTEGER, workId TEXT NOT NULL)""")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_recognition_groupId ON recognition(groupId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_recognition_requestedAt ON recognition(requestedAt)")
+    }
+}
+
 @Dao
 interface JournalDao {
+    @Query("SELECT * FROM recognition ORDER BY requestedAt DESC, id DESC") fun watchRecognition(): Flow<List<RecognitionRow>>
+    @Query("SELECT * FROM recognition WHERE groupId=:group ORDER BY requestedAt DESC,id DESC") suspend fun recognitions(group: String): List<RecognitionRow>
+    @Query("SELECT * FROM recognition WHERE id=:id") suspend fun recognition(id: String): RecognitionRow?
+    @Query("SELECT * FROM recognition WHERE state IN ('QUEUED','RUNNING')") suspend fun unsettledRecognition(): List<RecognitionRow>
+    @Insert suspend fun insert(row: RecognitionRow)
+    @Update suspend fun update(row: RecognitionRow)
+
     @Query("SELECT * FROM sessions ORDER BY createdAt DESC") fun watchSessions(): Flow<List<SessionRow>>
     @Query("SELECT * FROM groups ORDER BY number") fun watchGroups(): Flow<List<GroupRow>>
     @Query("SELECT * FROM photos ORDER BY position") fun watchPhotos(): Flow<List<PhotoRow>>
@@ -47,13 +77,14 @@ interface JournalDao {
     @Update suspend fun update(row: ArchiveRow)
     @Query("DELETE FROM groups WHERE id=:id AND id NOT IN (SELECT groupId FROM photos)") suspend fun removeEmptyGroup(id: String)
 }
-@Database(entities = [SessionRow::class, GroupRow::class, PhotoRow::class, ArchiveRow::class, EventRow::class], version = 1, exportSchema = true)
+@Database(entities = [SessionRow::class, GroupRow::class, PhotoRow::class, ArchiveRow::class, EventRow::class, RecognitionRow::class], version = 2, exportSchema = true)
 abstract class CaptureJournal : RoomDatabase() { abstract fun dao(): JournalDao }
 class CaptureApplication : Application() {
     lateinit var repository: CaptureRepository
     override fun onCreate() {
         super.onCreate()
         val journal = Room.databaseBuilder(this, CaptureJournal::class.java, "capture-journal.db")
+            .addMigrations(MIGRATION_1_2)
             .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onOpen(db: androidx.sqlite.db.SupportSQLiteDatabase) { db.execSQL("PRAGMA synchronous=FULL") }

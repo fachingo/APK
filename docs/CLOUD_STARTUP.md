@@ -105,3 +105,15 @@ Logs/evidence: /workspace/.setup. Only stop servers started by this task; their 
 files are snapims-server.pid and pricing-server.pid in that directory. New source is
 uncommitted for review. Milestone 1 is an acceptance build; wireless pairing,
 OCR/OpenAI and chat are gated later work, explicitly tracked in APK/docs/STATUS.md.
+
+
+## Application update 0.1.1
+
+The newer README and RECOGNITION_0.1.1.md supersede older feature-limit statements.
+OpenAI, offline Tesseract OCR and model-free ZXing/image checks are implemented.
+The API key is entered on the Pixel and encrypted with Android Keystore; no cloud
+API secret is needed to build. The app includes verified source-built arm64 native
+libraries and English character data. The ordinary Gradle build verifies them and
+needs no JitPack connection or native rebuild. There are 36 host tests. Wireless
+synchronization and chat remain pending, as do physical device/live-key checks.
+The desktop service startup commands and isolated data roots above are unchanged.

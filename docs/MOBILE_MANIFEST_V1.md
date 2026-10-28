@@ -97,3 +97,14 @@ Android's Files/Share facilities. Milestone 2 must add authenticated TLS pairing
 short-lived codes, revocable device credentials and persistent transfer receipts
 before enabling wireless imports. Never open SQLite over the network or expose an
 unauthenticated import route. No API secret is needed for this milestone.
+
+
+## Recognition extension in 0.1.1
+
+Version 1 manifests may include a `recognition` array per group. It contains the latest
+successful current attempt, provider/model, requested/completed epoch timestamps,
+input fingerprint, source photo IDs/roles/hashes, result/provenance and optional
+`confirmed_title`. Stale results are excluded. This is capture evidence, not a desktop
+inventory update. Older ZIPs are not rewritten when recognition finishes later.
+Separate shared JSON uses `format: snapims.mobile.recognition`, version 1 and the
+same capture group/session IDs; it does not automatically change desktop records.

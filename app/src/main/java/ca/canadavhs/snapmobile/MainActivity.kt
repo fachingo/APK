@@ -233,6 +233,9 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
 @Composable fun BatchesScreen(vm: CaptureViewModel, sessions: List<SessionRow>, groups: List<GroupRow>, photos: List<PhotoRow>, archives: List<ArchiveRow>, onStart: () -> Unit) {
     var selected by remember { mutableStateOf<String?>(null) }
     val session = sessions.firstOrNull { it.id == selected } ?: sessions.firstOrNull()
+    val recognitionRows by vm.recognition.collectAsStateWithLifecycle()
+    var recognitionGroup by remember { mutableStateOf<GroupRow?>(null) }
+    var batchRecognitionDialog by remember { mutableStateOf(false) }
     var notesGroup by remember { mutableStateOf<GroupRow?>(null) }
     var editBarcode by remember { mutableStateOf<GroupRow?>(null) }
     var inspected by remember { mutableStateOf<PhotoRow?>(null) }
@@ -242,12 +245,20 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
         if (session == null) item { EmptyState("Start with one tape", "Create a batch in Capture. Your photos and unfinished product are restored when you return.") }
         if (session != null) {
             item { Row(verticalAlignment = Alignment.CenterVertically) { Text(if (session.finished) "Finished · source photos retained" else "Capturing · ${groups.count { it.sessionId == session.id && it.closed }} products", Modifier.weight(1f)); TextButton(onClick = { vm.action { vm.repo.queueArchives(session.id) } }) { Text("Finalize part") } } }
+            item { TextButton(onClick = { batchRecognitionDialog = true }) { Text("Recognize completed products") } }
             items(groups.filter { it.sessionId == session.id }.sortedByDescending { it.number }, key = { it.id }) { group ->
                 val list = photos.filter { it.groupId == group.id }.sortedBy { it.position }; val visible = list.filter { !it.deleted }
                 val locked = group.archiveId != null || session.finished
                 Surface(shape = RoundedCornerShape(24.dp), tonalElevation = 2.dp) { Column(Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) { Column(Modifier.weight(1f)) { Text("Product %03d".format(group.number), fontWeight = FontWeight.Bold, fontSize = 20.sp); Text("${group.location.ifEmpty { "No location" }} · ${visible.size} photos · ${if (group.archiveId != null) "Archiving / exported" else if (group.closed) "Closed" else "Open"}", style = MaterialTheme.typography.bodySmall) }; IconButton(enabled = !locked, onClick = { editBarcode = group }) { Icon(Icons.Outlined.QrCodeScanner, "Review barcode") } }
-                    if (!locked) TextButton(onClick = { notesGroup = group }) { Text("Flags & notes") }
+                    Row {
+                        if (!locked) TextButton(onClick = { notesGroup = group }) { Text("Flags & notes") }
+                        TextButton(enabled = visible.any { it.state == "READY" }, onClick = { recognitionGroup = group }) { Text("Recognize") }
+                    }
+                    recognitionRows.firstOrNull { it.groupId == group.id }?.let { recognition ->
+                        Text("${recognitionLabel(recognition.provider)} · ${recognition.state}", fontSize = 12.sp)
+                        recognition.acceptedTitle?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+                    }
                     if (group.note.isNotBlank()) Text(group.note, fontSize = 12.sp)
                     if (group.rare || group.review) Text(listOfNotNull("Rare".takeIf { group.rare }, "Review".takeIf { group.review }).joinToString(" · "), color = MaterialTheme.colorScheme.primary)
                     val barcode = barcodeInfo(group, visible); Text("${barcode.optString("status")} ${barcode.optString("selected").takeUnless { it == "null" } ?: ""}", fontSize = 12.sp)
@@ -268,6 +279,19 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
             }
         }
         item { Spacer(Modifier.height(20.dp)) }
+    }
+    recognitionGroup?.let { g -> RecognitionDialog(vm, g, recognitionRows.filter { it.groupId == g.id }) { recognitionGroup = null } }
+    if (batchRecognitionDialog && session != null) {
+        val mode = vm.repo.recognitionMode()
+        val eligible = groups.filter { g -> g.sessionId == session.id && g.closed }.filter { g ->
+            val input = photos.filter { it.groupId == g.id && !it.deleted && it.state == "READY" }.sortedBy { it.position }
+            input.isNotEmpty() && recognitionRows.none { it.groupId == g.id && it.provider == mode && it.state == "SUCCEEDED" && it.inputFingerprint == photoFingerprint(input) }
+        }
+        AlertDialog(onDismissRequest = { batchRecognitionDialog = false }, title = { Text("Recognize ${eligible.size} products?") }, text = { Text(
+            if (mode == "OFF") "Choose a recognition mode in Settings first."
+            else if (mode == "OPENAI") "This uploads up to three downsized photos per product to OpenAI and charges your API account. Current completed results are skipped. You can keep capturing while jobs run."
+            else "Run ${recognitionLabel(mode)} in the background. Current completed results are skipped. No photos leave this device."
+        ) }, confirmButton = { TextButton(enabled = mode != "OFF" && eligible.isNotEmpty(), onClick = { batchRecognitionDialog = false; vm.action { eligible.forEach { vm.repo.queueRecognition(it.id) }; vm.message = "Recognition jobs queued." } }) { Text("Run recognition") } }, dismissButton = { TextButton(onClick = { batchRecognitionDialog = false }) { Text("Cancel") } })
     }
     notesGroup?.let { g -> NotesDialog(vm, g) { notesGroup = null } }
     editBarcode?.let { g -> BarcodeDialog(vm, g, photos.filter { it.groupId == g.id }) { editBarcode = null } }
@@ -301,14 +325,14 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
         item { PreferenceSwitch("Optional shutter tone", prefs.getBoolean("tone", false)) { prefs.edit().putBoolean("tone", it).apply() } }
         item { Text("RECOGNITION", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
         item { PreferenceSwitch("Offline barcode scanning", prefs.getBoolean("barcode", true)) { prefs.edit().putBoolean("barcode", it).apply() } }
-        item { Text("Recognition: Off. No OCR or external model calls. Bundled barcode scanning works without internet or credentials. Local OCR and desktop-assisted recognition follow capture acceptance.", style = MaterialTheme.typography.bodySmall) }
+        item { RecognitionSettings(vm) }
         item { Text("ARCHIVES & RETENTION", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
         item { OutlinedTextField(archiveMb, { value -> archiveMb = value.filter(Char::isDigit).take(5); val n = archiveMb.toIntOrNull(); if (n != null && n in 1..10000) prefs.edit().putInt("archiveMb", n).apply() }, label = { Text("Archive target · MB") }, supportingText = { Text("1–10,000 MB · whole products only; oversized products stay together") }, isError = archiveMb.toIntOrNull() !in 1..10000, singleLine = true) }
         item { OutlinedTextField(location, { location = it.uppercase().take(3); if (validLocation(location)) prefs.edit().putString("defaultLocation", location).apply() }, label = { Text("Default location") }, supportingText = { Text("A1–J10 or Q1, optional") }, isError = !validLocation(location), singleLine = true) }
         item { Text("Choose an export destination each time using Save to Files. Exported groups are locked to keep imports repeatable. Removing a photo keeps its source file. No automatic deletion or cloud backup. Uninstalling Android apps removes private files: save and verify all ZIPs before uninstalling or clearing storage.", style = MaterialTheme.typography.bodySmall) }
         item { PreferenceSwitch("Light appearance", light) { prefs.edit().putBoolean("light", it).apply(); appearance(it) } }
         item { TextButton(onClick = { showLicenses = true }) { Text("Third-party notices & licenses") } }
-        item { Text("SnapIMS Mobile 0.1.0 · capture acceptance build\nDevelopment APK; physical Pixel validation is required before inventory use.", style = MaterialTheme.typography.bodySmall) }
+        item { Text("SnapIMS Mobile 0.1.1 · recognition update\nDevelopment APK; physical Pixel validation is required before inventory use.", style = MaterialTheme.typography.bodySmall) }
     }
     if (showLicenses) NoticesDialog(context) { showLicenses = false }
 

@@ -1,18 +1,15 @@
-SnapIMS Mobile — Third-party notices
+SnapIMS Mobile 0.1.1 — Third-party notices
 
-Kotlin standard library and kotlinx.coroutines: Copyright JetBrains and contributors.
-AndroidX (Compose, Material, CameraX, Room, WorkManager, Lifecycle, Activity,
-ExifInterface, Core and supporting libraries): Copyright The Android Open Source
-Project and contributors. Coil: Copyright Coil contributors. These projects use
-Apache License 2.0; the full license is included in Apache-2.0.txt.
+Kotlin/kotlinx.coroutines, AndroidX Compose/Material/CameraX/Room/WorkManager,
+Lifecycle/Activity/ExifInterface, Coil, OkHttp/Okio and ZXing retain their original
+copyright and license notices. Apache-2.0, BSD and MIT texts plus original library
+notice payloads are included in this directory.
 
-Bundled Google ML Kit barcode scanning and Google Play services components are
-subject to ML Kit Terms of Service (https://developers.google.com/ml-kit/terms)
-and Android Software Development Kit License (https://developer.android.com/studio/terms.html)
-as specified in their Maven POMs. Their distributed third_party_licenses text and
-metadata are preserved alongside this notice, with the component/version in the
-filename. These include their native decoder's third-party attributions.
+Offline OCR uses Tesseract4Android 4.9.0, Tesseract 5.5.1, Leptonica 1.85.0,
+libjpeg 9f and libpng 1.6.48. Their original license/README texts are included
+under corresponding filenames. English tessdata_fast 4.1.0 carries its included
+Apache 2.0 license. See RUNTIME_LICENSES.json for versions and original sources.
 
-A resolved runtime component/license inventory accompanies the source under docs.
-The original notices/license files remain authoritative. The application includes
-no third-party photographs, fonts, movie artwork or proprietary catalog data.
+Tesseract OCR uses trained character data. Model-free barcode/image checks use
+ZXing and deterministic pixel statistics. These are distinct recognition options.
+No proprietary catalog data or third-party product photographs are bundled.
