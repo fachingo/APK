@@ -53,7 +53,7 @@ class NextIntegrationTest {
         repo.journal.nextDao().insert(ChatMessageRow(conversationId=chat.id,role="user",body="Fixture",attachmentsJson=attachments.toString()))
         val pending=ChatMessageRow(conversationId=chat.id,role="assistant",body="Partial fixture",status="STREAMING");repo.journal.nextDao().insert(pending)
         val approval=AgentApprovalRow(conversationId=chat.id,action="fixture",payloadJson="{}",bindingHash="fixture");repo.journal.nextDao().insert(approval)
-        val snapshot=repo.hashSnapshotFiles(repo.buildSnapshot());assertEquals(6,snapshot.getInt("schema"));assertFalse(snapshot.toString().contains("accessToken"))
+        val snapshot=repo.hashSnapshotFiles(repo.buildSnapshot());assertEquals(7,snapshot.getInt("schema"));assertFalse(snapshot.toString().contains("accessToken"))
         val stage=File(app.cacheDir,"stage-${newId()}").apply {mkdirs()};val files=snapshot.getJSONArray("files")
         for(i in 0 until files.length()) {val p=files.getJSONObject(i).getString("path");val target=File(stage,p);target.parentFile!!.mkdirs();repo.snapshotFile(p).copyTo(target)}
         val destination=create();destination.mergeSnapshot(snapshot,stage)

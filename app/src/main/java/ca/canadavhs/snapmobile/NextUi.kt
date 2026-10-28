@@ -88,7 +88,7 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
 
 }
 @Composable fun ListingPlansScreen(vm:CaptureViewModel,back:()->Unit) {ShopifyScreen(vm,back)}
-@Composable fun AiWorkspaceScreen(vm:CaptureViewModel,back:()->Unit,ai:AiWorkspaceModel=viewModel()) {
+@Composable fun AiWorkspaceScreen(vm:CaptureViewModel,back:()->Unit,onTasks:()->Unit={},ai:AiWorkspaceModel=viewModel()) {
     val context=LocalContext.current;val chats by ai.chats.collectAsStateWithLifecycle();val active by ai.active.collectAsStateWithLifecycle()
     var selected by rememberSaveable {mutableStateOf<String?>(null)};var connections by rememberSaveable {mutableStateOf(false)};var newChat by remember {mutableStateOf(false)}
     var search by rememberSaveable {mutableStateOf("")};var historyMatches by remember {mutableStateOf<Set<String>>(emptySet())}
@@ -98,12 +98,13 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
     val chat=chats.firstOrNull {it.id==selected}
     Column(Modifier.fillMaxSize()) {
         if(ai.error.isNotEmpty()) Surface(color=MaterialTheme.colorScheme.errorContainer) {Row(Modifier.fillMaxWidth().padding(12.dp)) {Text(ai.error,Modifier.weight(1f));TextButton(onClick=ai::clearError) {Text("Dismiss")}}}
+        if(ai.notice.isNotEmpty()) Surface(color=MaterialTheme.colorScheme.secondaryContainer) {Row(Modifier.fillMaxWidth().padding(12.dp)) {Text(ai.notice,Modifier.weight(1f));TextButton(onClick=ai::clearNotice) {Text("Dismiss")}}}
         when {
             connections ->ConnectionsPanel(ai) {connections=false}
             chat!=null ->ChatPanel(ai,chat,onBack={selected=null},onExport={save.launch("snapims-chat-${chat.id}.json")},onDelete={ai.delete(chat.id);selected=null})
             else ->LazyColumn(Modifier.fillMaxSize().padding(horizontal=24.dp),contentPadding=PaddingValues(vertical=24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                 item {TextButton(onClick=back) {Text("← Back")};PageTitle("AI workspace","Private local history · explicit provider billing")}
-                item {Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {Button(onClick={newChat=true}) {Text("New chat")};OutlinedButton(onClick={connections=true}) {Text("Connections")}}}
+                item {Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {Button(onClick={newChat=true}) {Text("New chat")};OutlinedButton(onClick={connections=true}) {Text("Connections")};TextButton(onClick=onTasks) {Text("Tasks")}}}
                 item {OutlinedTextField(search,{search=it.take(200)},label={Text("Search chats and messages")},modifier=Modifier.fillMaxWidth())}
                 items(chats.filter {search.isBlank() || it.title.contains(search,true) || it.id in historyMatches},key={it.id}) {c ->Surface(onClick={selected=c.id},shape=RoundedCornerShape(20.dp),tonalElevation=2.dp) {Column(Modifier.fillMaxWidth().padding(18.dp)) {Text(c.title,fontWeight=FontWeight.Bold);Text("${c.provider} · ${c.model}",style=MaterialTheme.typography.bodySmall);Text(if(c.id in active) "Streaming…" else if(c.authMode=="CHATGPT_PLAN") "ChatGPT plan · no API-key fallback" else "API connection · provider rates apply",style=MaterialTheme.typography.bodySmall)}}}
                 if(chats.isEmpty()) item {EmptyState("A workspace for your collection","Connect a provider, discover its models, then start a conversation. Tools are optional and changes require review.")}
@@ -174,7 +175,7 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
 }
 @Composable private fun ChatPanel(ai:AiWorkspaceModel,chat:ChatConversationRow,onBack:()->Unit,onExport:()->Unit,onDelete:()->Unit) {
     val rows by remember(chat.id) {ai.messages(chat.id)}.collectAsStateWithLifecycle(emptyList());val proposals by remember(chat.id) {ai.approvals(chat.id)}.collectAsStateWithLifecycle(emptyList());val active by ai.active.collectAsStateWithLifecycle()
-    var text by rememberSaveable(chat.id) {mutableStateOf("")};var attachments by remember(chat.id) {mutableStateOf<List<JSONObject>>(emptyList())};var review by remember {mutableStateOf<AgentApprovalRow?>(null)};var replace by remember {mutableStateOf(false)};var delete by remember {mutableStateOf(false)}
+    var text by rememberSaveable(chat.id) {mutableStateOf("")};var attachments by remember(chat.id) {mutableStateOf<List<JSONObject>>(emptyList())};var reviewId by rememberSaveable(chat.id) {mutableStateOf<String?>(null)};var delete by remember {mutableStateOf(false)}
     val picker=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {uri->if(uri!=null) ai.action {check(attachments.size<4);attachments=attachments+ai.attach(uri)}}
     val list=rememberLazyListState();LaunchedEffect(rows.size,rows.lastOrNull()?.body?.length) {if(rows.isNotEmpty() && list.firstVisibleItemIndex>=rows.size-4) list.animateScrollToItem(rows.lastIndex)}
     Column(Modifier.fillMaxSize()) {
@@ -189,7 +190,7 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
                 if(m.error.isNotEmpty()) Text(m.error,color=MaterialTheme.colorScheme.error)
                 if(m.inputTokens!=null || m.outputTokens!=null) Text("Tokens ${m.inputTokens ?: "?"} in / ${m.outputTokens ?: "?"} out · ${m.costUsd?.let {"estimated USD $it"} ?: "cost unavailable"}",style=MaterialTheme.typography.bodySmall)
             }}}
-            items(proposals,key={it.id}) {p ->OutlinedCard(Modifier.fillMaxWidth()) {Column(Modifier.padding(12.dp)) {Text("${p.action} · ${p.state}");if(p.state=="PENDING") TextButton(onClick={review=p;replace=false}) {Text("Review proposed change")};if(p.resultJson.isNotBlank()) Text(p.resultJson,style=MaterialTheme.typography.bodySmall)}}}
+            items(proposals,key={it.id}) {p ->OutlinedCard(Modifier.fillMaxWidth()) {Column(Modifier.padding(12.dp)) {Text("${p.action} · ${p.state}");if(p.state=="PENDING") TextButton(onClick={reviewId=p.id}) {Text("Review proposed change")};if(p.resultJson.isNotBlank()) Text(p.resultJson,style=MaterialTheme.typography.bodySmall)}}}
         }
         if(attachments.isNotEmpty()) Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal=12.dp)) {attachments.forEach {a ->InputChip(selected=true,onClick={attachments=attachments-a},label={Text("${a.getString("mime")} ×")})}}
         OutlinedTextField(text,{text=it.take(100000)},modifier=Modifier.fillMaxWidth().padding(horizontal=12.dp),label={Text("Message")},minLines=2,maxLines=5)
@@ -199,8 +200,8 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
             else Button(enabled=text.isNotBlank() || attachments.isNotEmpty(),onClick={ai.send(chat.id,text,JSONArray(attachments));text="";attachments=emptyList()}) {Text("Send")}
         }
     }
-    review?.let {p ->AlertDialog(onDismissRequest={review=null},title={Text("Review local action")},text={Column(Modifier.verticalScroll(rememberScrollState())) {Text(p.action);Text(JSONObject(p.payloadJson).toString(2));Text("Applies only if the item and original-photo fingerprint have not changed. No Shopify publication.");if(p.action=="propose_sold_price") Row {Checkbox(replace,{replace=it});Text("Allow replacing a manual price")}}},confirmButton={TextButton(onClick={ai.decide(p.id,true,replace);review=null}) {Text("Approve once")}},dismissButton={TextButton(onClick={ai.decide(p.id,false,false);review=null}) {Text("Reject")}})}
-    if(delete) AlertDialog(onDismissRequest={delete=false},title={Text("Delete this local conversation?")},text={Text("Its messages and approvals will be deleted. Original inventory and photographs are retained. Export the conversation first if needed.")},confirmButton={TextButton(onClick=onDelete) {Text("Delete")}},dismissButton={TextButton(onClick={delete=false}) {Text("Cancel")}})
+    proposals.firstOrNull {it.id==reviewId}?.let {p ->AgentApprovalDialog(p,ai.error,p.id in ai.deciding,dismiss={reviewId=null},decide={accept,options->ai.decide(p.id,accept,options) {reviewId=null}})}
+    if(delete) AlertDialog(onDismissRequest={delete=false},title={Text("Delete this local conversation?")},text={Text("Its messages and approvals will be deleted. Approved tasks remain in Tasks. Original inventory and photographs are retained. Export the conversation first if needed.")},confirmButton={TextButton(onClick=onDelete) {Text("Delete")}},dismissButton={TextButton(onClick={delete=false}) {Text("Cancel")}})
 }
 
 @Composable fun BusinessDefaultsSettings(vm:CaptureViewModel) {

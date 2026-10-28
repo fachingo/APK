@@ -24,24 +24,25 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         if (attempt.state !in listOf("QUEUED", "RUNNING") || !RecognitionProcess.active.add(id)) return@withContext Result.success()
         try {
             if (attempt.provider != repo.recognitionMode()) {
-                repo.dao.update(attempt.copy(state = "CANCELLED", error = "Recognition mode changed.", completedAt = System.currentTimeMillis()))
+                repo.mutate {repo.dao.recognition(id)?.takeIf {it.state in listOf("QUEUED","RUNNING")}?.let {repo.dao.update(it.copy(state="CANCELLED",error="Recognition mode changed.",completedAt=System.currentTimeMillis()))}}
                 return@withContext Result.success()
             }
             if (attempt.provider == "OPENAI" && attempt.state == "RUNNING") {
-                repo.dao.update(attempt.copy(state = "ERROR", error = "An earlier OpenAI response is uncertain. Retry manually; no automatic billable retry was made.", completedAt = System.currentTimeMillis()))
+                repo.mutate {repo.dao.recognition(id)?.takeIf {it.state in listOf("QUEUED","RUNNING")}?.let {repo.dao.update(it.copy(state="ERROR",error="An earlier OpenAI response is uncertain. Retry manually; no automatic billable retry was made.",completedAt=System.currentTimeMillis()))}}
                 return@withContext Result.success()
             }
             val allPhotos = repo.dao.photos(attempt.groupId).filter { !it.deleted && it.state == "READY" }
             if (photoFingerprint(allPhotos) != attempt.inputFingerprint) {
-                repo.dao.update(attempt.copy(state = "STALE", error = "Photos changed before recognition started. Run it again.", completedAt = System.currentTimeMillis()))
+                repo.mutate {repo.dao.recognition(id)?.takeIf {it.state in listOf("QUEUED","RUNNING")}?.let {repo.dao.update(it.copy(state="STALE",error="Photos changed before recognition started. Run it again.",completedAt=System.currentTimeMillis()))}}
                 return@withContext Result.success()
             }
-            repo.dao.update(attempt.copy(state = "RUNNING", error = ""))
-            val selected = buildList {
-                allPhotos.firstOrNull { it.role == "FRONT" }?.let { add(it) }
-                allPhotos.firstOrNull { it.role == "BACK" }?.takeUnless { p -> any { it.id == p.id } }?.let { add(it) }
-                allPhotos.forEach { p -> if (size < 3 && none { it.id == p.id }) add(p) }
+            val admitted=repo.mutate {
+                val current=repo.dao.recognition(id)
+                if(current==null || current.state !in listOf("QUEUED","RUNNING")) false
+                else {repo.dao.update(current.copy(state="RUNNING",error=""));true}
             }
+            if(!admitted) return@withContext Result.success()
+            val selected = recognitionSourcePhotos(allPhotos)
             val result = if (attempt.provider == "OPENAI") openAi(repo, attempt, selected) else local(repo, attempt, selected)
             ensureActive()
             repo.journal.withTransaction {
@@ -54,15 +55,15 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
             }
         } catch (e: CancellationException) {
             withContext(NonCancellable) {
-                val latest = repo.dao.recognition(id)
-                if (latest != null && latest.state in listOf("QUEUED", "RUNNING")) repo.dao.update(latest.copy(state = "CANCELLED", error = "Recognition cancelled; captures are unchanged.", completedAt = System.currentTimeMillis()))
+                repo.mutate {val latest=repo.dao.recognition(id)
+                    if(latest!=null && latest.state in listOf("QUEUED","RUNNING")) repo.dao.update(latest.copy(state="CANCELLED",error="Recognition cancelled; captures are unchanged.",completedAt=System.currentTimeMillis()))}
             }
             throw e
         } catch (e: Throwable) {
             // Native OCR load errors are actionable too; never let them crash the camera UI.
             if (e is VirtualMachineError) throw e
-            val latest = repo.dao.recognition(id)
-            if (latest != null && latest.state != "CANCELLED") repo.dao.update(latest.copy(state = "ERROR", error = safeRecognitionError(e), completedAt = System.currentTimeMillis()))
+            repo.mutate {val latest=repo.dao.recognition(id)
+                if(latest!=null && latest.state in listOf("QUEUED","RUNNING")) repo.dao.update(latest.copy(state="ERROR",error=safeRecognitionError(e),completedAt=System.currentTimeMillis()))}
         } finally { RecognitionProcess.active.remove(id) }
         // Domain ERROR is persisted above. Completing the work item lets later products run.
         Result.success()
@@ -75,7 +76,8 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
     }
 
     private suspend fun openAi(repo: CaptureRepository, row: RecognitionRow, photos: List<PhotoRow>): JSONObject {
-        val key = SecureApiKeyStore(repo.context).read() ?: error("Save an OpenAI API key in Settings.")
+        val store=SecureApiKeyStore(repo.context)
+        val key=store.readAuthorized(row.authBinding)
         val encoded = mutableListOf<String>(); val provenance = JSONArray()
         for (photo in photos) {
             currentCoroutineContext().ensureActive()
@@ -89,6 +91,7 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
             } finally { bitmap.recycle() }
         }
         val schema = JSONObject(repo.context.assets.open("openai_recognition_schema.json").bufferedReader().use { it.readText() })
+        check(store.bindingId()==row.authBinding && repo.recognitionMode()=="OPENAI" && repo.dao.recognition(row.id)?.state=="RUNNING") {"Recognition authorization changed before sending. Review and retry explicitly."}
         return OpenAiRecognitionClient().recognize(key, row.model, encoded, schema).put("source_images", provenance).put("requested_model", row.model)
     }
 

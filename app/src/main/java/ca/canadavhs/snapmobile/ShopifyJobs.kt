@@ -52,9 +52,9 @@ internal suspend fun CaptureRepository.queueShopifyLocked(groups:Set<String>,hea
     }
     return job.id
 }
-internal fun CaptureRepository.enqueueShopify(id:String) {
+internal fun CaptureRepository.enqueueShopify(id:String):Operation {
     val request=OneTimeWorkRequestBuilder<ShopifyWorker>().setInputData(workDataOf("jobId" to id)).setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()).setBackoffCriteria(BackoffPolicy.EXPONENTIAL,15,TimeUnit.SECONDS).build()
-    WorkManager.getInstance(context).enqueueUniqueWork("shopify-$id",ExistingWorkPolicy.KEEP,request)
+    return WorkManager.getInstance(context).enqueueUniqueWork("shopify-$id",ExistingWorkPolicy.KEEP,request)
 }
 internal suspend fun CaptureRepository.pauseShopify(id:String) {mutate {journal.shopifyDao().job(id)?.let {journal.shopifyDao().update(it.copy(state="PAUSED",error="Paused locally. Existing remote drafts and server jobs are retained.",updatedAt=System.currentTimeMillis()))}};WorkManager.getInstance(context).cancelUniqueWork("shopify-$id")}
 internal suspend fun CaptureRepository.cancelShopify(id:String) {

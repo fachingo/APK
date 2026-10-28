@@ -21,6 +21,8 @@ class AiWorkspaceModel(application:Application):AndroidViewModel(application) {
     val active=MutableStateFlow<Set<String>>(emptySet())
     private val jobs=mutableMapOf<String,Job>()
     var error by mutableStateOf("");private set
+    var notice by mutableStateOf("");private set
+    var deciding by mutableStateOf<Set<String>>(emptySet());private set
     var catalog by mutableStateOf<List<AiCapabilityRow>>(emptyList());private set
     var loading by mutableStateOf(false);private set
     val messages:(String)->Flow<List<ChatMessageRow>> = {dao.watchMessages(it)}
@@ -28,6 +30,7 @@ class AiWorkspaceModel(application:Application):AndroidViewModel(application) {
     init {viewModelScope.launch {dao.interruptedMessages().forEach {dao.update(it.copy(status="INTERRUPTED",error="App stopped before completion. Retry manually; no request restarted."))}}}
     fun action(block:suspend()->Unit) {viewModelScope.launch {try {block()} catch(e:CancellationException) {throw e} catch(e:Exception) {error=e.message ?: "Operation failed. Retry manually."}}}
     fun clearError() {error=""}
+    fun clearNotice() {notice=""}
     fun discover(providerId:String) {if(loading) return;loading=true;catalog=emptyList();action {try {
         val rows=client.models(AiProvider.get(providerId));rows.forEach {dao.save(it)};catalog=rows
         if(providerId=="CHATGPT") SiwcConnection.proof(repo,"MODELS_DISCOVERED","Discovered ${rows.size} eligible model entries using the ChatGPT connection. Stream proof is next.")
@@ -129,7 +132,11 @@ class AiWorkspaceModel(application:Application):AndroidViewModel(application) {
     }
     fun stop(id:String) {jobs[id]?.cancel()}
     fun delete(id:String) {check(id !in jobs) {"Stop the response before deleting this chat."};action {dao.deleteChat(id)}}
-    fun decide(id:String,accept:Boolean,replaceManual:Boolean) {action {error=tools.decide(id,accept,replaceManual)}}
+    internal fun decide(id:String,accept:Boolean,options:AgentDecisionOptions,done:()->Unit) {
+        if(id in deciding) return
+        deciding=deciding+id;error=""
+        viewModelScope.launch {try {notice=tools.decide(id,accept,options);done()} catch(e:CancellationException) {throw e} catch(e:Exception) {error=e.message ?: "Approval failed. Review and retry."} finally {deciding=deciding-id}}
+    }
     suspend fun export(id:String):String {val chat=dao.chat(id) ?: error("Chat no longer exists.");return JSONObject().put("format","snapims.chat").put("version",1).put("title",chat.title).put("provider",chat.provider).put("model",chat.model).put("authMode",chat.authMode)
         .put("instructions",chat.instructions).put("messages",JSONArray(dao.messages(id).map {JSONObject().put("role",it.role).put("body",it.body).put("status",it.status).put("attachments",JSONArray(it.attachmentsJson)).put("toolCalls",JSONArray(it.toolCallsJson)).put("toolCallId",it.toolCallId).put("error",it.error)})).toString(2)}
 }

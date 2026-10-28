@@ -24,7 +24,7 @@ internal fun groupJson(row: GroupRow) = JSONObject().put("id",row.id).put("sessi
 internal fun photoJson(row: PhotoRow) = JSONObject().put("id",row.id).put("groupId",row.groupId).put("position",row.position).put("role",row.role)
     .put("capturedAt",row.capturedAt).put("state",row.state).put("bytes",row.bytes).put("sha256",row.sha256).put("deleted",if(row.deleted) 1 else 0)
     .put("barcodeJson",row.barcodeJson).put("scanState",row.scanState).put("error",row.error)
-internal fun newSnapshot() = JSONObject().put("format","snapims.inventory.snapshot").put("version",1).put("schema",6)
+internal fun newSnapshot() = JSONObject().put("format","snapims.inventory.snapshot").put("version",1).put("schema",7)
     .put("tables",JSONObject().apply { snapshotTables.forEach { put(it,JSONArray()) } }).put("files",JSONArray())
 internal fun requireUuid(value: String): String {
     require(runCatching { UUID.fromString(value).toString() == value.lowercase(java.util.Locale.ROOT) }.getOrDefault(false)) { "Invalid capture identity." }; return value

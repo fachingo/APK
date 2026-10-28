@@ -6,6 +6,7 @@ import org.json.*
 /** Closed tools. Approved draft jobs only; live publication stays in the operator screen. */
 internal class AgentTools(private val repo:CaptureRepository) {
     private val dao=repo.journal.nextDao()
+    private val workflows=AgentWorkflows(repo)
     fun definitions(proposals:Boolean):JSONArray {
         fun tool(name:String,description:String,fields:Map<String,JSONObject>):JSONObject=JSONObject().put("type","function").put("name",name).put("description",description)
             .put("parameters",JSONObject().put("type","object").put("properties",JSONObject(fields)).put("required",JSONArray(fields.keys.toList())).put("additionalProperties",false)).put("strict",true)
@@ -23,6 +24,7 @@ internal class AgentTools(private val repo:CaptureRepository) {
             .put(tool("propose_inventory_update","Propose metadata only; requires a separate operator review. Cannot set a price or publish.",mapOf("group_id" to string("Exact inventory group UUID"),"patch_json" to string("JSON object containing only title, condition, conditionNotes, location, tags, description or quantity"))))
             .put(tool("propose_sold_price","Propose applying imported fresh CAD sold evidence. Requires operator approval; cannot generate prices.",mapOf("group_id" to string("Exact group UUID"),"evidence_id" to string("Imported evidence UUID"),"method" to JSONObject().put("type","string").put("enum",JSONArray(listOf("AVERAGE","MEDIAN"))))))
             .put(tool("propose_listing_plan","Propose preparing an offline draft listing plan; no Shopify write. Requires operator review.",mapOf("group_id" to string("Exact group UUID"))))
+        val extra=workflows.definitions(proposals);for(i in 0 until extra.length()) tools.put(extra.getJSONObject(i))
         return tools
     }
     private suspend fun binding(id:String):String {
@@ -31,6 +33,7 @@ internal class AgentTools(private val repo:CaptureRepository) {
     }
     suspend fun execute(chat:ChatConversationRow,name:String,args:JSONObject):JSONObject {
         check(chat.toolsEnabled) {"Local tools are disabled for this chat."}
+        if(name in workflowActions || name in setOf("capture_batches","batch_review","task_status","shopify_connection")) return workflows.execute(chat,name,args)
         return when(name) {
             "inventory_search" -> {
                 require(args.keys().asSequence().toSet()==setOf("query"));val q=args.getString("query").trim();require(q.length in 1..200)
@@ -73,7 +76,7 @@ internal class AgentTools(private val repo:CaptureRepository) {
                 val expected=when(name) {"propose_shopify_draft"->setOf("group_id","location_id");"propose_inventory_update"->setOf("group_id","patch_json");"propose_sold_price"->setOf("group_id","evidence_id","method");"propose_apply_recognition"->setOf("group_id","recognition_id");else->setOf("group_id")}
                 require(args.keys().asSequence().toSet()==expected)
                 val item=repo.journal.inventoryDao().item(args.getString("group_id")) ?: error("Item not found.")
-                val payload=JSONObject(args.toString()).put("expectedRevision",item.revision)
+                val payload=JSONObject(args.toString()).put("expectedRevision",item.revision).put("currentTitle",item.title).put("itemId",item.itemId).put("currentPriceCents",item.priceCents ?: JSONObject.NULL)
                 if(name=="propose_shopify_draft") {
                     check(repo.preferences.getBoolean("shopifyPaired",false)) {"Pair Shopify in Settings first."}
                     val base=repo.preferences.getString("shopifyBroker","").orEmpty();requireBrokerUrl(base)
@@ -91,7 +94,7 @@ internal class AgentTools(private val repo:CaptureRepository) {
                     payload.put("recognizedTitle",r.acceptedTitle)
                 }
                 if(name=="propose_inventory_update") validatePatch(item,JSONObject(args.getString("patch_json")))
-                if(name=="propose_sold_price") {val e=dao.evidence(args.getString("evidence_id")) ?: error("Evidence not found.");check(e.usable() && e.titleKey==InventoryRules.normalizedTitle(item.title));require(args.getString("method") in listOf("AVERAGE","MEDIAN"))}
+                if(name=="propose_sold_price") {val e=dao.evidence(args.getString("evidence_id")) ?: error("Evidence not found.");check(e.usable() && e.titleKey==InventoryRules.normalizedTitle(item.title));require(args.getString("method") in listOf("AVERAGE","MEDIAN"));val stats=e.statistics() ?: error("No sold statistics");payload.put("soldReview",JSONObject().put("count",stats.count).put("priceCents",if(args.getString("method")=="MEDIAN") stats.medianCents else stats.averageCents).put("collectedAt",e.collectedAt).put("expiresAt",e.expiresAt))}
                 val row=AgentApprovalRow(conversationId=chat.id,action=name,payloadJson=payload.toString(),bindingHash=binding(item.groupId))
                 dao.insert(row);JSONObject().put("approval_id",row.id).put("state","PENDING_OPERATOR_REVIEW").put("message","No change applied. Operator must review the proposal in SnapIMS.")
             }
@@ -104,12 +107,23 @@ internal class AgentTools(private val repo:CaptureRepository) {
         val json=inventoryJson(item);patch.keys().forEach {key->json.put(key,patch.get(key))};json.put("ready",false)
         return inventoryFromJson(json)
     }
-    suspend fun decide(id:String,accept:Boolean,replaceManual:Boolean=false):String {
+    suspend fun decide(id:String,accept:Boolean,replaceManual:Boolean=false):String=decide(id,accept,AgentDecisionOptions(replaceManual=replaceManual))
+    suspend fun decide(id:String,accept:Boolean,options:AgentDecisionOptions):String {
+        val replaceManual=options.replaceManual
+        var taskId:String?=null
         var scheduled:String?=null
         val message=repo.mutate {
         val row=dao.approval(id) ?: error("Approval no longer exists.");check(row.state=="PENDING") {"This approval was already handled."}
         if(!accept) {dao.update(row.copy(state="REJECTED",completedAt=System.currentTimeMillis()));return@mutate "Proposal rejected."}
-        val payload=JSONObject(row.payloadJson);val group=payload.getString("group_id")
+        val payload=JSONObject(row.payloadJson)
+        if(row.action in workflowActions && payload.optInt("bindingVersion")==2) {
+            val groups=jsonIds(payload.getJSONArray("group_ids"))
+            if(repo.workflowBinding(groups)!=row.bindingHash) {dao.update(row.copy(state="EXPIRED",resultJson="{\"error\":\"A selected item or photograph changed; request a new proposal\"}",completedAt=System.currentTimeMillis()));return@mutate "Selected items changed. Request a new proposal."}
+            val task=workflows.applyLocked(row,payload,options);taskId=task.id
+            dao.update(row.copy(state="APPLIED",resultJson=JSONObject().put("taskId",task.id).put("state",task.state).put("itemCount",groups.size).toString(),completedAt=System.currentTimeMillis()))
+            return@mutate if(task.state=="COMPLETE") "Reviewed prices applied. Task history records the exact outcome." else "Approved task saved. Tasks shows actual job progress and review needs."
+        }
+        val group=payload.getString("group_id")
         if(binding(group)!=row.bindingHash) {dao.update(row.copy(state="EXPIRED",resultJson="{\"error\":\"Item or photos changed; request a new proposal\"}",completedAt=System.currentTimeMillis()));return@mutate "Item changed. This proposal expired; request a fresh one."}
         val revision=payload.getLong("expectedRevision")
             val result=when(row.action) {
@@ -132,6 +146,7 @@ internal class AgentTools(private val repo:CaptureRepository) {
             dao.update(row.copy(state="APPLIED",resultJson=result.toString(),completedAt=System.currentTimeMillis()));"Approved action completed locally."
         }
         scheduled?.let {repo.enqueueShopify(it)}
+        taskId?.let {repo.scheduleAgentTask(it)}
         return if(scheduled!=null) "Approved Shopify draft job queued. Check Shopify jobs for verified remote completion." else message
     }
 }

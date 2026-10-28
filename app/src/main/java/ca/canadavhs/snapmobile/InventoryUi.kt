@@ -55,11 +55,12 @@ import coil.compose.AsyncImage
 @Composable private fun SummaryTile(label: String, value: String, modifier: Modifier) {
     Surface(modifier,shape=RoundedCornerShape(22.dp),tonalElevation=2.dp) { Column(Modifier.padding(18.dp)) { Text(value,fontSize=30.sp,fontWeight=FontWeight.Bold); Text(label,style=MaterialTheme.typography.bodySmall) } }
 }
-@Composable fun InventoryScreen(vm: CaptureViewModel, reviewPhotos: () -> Unit) {
+@Composable fun InventoryScreen(vm: CaptureViewModel, reviewPhotos: () -> Unit,initialGroupId:String?=null) {
     val rows by vm.inventory.collectAsStateWithLifecycle(); val groups by vm.groups.collectAsStateWithLifecycle()
     val photos by vm.photos.collectAsStateWithLifecycle(); val sessions by vm.sessions.collectAsStateWithLifecycle()
     var search by rememberSaveable { mutableStateOf("") }; var filter by rememberSaveable { mutableStateOf("All") }
-    var selected by rememberSaveable { mutableStateOf<String?>(null) }
+    var selected by rememberSaveable { mutableStateOf<String?>(initialGroupId) }
+    LaunchedEffect(initialGroupId) {if(initialGroupId!=null) selected=initialGroupId}
     var managePhotos by rememberSaveable {mutableStateOf(false)}
     var cameraOpen by rememberSaveable {mutableStateOf(false)}
     var replacePhoto by rememberSaveable {mutableStateOf<String?>(null)}

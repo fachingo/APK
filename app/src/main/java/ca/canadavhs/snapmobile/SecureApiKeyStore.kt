@@ -28,8 +28,14 @@ class SecureApiKeyStore(
                 .setRandomizedEncryptionRequired(true).build())
         }.generateKey()
     }
+    /** Opaque encrypted-slot identity, never a hash of the plaintext API key. */
+    fun bindingId():String=synchronized(credentialLock) {
+        val values=preferences.all;val encrypted=values["ciphertext"] as? String ?: return@synchronized "MISSING"
+        ca.canadavhs.snapmobile.core.sha256((alias+"\n"+values["iv"].toString()+"\n"+encrypted).toByteArray())
+    }
+    fun readAuthorized(binding:String):String=synchronized(credentialLock) {check(binding.isNotBlank() && binding!="MISSING" && bindingId()==binding) {"Recognition API credentials changed after approval. Review and retry explicitly."};read() ?: error("OpenAI key was removed.")}
     fun hasKey(): Boolean = preferences.contains("ciphertext")
-    fun save(value: String) {
+    fun save(value: String) = synchronized(credentialLock) {
         val cleaned = value.trim()
         require(cleaned.length in 16..512 && cleaned.none(Char::isWhitespace)) { "Paste a valid API key without spaces." }
         val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key()) }
@@ -45,8 +51,9 @@ class SecureApiKeyStore(
             return String(cipher.doFinal(Base64.decode(encrypted, Base64.NO_WRAP)), Charsets.UTF_8)
         } catch (_: Exception) { throw IllegalStateException("The stored API key cannot be unlocked. Remove it and save it again in Settings.") }
     }
-    fun remove() {
+    fun remove() = synchronized(credentialLock) {
         check(preferences.edit().clear().commit()) { "Could not remove the saved API key." }
         if (wrappingKey == null) KeyStore.getInstance("AndroidKeyStore").apply { load(null); if (containsAlias(alias)) deleteEntry(alias) }
     }
+    private companion object {val credentialLock=Any()}
 }

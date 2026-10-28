@@ -1,5 +1,10 @@
 # SnapIMS Next pricing and AI workspace preview (introduced 0.3.0)
 
+0.6.0 update: approved recognition/market-price/Shopify batches and Tasks are now available.
+Read [current workflow usage](MILESTONE_D_WORKFLOWS.md); explicit paid-recognition
+consent, operator FX and one-use item/photo/evidence binding apply. The older
+no-new-recognition limitation below describes the original preview.
+
 0.5.0 update: Market database is now a core permanent offline library, with native
 Harvester CSV/SQLite and workbench adapters, 100k-record validation, independent
 asking-price history, older-evidence reuse and explicit currency handling. See

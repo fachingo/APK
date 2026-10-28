@@ -71,6 +71,7 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
     val destinations = listOf("Home" to Icons.Outlined.Home, "Capture" to Icons.Outlined.CameraAlt, "Inventory" to Icons.Outlined.Inventory2, "Batches" to Icons.Outlined.PhotoLibrary, "Settings" to Icons.Outlined.Tune)
     val destinationRoutes = listOf(4,0,5,1,3)
     var screen by rememberSaveable { mutableIntStateOf(4) }
+    var inventoryTarget by rememberSaveable {mutableStateOf<String?>(null)}
     var light by remember { mutableStateOf(vm.repo.preferences.getBoolean("light", false)) }
     var startDialog by remember { mutableStateOf(false) }
     var finishDialog by remember { mutableStateOf(false) }
@@ -111,13 +112,13 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
         Scaffold(snackbarHost = { SnackbarHost(snackbar) }, bottomBar = {
             if (!wide) NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
                 destinations.forEachIndexed { i, entry ->
-                    NavigationBarItem(selected = screen == destinationRoutes[i] || (destinationRoutes[i] == 3 && screen in listOf(2,6,7,8,9,10)), onClick = { if (!vm.busy && !vm.maintenance) screen = destinationRoutes[i] }, enabled = !vm.busy && !vm.maintenance, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first) })
+                    NavigationBarItem(selected = screen == destinationRoutes[i] || (destinationRoutes[i] == 3 && screen in listOf(2,6,7,8,9,10,11)), onClick = { if (!vm.busy && !vm.maintenance) run {inventoryTarget=null;screen = destinationRoutes[i]} }, enabled = !vm.busy && !vm.maintenance, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first) })
                 }
             }
         }) { padding ->
             Row(Modifier.fillMaxSize().padding(padding)) {
                 if (wide) NavigationRail {
-                    destinations.forEachIndexed { i, entry -> NavigationRailItem(selected = screen == destinationRoutes[i] || (destinationRoutes[i] == 3 && screen in listOf(2,6,7,8,9,10)), enabled = !vm.busy && !vm.maintenance, onClick = { if (!vm.busy && !vm.maintenance) screen = destinationRoutes[i] }, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first, fontSize = 10.sp) }) }
+                    destinations.forEachIndexed { i, entry -> NavigationRailItem(selected = screen == destinationRoutes[i] || (destinationRoutes[i] == 3 && screen in listOf(2,6,7,8,9,10,11)), enabled = !vm.busy && !vm.maintenance, onClick = { if (!vm.busy && !vm.maintenance) run {inventoryTarget=null;screen = destinationRoutes[i]} }, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first, fontSize = 10.sp) }) }
                 }
                 Box(Modifier.weight(1f).fillMaxHeight()) {
                 when (screen) {
@@ -137,14 +138,15 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
                             } }
                         }; if (archives.isEmpty()) item { EmptyState("No archives yet", "Next closes a product. Finish Batch or Finalize Part packages complete groups.") } }
                     }
-                    3 -> SettingsScreen(vm, light, onBackups = { screen = 6 }, onExports = { screen = 2 }, onWorkspace={screen=7},onPricing={screen=8},onListings={screen=9},onMarket={screen=10}) { light = it }
+                    3 -> SettingsScreen(vm, light, onBackups = { screen = 6 }, onExports = { screen = 2 }, onWorkspace={screen=7},onPricing={screen=8},onListings={screen=9},onMarket={screen=10},onTasks={screen=11}) { light = it }
                     4 -> InventoryHome(vm, capture = { screen = 0 }, inventory = { screen = 5 }, batches = { screen = 1 }, backups = { screen = 6 })
-                    5 -> InventoryScreen(vm, reviewPhotos = { screen = 1 })
+                    5 -> InventoryScreen(vm, reviewPhotos = { screen = 1 },initialGroupId=inventoryTarget)
                     6 -> BackupScreen(vm) { screen = 3 }
-                    7 -> AiWorkspaceScreen(vm,back={screen=3})
+                    7 -> AiWorkspaceScreen(vm,back={screen=3},onTasks={screen=11})
                     8 -> PricingScreen(vm) {screen=3}
                     10 -> MarketDatabaseScreen(vm,{screen=3})
                     9 -> ListingPlansScreen(vm) {screen=3}
+                    11 -> TasksScreen(vm,back={screen=3},inventory={inventoryTarget=it;screen=5},shopify={screen=9})
                 }
                 if (!vm.initialized) Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { Box(contentAlignment = Alignment.Center) { Text("Recovering your capture journal…") } }
             }
@@ -375,7 +377,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
         } }, confirmButton = { TextButton(onClick = { inspected = null }) { Text("Done") } })
     }
 }
-@Composable fun SettingsScreen(vm: CaptureViewModel, light: Boolean, onBackups: () -> Unit = {}, onExports: () -> Unit = {}, onWorkspace:()->Unit={},onPricing:()->Unit={},onListings:()->Unit={},onMarket:()->Unit={}, appearance: (Boolean) -> Unit) {
+@Composable fun SettingsScreen(vm: CaptureViewModel, light: Boolean, onBackups: () -> Unit = {}, onExports: () -> Unit = {}, onWorkspace:()->Unit={},onPricing:()->Unit={},onListings:()->Unit={},onMarket:()->Unit={},onTasks:()->Unit={}, appearance: (Boolean) -> Unit) {
     val prefs = vm.repo.preferences
     val context = LocalContext.current
     var showLicenses by remember { mutableStateOf(false) }
@@ -384,7 +386,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(vertical = 24.dp)) {
         item { PageTitle("Settings", "Your collection, your controls") }
         item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { OutlinedButton(onClick = onBackups) { Text("Backup & import") }; OutlinedButton(onClick = onExports) { Text("Transfers") } } }
-        item { Row(Modifier.horizontalScroll(rememberScrollState())) {OutlinedButton(onClick=onWorkspace) {Text("AI workspace")};OutlinedButton(onClick=onPricing) {Text("Sold pricing")};OutlinedButton(onClick=onListings) {Text("Shopify")};OutlinedButton(onClick=onMarket) {Text("Market database")}} }
+        item { Row(Modifier.horizontalScroll(rememberScrollState())) {OutlinedButton(onClick=onTasks) {Text("Tasks")};OutlinedButton(onClick=onWorkspace) {Text("AI workspace")};OutlinedButton(onClick=onPricing) {Text("Sold pricing")};OutlinedButton(onClick=onListings) {Text("Shopify")};OutlinedButton(onClick=onMarket) {Text("Market database")}} }
         item { Text("CAMERA", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
         item { ResolutionSettings(prefs) }
         item { PreferenceSwitch("Fast capture", prefs.getBoolean("fastCapture", true)) { prefs.edit().putBoolean("fastCapture", it).apply() } }

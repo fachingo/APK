@@ -13,7 +13,8 @@ internal suspend fun CaptureRepository.recordPriceDecision(item:InventoryRow,typ
         recordType=type,priceCents=price,method=method,evidenceJson=evidence.toString(),provenanceJson=(if(method=="MANUAL" && provenance.length()==0) manualMarketContextLocked(item) else provenance).toString(),createdAt=OffsetDateTime.now().toString()))
 }
 internal fun marketEvidenceOldestAge(date:String):Long=java.time.temporal.ChronoUnit.DAYS.between(LocalDate.parse(date.take(10)),LocalDate.now())
-internal suspend fun CaptureRepository.applyMarketPrice(reviewed:MarketRecommendation,method:String,adjustedCents:Long?,overrideManual:Boolean,allowStale:Boolean,rateText:String="",rateDate:String=""):InventoryRow=mutate {
+internal suspend fun CaptureRepository.applyMarketPrice(reviewed:MarketRecommendation,method:String,adjustedCents:Long?,overrideManual:Boolean,allowStale:Boolean,rateText:String="",rateDate:String=""):InventoryRow=mutate {applyMarketPriceLocked(reviewed,method,adjustedCents,overrideManual,allowStale,rateText,rateDate)}
+internal suspend fun CaptureRepository.applyMarketPriceLocked(reviewed:MarketRecommendation,method:String,adjustedCents:Long?,overrideManual:Boolean,allowStale:Boolean,rateText:String="",rateDate:String=""):InventoryRow=run {
     require(method in listOf("MEDIAN","AVERAGE"));val old=journal.inventoryDao().item(reviewed.groupId) ?: error("Item missing")
     check(old.revision==reviewed.revision && InventoryRules.normalizedTitle(old.title)==reviewed.titleKey && old.edition==reviewed.edition && old.releaseYear==reviewed.year) {"Item identity changed. Review a fresh recommendation."}
     check(old.priceSource!="MANUAL" || overrideManual) {"Explicitly approve replacing the manual price."}

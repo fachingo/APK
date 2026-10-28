@@ -96,6 +96,7 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, val d
         dao.unfinishedArchives().forEach { enqueueArchive(it.id) }
         backfillInventory()
         recoverTransferJobs()
+        recoverAgentTasks()
         recoverRecognition()
         journal.shopifyDao().active().forEach {enqueueShopify(it.id)}
     }
