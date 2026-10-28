@@ -1,52 +1,60 @@
-# Version 0.1.1 validation
+# Version 0.1.2 validation
 
 | Check | Actual outcome |
 | --- | --- |
-| Core grouping/barcode rules | 10 passed |
-| New deterministic barcode/image checks | 6 passed |
-| Existing Room/filesystem/archive integration | 6 passed |
-| OpenAI protocol, parsing, HTTPS/header and failure handling | 7 passed, using fake HTTP responses/interceptors |
-| New key storage, migration, queues, OCR data and enriched ZIP checks | 7 passed |
-| Total host/JVM tests | **36 passed, 0 failed, 0 skipped** |
-| Debug APK / device-test APK | Built |
-| Android lint | Passed; existing legacy-DSL/deprecation/metrics warnings remain |
-| Original→updated APK signing certificate | Matches |
-| Native Tesseract/Leptonica/jpeg/png ELF alignment | All four verified for 16 KB pages |
-| Native/library and English data SHA-256 | Verified before build; data rechecked during extraction |
-| Host OCR smoke | Three generated front/back/softened text images transcribed as expected using bundled English data |
-| Android-produced enriched ZIP → actual desktop CLI | Passed; current recognition retained, duplicate import reused IDs, inventory title unchanged |
-| Live OpenAI completion | NOT RUN: no API key supplied; cloud API destination blocked |
-| Physical Pixel / real hardware Keystore / Android JNI OCR | NOT RUN: no device attached |
-| Sustained 100 real tapes / Pixel Camera quality benchmark | NOT RUN; remains a physical acceptance gate |
+| CaptureRulesTest | 10 passed |
+| LocalRecognitionTest | 6 passed |
+| CameraLayoutTest | 1 passed |
+| CameraUpdateTest | 6 passed |
+| JournalIntegrationTest | 6 passed |
+| RecognitionClientTest | 7 passed |
+| RecognitionStorageTest | 7 passed |
+| Total host tests | **43 passed, 0 failed, 0 skipped** |
+| Debug APK and instrumentation APK | Built |
+| Android lint | Passed; existing warnings remain |
+| APK version | 0.1.2 / versionCode 3 / ca.canadavhs.snapmobile |
+| Signing identity vs 0.1.1 | Matches |
+| 16 KB ZIP alignment | Passed |
+| Bundled Tesseract AAR and English data integrity | Verified by preBuild |
+| Physical camera, exposure latency, live zoom and sensor-size selection | NOT RUN: no device attached |
+| Native Android region decoder, landscape form windows, JNI OCR and hardware Keystore | NOT RUN: no device attached |
+| Live OpenAI completion | NOT RUN: no key supplied; unchanged from 0.1.1 |
 
-The host OCR binary was Tesseract 5.5.0; the Android source build is Tesseract 5.5.1.
-The three high-contrast generated samples are smoke checks, not a VHS accuracy benchmark.
-Do not infer universal reliability or Pixel Camera feature parity from these results.
+The new tests exercise three pending captures with distinct IDs/positions and correct
+FRONT/BACK/ADDITIONAL roles, the pending-save bound, blocked Next/Finish, interrupted
+save recovery, short camera reservations during slow filesystem work, immediate press
+acknowledgement and accepting another shutter before verification finishes.
 
-New tests exercise real ZXing image decoding (UPC-A, UPC-E, multiple/missing barcodes),
-checksums/normalization, classical metrics, secure AES-GCM storage without plaintext,
-fresh IVs, corrupt-key errors, migration from the checked-in v1 schema preserving
-all five capture tables and existing files, duplicate-job avoidance, mode cancellation,
-stale-input protection, explicit title confirmation, uncertain OpenAI restart protection,
-corrupted/interrupted language-data recovery and actual recognition-bearing ZIPs.
+A real 4032×3024 JPEG fixture contains a small UPC near a corner. The old 2200-pixel
+full-frame pass cannot decode it; overlapping native-detail tiles decode it correctly.
+Robolectric stubs BitmapRegionDecoder with blank regions, so this test injects region
+pixels from a real JPEG decoded by native BitmapFactory. It checks actual ZXing decode,
+tiling and edge coverage, but does not claim physical Android region-decoder validation.
 
-OpenAI tests cover fixed HTTPS origin/Bearer header, Responses input images, strict
-schema, store=false, bounded output parsing, mandatory review, refusal/incomplete
-responses, invalid fields, model discovery and authentication/permission/quota/model/
-server errors. They do not substitute for a paid live API request with the owner's key.
-No real key is committed or requested in chat. The app uses Android Keystore; host
-cipher tests inject a software wrapping key. A separate compiled device test exercises
-an isolated real Keystore alias without changing the owner's saved API key.
+Compose host checks at 900×420 landscape and 420×900 portrait exercise visible shutter,
+Next and resolution controls, persistence of a changed size through Settings, and screen
+selection through simulated rotation with Activity orientation/size configuration flags.
+Both layouts were rendered to PNG and visually inspected. These fixtures have camera
+permission denied and therefore do not test a live camera. Text-input Dialog windows
+are unreliable in this host simulator; a read-only landscape notes/scroll/cancel check
+is included in the compiled device suite and remains unrun.
 
-The existing 0.1.0 QR/import evidence remains in TEST_RESULTS_0.1.0.md. The enriched
-manifest was also imported and reimported through the real desktop CLI against
-throwaway data, retaining current recognition while leaving inventory title authority
-unchanged. Existing production inventory/source code was not modified by these checks.
+The prior Room migration, archive recovery/original preservation, OpenAI protocol,
+secure wrapping-key storage, recognition queues and OCR-data tests still pass.
+See TEST_RESULTS_0.1.1.md and TEST_RESULTS_0.1.0.md for earlier separate evidence.
+No live inventory, API key or paid OpenAI request was used.
 
-Current logs: /workspace/.setup/v011-final-validation.log, v011-ocr-smoke.json,
-v011-interop.json and tesseract-native-build.log. JUnit XML is under core/build/test-results
-and app/build/test-results. Device test sources include read-only navigation, generated
-OCR text and isolated hardware-key round-trip; those tests are compiled but unrun here.
+Build/tests and lint ran sequentially to avoid an AGP/kapt race in which lint can read
+temporary Java stubs while test compilation regenerates them. No lint checks were
+disabled. CameraX's experimental zero-shutter-lag API is explicitly opted into; hardware
+support and real capture timing remain physical acceptance checks. Lower resolution,
+fast mode, flash/HDR, storage and lighting affect speed. No instant-exposure claim is
+made from host timing. See CAMERA_0.1.2.md and PIXEL_ACCEPTANCE.md.
 
-Install over 0.1.0 without uninstalling/clearing storage. See RECOGNITION_0.1.1.md for
-configuration, costs, recognition states, provider limits and update preservation.
+APK SHA-256: bdcbc1b291cbd4bab15c675ccc6ad30b72b3ca50f664b9f8105f5d259dd9778c
+
+Signing certificate SHA-256: b262fd08c7a58f338027260d47a94a33e5c939d72752034dddb2f4f6bf73faae
+
+Final build log: /workspace/.setup/v012-final-validation.log.
+JUnit XML: core/build/test-results/test and app/build/test-results/testDebugUnitTest.
+Rendered layouts: app/build/fixture-output/landscape-controls.png and portrait-controls.png.

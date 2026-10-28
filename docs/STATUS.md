@@ -1,4 +1,9 @@
-# Version 0.1.1 scope
+# Version 0.1.2 scope
+
+Camera update: selectable 1.2/3/6/12 MP and maximum resolution, pinch/slider zoom,
+fast/ZSL capture with background verification, original-detail tiled barcode scanning,
+and adaptive landscape layout without Activity recreation on rotation.
+See CAMERA_0.1.2.md. Real shutter timing and optical quality remain unmeasured here.
 
 Implemented: native durable capture/grouping, original preservation, source checksums,
 ZIP exports, model-free ZXing barcodes, classical image statistics, offline Tesseract

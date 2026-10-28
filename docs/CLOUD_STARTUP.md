@@ -117,3 +117,11 @@ libraries and English character data. The ordinary Gradle build verifies them an
 needs no JitPack connection or native rebuild. There are 36 host tests. Wireless
 synchronization and chat remain pending, as do physical device/live-key checks.
 The desktop service startup commands and isolated data roots above are unchanged.
+
+
+## Application update 0.1.2
+
+README.md and CAMERA_0.1.2.md describe the new resolution/zoom/fast-capture defaults,
+landscape handling and tiled barcode scans. Build commands are unchanged. Host tests
+now include simulated portrait/landscape Compose interactions and rapid-save checks;
+physical camera and shutter timings still require an attached arm64 Pixel.

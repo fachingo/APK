@@ -58,3 +58,25 @@ No such network endpoint or persistent agent service is enabled in this build.
 If any acknowledged saved photograph is missing, a group boundary moves, an import
 duplicates physical inventory, or an archive silently corrupts, stop acceptance.
 Keep originals, Room journal and suspect ZIPs, and reproduce before production use.
+
+
+## 0.1.2 camera acceptance
+
+- Update over 0.1.1 with unfinished captures and a saved API key; verify retention.
+- Capture at each size on rear/front, compare actual JPEG dimensions and file sizes.
+  Confirm changing size affects future photos and never rewrites old ones.
+- In bright light with flash/HDR off, measure press-to-exposure and shot-to-shot
+  timing for fast capture vs quality mode. Repeat in low light and with flash/HDR.
+  Record phone model, OS and selected resolution; do not infer timing from host tests.
+- Capture three photos rapidly while saving, then Next; verify exact IDs, order,
+  FRONT/BACK/ADDITIONAL and no crossed product boundary. Interrupt during saving and
+  relaunch; verify originals and journal recover without duplicates.
+- Pinch and use zoom slider/1× reset, try both lens limits, then tap focus. Verify
+  pinch never focuses accidentally and zoom survives portrait/landscape rotation.
+- Rotate both directions before, during and after capture. Shutter/Next/resolution
+  must remain reachable, app screen must remain selected, long notes/new-batch/API-key
+  dialogs must scroll with reachable confirmation/cancel buttons, and exported JPEG EXIF
+  must orient correctly. Repeat in split-screen and with large accessibility text.
+- Photograph real UPC-A/E and EAN codes at ordinary framing, small near every corner,
+  and multiple distinct codes. Rescan old photographs. Compare v0.1.1 vs v0.1.2
+  success rates; include blurry/glare samples and retain ambiguity/manual correction.

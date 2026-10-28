@@ -43,10 +43,8 @@ class BarcodeWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         val id = inputData.getString("id") ?: return@withContext Result.failure()
         val photo = repo.dao.photo(id)
         if (photo.deleted || photo.state != "READY") return@withContext Result.success()
-        var bitmap: android.graphics.Bitmap? = null
         try {
-            bitmap = recognitionBitmap(repo.original(id), 2200)
-            val values = LocalBarcodeDecoder.decode(bitmap.width, bitmap.height, bitmap.argbPixels())
+            val values = scanOriginalBarcodes(repo.original(id))
             val array = JSONArray(values.map { JSONObject().put("raw", it.raw).put("format", it.format).put("normalized", it.normalized).put("valid", it.valid).put("provider", "zxing-3.5.4").put("photo_id", id) })
             repo.journal.withTransactionCompat { val latest = repo.dao.photo(id); repo.dao.update(latest.copy(barcodeJson = array.toString(), scanState = "DONE", error = "")) }
             Result.success()
@@ -54,7 +52,7 @@ class BarcodeWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         catch (_: Exception) {
             repo.journal.withTransactionCompat { val latest = repo.dao.photo(id); repo.dao.update(latest.copy(scanState = "ERROR", error = "Barcode scan failed; manual correction or rescan is available.")) }
             Result.failure()
-        } finally { bitmap?.recycle() }
+        }
     }
 }
 // Keep concurrent worker updates transactional without holding a camera mutation lock.

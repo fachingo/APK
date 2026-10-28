@@ -22,6 +22,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,7 +67,9 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
     val sessions by vm.sessions.collectAsStateWithLifecycle(); val groups by vm.groups.collectAsStateWithLifecycle()
     val photos by vm.photos.collectAsStateWithLifecycle(); val archives by vm.archives.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var screen by remember { mutableIntStateOf(0) }
+    val wide = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
+    val destinations = listOf("Capture" to Icons.Outlined.CameraAlt, "Batches" to Icons.Outlined.PhotoLibrary, "Transfers" to Icons.Outlined.Outbox, "Settings" to Icons.Outlined.Tune)
+    var screen by rememberSaveable { mutableIntStateOf(0) }
     var light by remember { mutableStateOf(vm.repo.preferences.getBoolean("light", false)) }
     var startDialog by remember { mutableStateOf(false) }
     var finishDialog by remember { mutableStateOf(false) }
@@ -101,15 +108,19 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
     }
     MaterialTheme(colorScheme = colors, typography = Typography()) {
         Scaffold(snackbarHost = { SnackbarHost(snackbar) }, bottomBar = {
-            NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
-                listOf("Capture" to Icons.Outlined.CameraAlt, "Batches" to Icons.Outlined.PhotoLibrary, "Transfers" to Icons.Outlined.Outbox, "Settings" to Icons.Outlined.Tune).forEachIndexed { i, entry ->
-                    NavigationBarItem(selected = screen == i, onClick = { screen = i }, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first) })
+            if (!wide) NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
+                destinations.forEachIndexed { i, entry ->
+                    NavigationBarItem(selected = screen == i, onClick = { if (!vm.busy) screen = i }, enabled = !vm.busy, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first) })
                 }
             }
         }) { padding ->
-            Box(Modifier.fillMaxSize().padding(padding)) {
+            Row(Modifier.fillMaxSize().padding(padding)) {
+                if (wide) NavigationRail {
+                    destinations.forEachIndexed { i, entry -> NavigationRailItem(selected = screen == i, enabled = !vm.busy, onClick = { if (!vm.busy) screen = i }, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first, fontSize = 10.sp) }) }
+                }
+                Box(Modifier.weight(1f).fillMaxHeight()) {
                 when (screen) {
-                    0 -> CaptureScreen(vm, engine, active, current, currentPhotos, onStart = { startDialog = true }, onFinish = { finishDialog = true }, onReview = { screen = 1 })
+                    0 -> CaptureScreen(vm, engine, active, current, currentPhotos, onStart = { startDialog = true }, onFinish = { if (!vm.pendingCapture) finishDialog = true }, onReview = { if (!vm.busy) screen = 1 })
                     1 -> BatchesScreen(vm, sessions, groups, photos, archives, onStart = { startDialog = true })
                     2 -> Column(Modifier.fillMaxSize().padding(24.dp)) {
                         PageTitle("Transfers", "Portable archives · originals stay on this device")
@@ -130,15 +141,16 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
                 if (!vm.initialized) Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { Box(contentAlignment = Alignment.Center) { Text("Recovering your capture journal…") } }
             }
         }
+        }
         if (startDialog) StartBatchDialog(vm) { startDialog = false }
-        if (finishDialog) AlertDialog(onDismissRequest = { finishDialog = false }, title = { Text("Finish this batch?") }, text = { Text("The open product will be finalized, including incomplete front/back sets. Archives will be verified in the background. Originals stay on this device. Finished groups cannot be edited.") }, confirmButton = { TextButton(enabled = !vm.busy, onClick = { finishDialog = false; vm.action { vm.repo.finish() } }) { Text("Finish batch") } }, dismissButton = { TextButton(onClick = { finishDialog = false }) { Text("Keep capturing") } })
+        if (finishDialog) AlertDialog(onDismissRequest = { finishDialog = false }, title = { Text("Finish this batch?") }, text = { Text("The open product will be finalized, including incomplete front/back sets. Archives will be verified in the background. Originals stay on this device. Finished groups cannot be edited.") }, confirmButton = { TextButton(enabled = !vm.pendingCapture, onClick = { if (!vm.pendingCapture) { finishDialog = false; vm.action { vm.repo.finish() } } }) { Text("Finish batch") } }, dismissButton = { TextButton(onClick = { finishDialog = false }) { Text("Keep capturing") } })
     }
 }
 @Composable fun PageTitle(title: String, subtitle: String) { Text(title, fontSize = 30.sp, fontWeight = FontWeight.Bold); Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant); Spacer(Modifier.height(20.dp)) }
 @Composable fun EmptyState(title: String, text: String) { Column(Modifier.padding(vertical = 36.dp)) { Text(title, fontSize = 22.sp, fontWeight = FontWeight.SemiBold); Spacer(Modifier.height(8.dp)); Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
 @Composable fun StartBatchDialog(vm: CaptureViewModel, dismiss: () -> Unit) {
     var name by remember { mutableStateOf("VHS ${LocalDate.now()}") }; var location by remember { mutableStateOf(vm.repo.preferences.getString("defaultLocation", "") ?: "") }
-    AlertDialog(onDismissRequest = dismiss, title = { Text("A new capture session") }, text = { Column { Text("One tape at a time. Capture, then Next."); Spacer(Modifier.height(16.dp)); OutlinedTextField(name, { name = it.take(80) }, label = { Text("Batch name") }, singleLine = true); Spacer(Modifier.height(12.dp)); OutlinedTextField(location, { location = it.uppercase().take(3) }, label = { Text("Location · optional") }, supportingText = { Text("A1–J10 or Q1") }, singleLine = true, isError = !validLocation(location)) } }, confirmButton = { TextButton(enabled = name.isNotBlank() && validLocation(location), onClick = { vm.action { vm.repo.start(name, location); dismiss() } }) { Text("Start capturing") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
+    AlertDialog(onDismissRequest = dismiss, title = { Text("A new capture session") }, text = { Column(Modifier.verticalScroll(rememberScrollState())) { Text("One tape at a time. Capture, then Next."); Spacer(Modifier.height(16.dp)); OutlinedTextField(name, { name = it.take(80) }, label = { Text("Batch name") }, singleLine = true); Spacer(Modifier.height(12.dp)); OutlinedTextField(location, { location = it.uppercase().take(3) }, label = { Text("Location · optional") }, supportingText = { Text("A1–J10 or Q1") }, singleLine = true, isError = !validLocation(location)) } }, confirmButton = { TextButton(enabled = name.isNotBlank() && validLocation(location), onClick = { vm.action { vm.repo.start(name, location); dismiss() } }) { Text("Start capturing") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
 
 @Composable
@@ -146,22 +158,39 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
     val context = LocalContext.current; val owner = LocalLifecycleOwner.current
     var permitted by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { permitted = it }
-    var front by remember { mutableStateOf(false) }; var hdr by remember { mutableStateOf(vm.repo.preferences.getBoolean("hdr", false)) }
-    var torch by remember { mutableStateOf(false) }; var exposure by remember { mutableFloatStateOf(0f) }; var flash by remember { mutableIntStateOf(ImageCapture.FLASH_MODE_OFF) }
+    var front by rememberSaveable { mutableStateOf(false) }; var hdr by rememberSaveable { mutableStateOf(vm.repo.preferences.getBoolean("hdr", false)) }
+    var torch by rememberSaveable { mutableStateOf(false) }; var exposure by rememberSaveable { mutableFloatStateOf(0f) }; var flash by rememberSaveable { mutableIntStateOf(vm.flash) }
+    var photoSize by remember { mutableStateOf(PhotoResolution.read(vm.repo.preferences)) }
+    var sizeMenu by remember { mutableStateOf(false) }
+    val fast = vm.repo.preferences.getBoolean("fastCapture", true)
+    val landscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
+    LaunchedEffect(engine.camera) { engine.torch(torch); engine.exposure(exposure) }
     var noteDialog by remember { mutableStateOf(false) }
     var locationDialog by remember { mutableStateOf(false) }; var barcodeDialog by remember { mutableStateOf(false) }
     var location by remember(session?.location) { mutableStateOf(session?.location ?: "") }
     val ready = photos.filter { it.state == "READY" }; val info = group?.let { barcodeInfo(it, photos) }
-    val nextRole = defaultRole(ready.size)
+    val nextRole = defaultRole(photos.size)
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = if (landscape) 4.dp else 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) { Text("SNAPIMS", fontSize = 12.sp, letterSpacing = 3.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold); Text(session?.name ?: "Ready when you are", fontSize = 19.sp, fontWeight = FontWeight.SemiBold, maxLines = 1) }
-            if (session != null) { AssistChip(onClick = { locationDialog = true }, label = { Text(session.location.ifEmpty { "Location" }) }, leadingIcon = { Icon(Icons.Outlined.Place, null, Modifier.size(16.dp)) }); IconButton(onClick = onFinish, enabled = !vm.busy) { Icon(Icons.Outlined.DoneAll, "Finish batch") } }
+            if (session != null) { AssistChip(onClick = { locationDialog = true }, label = { Text(session.location.ifEmpty { "Location" }) }, leadingIcon = { Icon(Icons.Outlined.Place, null, Modifier.size(16.dp)) }); IconButton(onClick = onFinish, enabled = !vm.pendingCapture) { Icon(Icons.Outlined.DoneAll, "Finish batch") } }
         }
-        Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp).clip(RoundedCornerShape(28.dp)).background(Color(0xFF080B0C))) {
+        // Keep the same AndroidView through orientation changes and move only controls.
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            val panelWidth = if (landscape) 260.dp else 0.dp
+            val panelHeight = if (session == null) 102.dp else 268.dp
+            Box(Modifier.fillMaxSize().padding(end = panelWidth, bottom = if (landscape) 0.dp else panelHeight).padding(horizontal = 12.dp).clip(RoundedCornerShape(28.dp)).background(Color(0xFF080B0C))) {
             if (permitted) {
-                AndroidView(factory = { ctx -> PreviewView(ctx).apply { implementationMode = PreviewView.ImplementationMode.COMPATIBLE; setOnTouchListener { _, event -> if (event.action == android.view.MotionEvent.ACTION_UP) { engine.focus(event.x, event.y); performClick() }; true } } }, update = { val key = "${front}:${hdr}:${vm.repo.preferences.getBoolean("maximumResolution", true)}"; if (it.tag != key) { it.tag = key; engine.bind(it, owner, front, hdr) } }, modifier = Modifier.fillMaxSize())
-                DisposableEffect(Unit) { onDispose { engine.unbind() } }
+                AndroidView(factory = { ctx -> PreviewView(ctx).apply {
+                    implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                    scaleType = PreviewView.ScaleType.FIT_CENTER
+                    engine.attachGestures(this)
+                } }, update = {
+                    val key = "$front:$hdr:$photoSize:$fast"
+                    if (it.tag != key) { it.tag = key; engine.bind(it, owner, front, hdr, photoSize, fast) }
+                    else engine.updateRotation()
+                }, modifier = Modifier.fillMaxSize())
+                DisposableEffect(engine) { onDispose { engine.unbind() } }
                 if (vm.repo.preferences.getBoolean("grid", true)) Canvas(Modifier.fillMaxSize()) {
                     for (i in 1..2) { drawLine(Color.White.copy(alpha = 0.2f), androidx.compose.ui.geometry.Offset(size.width * i / 3, 0f), androidx.compose.ui.geometry.Offset(size.width * i / 3, size.height)); drawLine(Color.White.copy(alpha = 0.2f), androidx.compose.ui.geometry.Offset(0f, size.height * i / 3), androidx.compose.ui.geometry.Offset(size.width, size.height * i / 3)) }
                 }
@@ -171,44 +200,63 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
                 Surface(shape = RoundedCornerShape(12.dp), color = Color.Black.copy(alpha = 0.6f)) { Text(if (session == null) "OFFLINE FIRST" else "ITEM %03d  ·  %d PHOTOS".format(group?.number ?: 1, ready.size), Modifier.padding(12.dp), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
                 Surface(shape = RoundedCornerShape(12.dp), color = Lime) { Text(nextRole.name, Modifier.padding(12.dp), color = Color(0xFF17200C), fontWeight = FontWeight.Bold, fontSize = 12.sp) }
             }
-            Column(Modifier.align(Alignment.CenterEnd).padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(Modifier.align(Alignment.CenterEnd).padding(4.dp).heightIn(max = if (landscape) 150.dp else 280.dp).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
                 CameraControl(Icons.Outlined.Cameraswitch, "Switch front/rear lens", !vm.busy) { front = !front }
                 CameraControl(if (torch) Icons.Outlined.FlashlightOn else Icons.Outlined.FlashlightOff, "Torch", !vm.busy) { torch = !torch; engine.torch(torch) }
                 CameraControl(if (flash == ImageCapture.FLASH_MODE_OFF) Icons.Outlined.FlashOff else Icons.Outlined.FlashOn, "Flash", !vm.busy) { flash = if (flash == ImageCapture.FLASH_MODE_OFF) ImageCapture.FLASH_MODE_ON else ImageCapture.FLASH_MODE_OFF; vm.flash = flash }
-                if (engine.hdrAvailable) CameraControl(Icons.Outlined.HdrOn, if (hdr) "Disable HDR" else "Enable HDR", !vm.busy) { hdr = !hdr; vm.repo.preferences.edit().putBoolean("hdr", hdr).apply() }
+                if (engine.hdrAvailable) CameraControl(if (hdr) Icons.Outlined.HdrOn else Icons.Outlined.HdrOff, if (hdr) "Disable HDR" else "Enable HDR", !vm.busy) { hdr = !hdr; vm.repo.preferences.edit().putBoolean("hdr", hdr).apply() }
             }
             Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(18.dp)) {
-                if (ready.isNotEmpty() && (ready.none { it.role == "FRONT" } || ready.none { it.role == "BACK" })) Text("Front/back incomplete · Next is still available", color = Color.White, fontSize = 12.sp, modifier = Modifier.background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp)).padding(8.dp))
-                if (group != null && ready.size >= 2) Surface(onClick = { barcodeDialog = true }, shape = RoundedCornerShape(12.dp), color = Color.Black.copy(alpha = 0.75f)) { Text("${info?.optString("status")}  ${info?.optString("selected")?.takeUnless { it == "null" } ?: "Tap to correct"}", Modifier.padding(12.dp), color = Lime, fontSize = 13.sp) }
-                if (engine.camera?.cameraInfo?.exposureState?.isExposureCompensationSupported == true) Slider(value = exposure, onValueChange = { exposure = it; engine.exposure(it) }, valueRange = -1f..1f, modifier = Modifier.width(160.dp).height(30.dp))
+                if (!landscape && ready.isNotEmpty() && (ready.none { it.role == "FRONT" } || ready.none { it.role == "BACK" })) Text("Front/back incomplete · Next is still available", color = Color.White, fontSize = 12.sp, modifier = Modifier.background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp)).padding(8.dp))
+                if (!landscape && group != null && ready.size >= 2) Surface(onClick = { barcodeDialog = true }, shape = RoundedCornerShape(12.dp), color = Color.Black.copy(alpha = 0.75f)) { Text("${info?.optString("status")}  ${info?.optString("selected")?.takeUnless { it == "null" } ?: "Tap to correct"}", Modifier.padding(12.dp), color = Lime, fontSize = 13.sp) }
+                if (!landscape && engine.camera?.cameraInfo?.exposureState?.isExposureCompensationSupported == true) Slider(value = exposure, onValueChange = { exposure = it; engine.exposure(it) }, valueRange = -1f..1f, modifier = Modifier.width(160.dp).height(30.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (engine.maxZoom > engine.minZoom) {
+                        Text("%.1f×".format(engine.zoomRatio), color = Color.White, fontSize = 12.sp)
+                        Slider(value = engine.zoomRatio.coerceIn(engine.minZoom, engine.maxZoom), onValueChange = { engine.zoom(it) }, valueRange = engine.minZoom..engine.maxZoom,
+                            modifier = Modifier.semantics { contentDescription = "Camera zoom" }.width(if (landscape) 100.dp else 150.dp).height(28.dp))
+                        TextButton(onClick = { engine.zoom(1f) }, contentPadding = PaddingValues(4.dp)) { Text("1×", color = Lime) }
+                    }
+                }
                 Text(engine.resolution, color = Color.LightGray, fontSize = 10.sp)
             }
-            if (vm.busy) Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Lime, modifier = Modifier.size(28.dp)) }
-        }
-        if (session == null) Button(onClick = onStart, modifier = Modifier.fillMaxWidth().padding(24.dp).height(60.dp)) { Text("Start a batch", fontSize = 18.sp) }
-        else {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = group?.rare == true, onClick = { group?.let { vm.action { vm.repo.flags(it.id, !it.rare, it.review, it.note) } } }, enabled = !vm.busy, label = { Text("Rare") })
-                    FilterChip(selected = group?.review == true, onClick = { group?.let { vm.action { vm.repo.flags(it.id, it.rare, !it.review, it.note) } } }, enabled = !vm.busy, label = { Text("Review") })
+            if (vm.busy) Text("Capturing…", Modifier.align(Alignment.Center).background(Color.Black.copy(alpha = 0.6f)).padding(8.dp), color = Color.White)
+            }
+            Column((if (landscape) Modifier.align(Alignment.CenterEnd).width(panelWidth).fillMaxHeight() else Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(panelHeight)).verticalScroll(rememberScrollState())) {
+                Box(Modifier.align(Alignment.CenterHorizontally)) {
+                    TextButton(enabled = !vm.busy, onClick = { sizeMenu = true }) { Text("${photoSize.label} ▾", fontSize = 12.sp) }
+                    DropdownMenu(expanded = sizeMenu, onDismissRequest = { sizeMenu = false }) {
+                        PhotoResolution.entries.forEach { option -> DropdownMenuItem(text = { Text(option.label) }, onClick = { if (!vm.busy) { photoSize = option; vm.repo.preferences.edit().putString("photoResolution", option.name).apply() }; sizeMenu = false }) }
+                    }
                 }
-                IconButton(onClick = { noteDialog = true }, enabled = !vm.busy) { Icon(Icons.Outlined.EditNote, "Product flags and notes") }
+                if (vm.saving > 0) Text(if (vm.saving < 3) "Saving ${vm.saving} · you can capture again" else "Saving 3 · please wait", Modifier.align(Alignment.CenterHorizontally), fontSize = 11.sp)
+
+        if (session == null) Button(onClick = onStart, modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp).height(52.dp)) { Text("Start a batch", fontSize = 18.sp) }
+        else {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 0.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = group?.rare == true, onClick = { group?.let { vm.action { vm.repo.flags(it.id, !it.rare, it.review, it.note) } } }, enabled = !vm.pendingCapture, label = { Text("Rare") })
+                    FilterChip(selected = group?.review == true, onClick = { group?.let { vm.action { vm.repo.flags(it.id, it.rare, !it.review, it.note) } } }, enabled = !vm.pendingCapture, label = { Text("Review") })
+                }
+                IconButton(onClick = { noteDialog = true }, enabled = !vm.pendingCapture) { Icon(Icons.Outlined.EditNote, "Product flags and notes") }
                 Text("${"%.0f".format(photos.sumOf { it.bytes } / 1_000_000.0)} MB · local", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(bottom = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     if (ready.isNotEmpty()) AsyncImage(vm.repo.original(ready.last().id), "Review last photo", Modifier.size(52.dp).clip(RoundedCornerShape(12.dp)).clickable(onClick = onReview), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
                     else IconButton(onClick = onReview) { Icon(Icons.Outlined.PhotoLibrary, "Review photos") }
-                    IconButton(enabled = !vm.busy, onClick = { vm.action { vm.repo.undoNext() } }) { Icon(Icons.Outlined.Undo, "Undo Next") }
+                    IconButton(enabled = !vm.pendingCapture, onClick = { if (!vm.pendingCapture) vm.action { vm.repo.undoNext() } }) { Icon(Icons.Outlined.Undo, "Undo Next") }
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Button(enabled = permitted && !vm.busy && engine.imageCapture != null, onClick = { vm.shoot(engine) }, shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = Color(0xFF18210D)), contentPadding = PaddingValues(0.dp), modifier = Modifier.size(84.dp).border(2.dp, Lime.copy(alpha = 0.4f), CircleShape).padding(5.dp)) { Icon(Icons.Outlined.CameraAlt, "Capture", Modifier.size(30.dp)) }
+                    Button(enabled = permitted && !vm.busy && vm.saving < 3 && engine.imageCapture != null, onClick = { vm.shoot(engine) }, shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = Lime, contentColor = Color(0xFF18210D)), contentPadding = PaddingValues(0.dp), modifier = Modifier.testTag("shutter").size(84.dp).border(2.dp, Lime.copy(alpha = 0.4f), CircleShape).padding(5.dp)) { Icon(Icons.Outlined.CameraAlt, "Capture", Modifier.size(30.dp)) }
                     Text("CAPTURE", fontSize = 10.sp, letterSpacing = 2.sp, modifier = Modifier.padding(top = 8.dp))
-                    if (ready.isNotEmpty()) TextButton(enabled = !vm.busy, onClick = { vm.action { vm.repo.deletePhoto(ready.last().id); vm.shoot(engine) } }) { Text("Retake last", fontSize = 10.sp) }
+                    if (ready.isNotEmpty()) TextButton(enabled = !vm.pendingCapture, onClick = { vm.action { vm.repo.deletePhoto(ready.last().id); vm.shoot(engine) } }) { Text("Retake last", fontSize = 10.sp) }
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    FilledTonalIconButton(onClick = { vm.action { vm.repo.next() } }, enabled = !vm.busy && ready.isNotEmpty(), modifier = Modifier.size(64.dp)) { Icon(Icons.Outlined.ArrowForward, "Next product", Modifier.size(30.dp)) }
+                    FilledTonalIconButton(onClick = { if (!vm.pendingCapture) vm.action { vm.repo.next() } }, enabled = !vm.pendingCapture && ready.isNotEmpty(), modifier = Modifier.size(64.dp)) { Icon(Icons.Outlined.ArrowForward, "Next product", Modifier.size(30.dp)) }
                     Text("NEXT", fontSize = 10.sp, letterSpacing = 2.sp, modifier = Modifier.padding(top = 8.dp))
+                }
+            }
                 }
             }
         }
@@ -222,7 +270,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
 @Composable fun BarcodeDialog(vm: CaptureViewModel, group: GroupRow, photos: List<PhotoRow>, dismiss: () -> Unit) {
     val info = barcodeInfo(group, photos)
     var value by remember { mutableStateOf(info.optString("selected").takeUnless { it == "null" } ?: "") }
-    AlertDialog(onDismissRequest = dismiss, title = { Text("Product barcode") }, text = { Column {
+    AlertDialog(onDismissRequest = dismiss, title = { Text("Product barcode") }, text = { Column(Modifier.verticalScroll(rememberScrollState())) {
         Text("${info.getString("status")} · barcode identifies a title, never a physical copy.")
         val values = info.getJSONArray("candidates")
         for (i in 0 until values.length()) { val c = values.getJSONObject(i); TextButton(onClick = { value = c.getString("raw") }) { Text("${c.getString("raw")} · ${c.getString("format")} ${if (c.getBoolean("valid")) "✓" else "invalid checksum"}") } }
@@ -296,7 +344,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
     notesGroup?.let { g -> NotesDialog(vm, g) { notesGroup = null } }
     editBarcode?.let { g -> BarcodeDialog(vm, g, photos.filter { it.groupId == g.id }) { editBarcode = null } }
     inspected?.let { p ->
-        AlertDialog(onDismissRequest = { inspected = null }, title = { Text("${p.role} · photo ${p.position + 1}") }, text = { Column {
+        AlertDialog(onDismissRequest = { inspected = null }, title = { Text("${p.role} · photo ${p.position + 1}") }, text = { Column(Modifier.verticalScroll(rememberScrollState())) {
             AsyncImage(vm.repo.original(p.id), "Full photo preview", Modifier.fillMaxWidth().height(300.dp))
             Text("${p.capturedAt}\n${"%.2f".format(p.bytes / 1_000_000.0)} MB\nSHA-256 ${p.sha256.take(16)}…", fontSize = 12.sp)
             if (groups.firstOrNull { it.id == p.groupId }?.archiveId == null && session?.finished == false) {
@@ -316,9 +364,9 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(vertical = 24.dp)) {
         item { PageTitle("Settings", "Built for capture, even without a connection") }
         item { Text("CAMERA", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
-        item { Text("Maximum available JPEG resolution · quality priority\nOriginal camera bytes and EXIF are retained. HDR availability depends on the selected lens.", style = MaterialTheme.typography.bodyMedium) }
-        item { PreferenceSwitch("Maximum sensor resolution", prefs.getBoolean("maximumResolution", true)) { prefs.edit().putBoolean("maximumResolution", it).apply() } }
-        item { Text("Turn off to request a 12 MP capture size when available. CameraX may choose a nearby supported size. Quality remains at 100%.", style = MaterialTheme.typography.bodySmall) }
+        item { ResolutionSettings(prefs) }
+        item { PreferenceSwitch("Fast capture", prefs.getBoolean("fastCapture", true)) { prefs.edit().putBoolean("fastCapture", it).apply() } }
+        item { Text("Fast capture uses zero shutter lag where supported, with a low-latency fallback and JPEG 95%. Turn it off for JPEG 100% and quality priority. Flash, HDR and low light can add delay. Pinch the preview or use the zoom slider.", style = MaterialTheme.typography.bodySmall) }
         item { PreferenceSwitch("Gridlines", prefs.getBoolean("grid", true)) { prefs.edit().putBoolean("grid", it).apply() } }
         item { PreferenceSwitch("Volume button shutter", prefs.getBoolean("volume", true)) { prefs.edit().putBoolean("volume", it).apply() } }
         item { PreferenceSwitch("Haptic shutter feedback", prefs.getBoolean("haptic", true)) { prefs.edit().putBoolean("haptic", it).apply() } }
@@ -332,7 +380,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
         item { Text("Choose an export destination each time using Save to Files. Exported groups are locked to keep imports repeatable. Removing a photo keeps its source file. No automatic deletion or cloud backup. Uninstalling Android apps removes private files: save and verify all ZIPs before uninstalling or clearing storage.", style = MaterialTheme.typography.bodySmall) }
         item { PreferenceSwitch("Light appearance", light) { prefs.edit().putBoolean("light", it).apply(); appearance(it) } }
         item { TextButton(onClick = { showLicenses = true }) { Text("Third-party notices & licenses") } }
-        item { Text("SnapIMS Mobile 0.1.1 · recognition update\nDevelopment APK; physical Pixel validation is required before inventory use.", style = MaterialTheme.typography.bodySmall) }
+        item { Text("SnapIMS Mobile 0.1.2 · camera update\nDevelopment APK; physical Pixel validation is required before inventory use.", style = MaterialTheme.typography.bodySmall) }
     }
     if (showLicenses) NoticesDialog(context) { showLicenses = false }
 
@@ -345,7 +393,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
 @Composable fun NotesDialog(vm: CaptureViewModel, group: GroupRow, dismiss: () -> Unit) {
     var note by remember { mutableStateOf(group.note) }
     var rare by remember { mutableStateOf(group.rare) }; var review by remember { mutableStateOf(group.review) }
-    AlertDialog(onDismissRequest = dismiss, title = { Text("Flags & notes") }, text = { Column {
+    AlertDialog(onDismissRequest = dismiss, title = { Text("Flags & notes") }, text = { Column(Modifier.verticalScroll(rememberScrollState())) {
         Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(rare, { rare = it }); Text("Rare"); Checkbox(review, { review = it }); Text("Review") }
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("Damaged", "Sealed", "Unusual").forEach { label -> AssistChip(onClick = { if (!note.contains(label, ignoreCase = true)) note = listOf(note.trim(), label).filter { it.isNotEmpty() }.joinToString(" · ") }, label = { Text(label) }) }

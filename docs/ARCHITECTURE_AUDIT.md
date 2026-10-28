@@ -86,3 +86,21 @@ desktop schema. New recognition attempts are capture metadata in Room schema 2,
 with an additive 1→2 migration, source fingerprints and explicit confirmation.
 Existing desktop inventory, pricing and Shopify logic remains authoritative.
 See RECOGNITION_0.1.1.md for the implementation, dependencies and remaining gates.
+
+
+## 0.1.2 camera update
+
+The user's camera update replaces the original maximum-resolution/quality default
+with selectable sizes and fast capture. New installations and upgrades default to
+about 3 MP and JPEG 95%; quality priority and maximum size remain explicit choices.
+The camera's original chosen JPEG is retained, never recompressed after capture.
+
+File finalization now has a separate lock from short journal reservations. Up to
+three pending photos retain durable IDs, order and roles. Group boundaries and edits
+remain locked while saves are pending. The shutter re-enables at CameraX file-save
+completion, before SHA-256/fsync finalization, with explicit saving status.
+
+Landscape preserves the Activity and camera across orientation/size changes while
+Compose rearranges controls and CameraX receives updated target rotation. Barcode
+scanning uses native-detail tiles without loading an entire large JPEG into memory.
+Existing Room version 2, archive format and desktop authority remain unchanged.

@@ -1,10 +1,25 @@
-# SnapIMS Mobile 0.1.1
+# SnapIMS Mobile 0.1.2
 
-**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Mobile-0.1.1-debug.apk)** · [SHA-256](releases/SnapIMS-Mobile-0.1.1-debug.apk.sha256)
+**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Mobile-0.1.2-debug.apk)** · [SHA-256](releases/SnapIMS-Mobile-0.1.2-debug.apk.sha256)
 
 Native camera companion for Canada VHS, with durable offline sessions, explicit
 Capture/Next grouping, barcode scanning, verified ZIP exports and reviewable recognition.
 This is a debug-signed acceptance update for arm64 Google Pixel devices.
+
+## Camera update
+
+- Resolution selector in Capture and Settings: about 1.2, 3, 6, 12 MP or maximum.
+  New default: 3 MP; the preview shows the actual supported size.
+- Pinch-to-zoom, a zoom slider and 1× reset; full-frame preview.
+- Fast capture defaults to zero shutter lag where supported, JPEG 95%, immediate
+  press feedback and background verification. Another photo can be taken while saving.
+- Landscape places controls beside the camera and preserves the screen and capture
+  through rotation.
+- Barcode scans inspect overlapping regions at original detail, avoiding the
+  previous full-image reduction that lost small barcode bars.
+
+See [camera details and limits](docs/CAMERA_0.1.2.md). Flash, HDR, low light and phone
+hardware affect shutter timing; near-instant exposure needs physical device measurement.
 
 ## Recognition
 
@@ -27,10 +42,11 @@ OpenAI request on each shutter. See [recognition details](docs/RECOGNITION_0.1.1
 
 ## Update without losing captures
 
-Install 0.1.1 **over** 0.1.0; do not uninstall or clear app storage. Application ID
-and signing key are unchanged, versionCode increases to 2, and a tested Room 1→2
-migration preserves the existing capture tables and files. Recognition defaults to
-Off on upgrade. Keep verified ZIP backups before device resets or app removal.
+Install 0.1.2 **over** 0.1.0 or 0.1.1; do not uninstall or clear app storage.
+Application ID and signing key are unchanged, versionCode increases to 3, and Room
+remains version 2 with the existing tested 1→2 migration for 0.1.0 updates.
+Capture data, recognition preferences and encrypted API keys are retained.
+Keep verified ZIP backups before device resets or app removal.
 Android private data is removed by uninstall/clear-storage; automatic backup is disabled.
 The debug signing key must be retained for future updates; never commit signing keys.
 
@@ -43,7 +59,8 @@ English data, so normal builds need no JitPack access, NDK or runtime downloads.
 ```bash
 export JAVA_HOME=/path/to/jdk-21
 export ANDROID_HOME=/path/to/android-sdk
-./gradlew --no-daemon :core:test :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug
+./gradlew --no-daemon :core:test :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest
+./gradlew --no-daemon :app:lintDebug
 # app/build/outputs/apk/debug/app-debug.apk
 ```
 
@@ -68,9 +85,9 @@ standard chooser. Originals are retained. Recognition ready before an archive
 snapshot is included; later results can be shared separately without rewriting ZIPs.
 See [manifest/manual import](docs/MOBILE_MANIFEST_V1.md).
 
-CameraX requests maximum available JPEG resolution/quality by default, with autofocus,
-tap focus, exposure, torch/flash, rear/front switch and available HDR. Settings can
-request about 12 MP. Pixel Camera processing parity is not claimed.
+CameraX supports selectable JPEG resolution, fast/quality modes, autofocus, tap focus,
+zoom, exposure, torch/flash, rear/front switching and available HDR. Pixel Camera
+processing parity is not claimed.
 
 ## Validation and scope
 

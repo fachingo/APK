@@ -89,7 +89,7 @@ fun recognitionLabel(mode: String): String = when (mode) {
 @Composable private fun SecureKeyDialog(vm: CaptureViewModel, onSaved: () -> Unit, dismiss: () -> Unit) {
     val context = LocalContext.current
     var input by remember { mutableStateOf("") }; var saving by remember { mutableStateOf(false) }
-    AlertDialog(properties = DialogProperties(securePolicy = SecureFlagPolicy.SecureOn), onDismissRequest = { if (!saving) { input = ""; dismiss() } }, title = { Text("OpenAI API key") }, text = { Column {
+    AlertDialog(properties = DialogProperties(securePolicy = SecureFlagPolicy.SecureOn), onDismissRequest = { if (!saving) { input = ""; dismiss() } }, title = { Text("OpenAI API key") }, text = { Column(Modifier.verticalScroll(rememberScrollState())) {
         Text("Stored encrypted on this device. It is never included in exports or source code. Enter an API key, not a ChatGPT password.", style = MaterialTheme.typography.bodySmall)
         OutlinedTextField(input, { input = it.take(512) }, label = { Text("Paste API key") }, visualTransformation = PasswordVisualTransformation(), singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
     } }, confirmButton = { TextButton(enabled = !saving && input.trim().length >= 16, onClick = {

@@ -32,6 +32,7 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, priva
     fun sync(folder: File) = directorySync(folder)
     val dao = journal.dao()
     private val lock = Mutex()
+    private val fileLock = Mutex()
     val originals = File(context.filesDir, "originals").apply { mkdirs() }
     val archiveDir = File(context.filesDir, "archives").apply { mkdirs() }
     val preferences = context.getSharedPreferences("capture-settings", Context.MODE_PRIVATE)
@@ -48,13 +49,14 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, priva
         event(session.id, null, "CVHS1:BATCH:START"); session
     }
     suspend fun current(): GroupRow = dao.active()?.let { dao.groups(it.id).last { g -> !g.closed } } ?: error("Start a batch first.")
-    private suspend fun editable(group: GroupRow) {
+    private suspend fun editable(group: GroupRow, allowPending: Boolean = false) {
         check(group.archiveId == null) { "Exported groups are locked. Originals remain available." }
         check(!dao.session(group.sessionId).finished) { "This batch has finished." }
-        check(dao.pending().isEmpty()) { "Wait for the photograph to finish saving." }
+        check(allowPending || dao.pending().isEmpty()) { "Wait for the photograph to finish saving." }
     }
     suspend fun reserve(): PhotoRow = mutate {
-        val group = current(); editable(group)
+        val group = current(); editable(group, allowPending = true)
+        check(dao.pending().size < 3) { "Three photos are saving. Please wait a moment." }
         check(originals.usableSpace > 100L * 1024 * 1024) { "Less than 100 MB free. Export and back up captures, then free space before continuing." }
         val photos = dao.photos(group.id).filter { !it.deleted }
         val photo = PhotoRow(groupId = group.id, position = (photos.maxOfOrNull { it.position } ?: -1) + 1, role = defaultRole(photos.size).name)
@@ -67,15 +69,19 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, priva
         return bounds.outWidth > 0 && bounds.outHeight > 0 && tail == 0xffd9
     }
     suspend fun complete(id: String) = withContext(Dispatchers.IO) {
-        lock.withLock {
+        // Camera reservations use a short DB lock. Hashing/fsync never holds it.
+        val ready = fileLock.withLock {
             val photo = dao.photo(id)
             val pending = pendingFile(id); val target = original(id)
             check(completeJpeg(if (target.exists()) target else pending)) { "Camera file is incomplete. It has been retained for recovery." }
             if (!target.exists()) { FileOutputStream(pending, true).use { it.fd.sync() }; atomicMove(pending, target); sync(originals) }
-            val ready = photo.copy(state = "READY", bytes = target.length(), sha256 = hashFile(target), error = "", scanState = if (photo.role == "BACK" && preferences.getBoolean("barcode", true)) "PENDING" else "OFF")
-            dao.update(ready)
-            enqueueScan(ready)
+            val bytes = target.length(); val sha = hashFile(target)
+            mutate {
+                val latest = dao.photo(id)
+                latest.copy(state = "READY", bytes = bytes, sha256 = sha, error = "", scanState = if (latest.role == "BACK" && preferences.getBoolean("barcode", true)) "PENDING" else "OFF").also { dao.update(it) }
+            }
         }
+        enqueueScan(ready)
     }
     suspend fun failed(id: String, message: String) = mutate {
         val photo = dao.photo(id); dao.update(photo.copy(state = "ERROR", error = message.take(400)))

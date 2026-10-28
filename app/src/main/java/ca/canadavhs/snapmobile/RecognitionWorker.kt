@@ -110,7 +110,7 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
                 val bitmap = recognitionBitmap(file, if (ocr == null) 1600 else 2400)
                 try {
                     val pixels = bitmap.argbPixels()
-                    codes += LocalBarcodeDecoder.decode(bitmap.width, bitmap.height, pixels)
+                    codes += scanOriginalBarcodes(file)
                     val metrics = ClassicalImageChecks.analyze(bitmap.width, bitmap.height, pixels)
                     details.put(JSONObject().put("photo_id", photo.id).put("original_sha256", photo.sha256)
                         .put("mean_brightness", metrics.meanBrightness).put("dark_fraction", metrics.darkFraction)
