@@ -114,7 +114,8 @@ internal suspend fun CaptureRepository.saveInventoryLocked(candidate: InventoryR
     if(old.priceCents!=saved.priceCents && saved.priceCents!=null) recordPriceDecision(saved,"MANUAL_ESTIMATE","MANUAL")
     saved
 }
-suspend fun CaptureRepository.archiveInventory(groupId: String, archived: Boolean) = mutate {
+suspend fun CaptureRepository.archiveInventory(groupId:String,archived:Boolean)=mutate {archiveInventoryLocked(groupId,archived)}
+internal suspend fun CaptureRepository.archiveInventoryLocked(groupId:String,archived:Boolean)=run {
     val inventory = journal.inventoryDao(); val old = inventory.item(groupId) ?: error("Item not found.")
     val saved = old.copy(archived = archived, ready = false, revision = old.revision + 1, updatedAt = OffsetDateTime.now().toString())
     inventory.update(saved); inventoryAudit(old,saved,if(archived) "ARCHIVED" else "RESTORED")

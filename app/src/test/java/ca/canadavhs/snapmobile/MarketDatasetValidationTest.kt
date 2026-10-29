@@ -50,6 +50,13 @@ class MarketDatasetValidationTest {
                 report.put("ownerCsvRows",p.rows).put("ownerCsvSha256",before).put("ownerCsvImportMs",(System.nanoTime()-started)/1_000_000).put("ownerCsvSourceUnchanged",true).put("ownerCsvRepeatedAdded",0)
                 assertTrue(repo.searchMarket(MarketFilters(query="Disney",currency="USD")).groups.isNotEmpty());p.file.delete()
             } else report.put("ownerCsvValidation","Not requested in this run; no owner data bundled")
+            // Exercise the exact agent gateway against the imported native SQLite library.
+            val agentChat=ChatConversationRow(title="Private dataset agent validation",provider="LOCAL",model="fixture",authMode="API_KEY",toolsEnabled=true)
+            journal.nextDao().insert(agentChat);val agent=AgentTools(repo)
+            suspend fun agentRead(resource:String,args:JSONObject=JSONObject())=agent.execute(agentChat,"app_read",JSONObject().put("resource",resource).put("arguments_json",args.toString()))
+            val syntheticRead=agentRead("market.search",JSONObject().put("query","Fixture Movie 0042").put("currency","USD"));assertEquals(100,syntheticRead.getJSONArray("items").getJSONObject(0).getInt("count"));assertTrue(syntheticRead.toString().length<=10000)
+            if(actual!=null) {val realRead=agentRead("market.search",JSONObject().put("query","Disney").put("currency","USD").put("limit",50));assertTrue(realRead.getJSONArray("items").length()>0);assertTrue(realRead.toString().length<=10000);report.put("agentActualCsvSearch","PASS").put("agentResultCharacters",realRead.toString().length)}
+            assertEquals(expected,agent.execute(agentChat,"app_overview",JSONObject()).getLong("soldObservations"));report.put("agentNativeLibraryRead","PASS").put("agentNoProviderRequests",true)
             journal.openHelper.writableDatabase.query("PRAGMA quick_check").use {assertTrue(it.moveToFirst());assertEquals("ok",it.getString(0))}
             journal.close();journal=Room.databaseBuilder(app,CaptureJournal::class.java,name).allowMainThreadQueries().build();repo=repository();app.repository=repo
             assertEquals(expected,count());assertEquals(1,repo.searchMarket(MarketFilters(query="Fixture Movie 0042",currency="USD")).groups.size)

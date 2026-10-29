@@ -1,10 +1,11 @@
-# SnapIMS Next 0.2.0 scope
+# SnapIMS Next 0.8.0 scope
 
-Milestone A adds authoritative local inventory, immutable Item IDs/SKU, metadata and
-condition/price/stock editing, revision/audit history, finished-item photo correction,
-protected photo-inclusive backup/restore, desktop export/import and native QR commands.
-The existing camera, offline recognition and optional OpenAI API-key recognition remain.
+The on-demand application-agent update extends the existing AI workspace, native
+inventory/market/recognition/Shopify/task services and immutable identity rules.
+See [release notes](agent/RELEASE_0.8.0.md), [agent usage and limits](agent/APPLICATION_AGENT.md),
+[test results](TEST_RESULTS.md) and [the feature matrix](next/FEATURE_MATRIX.md).
 
-See next/FEATURE_MATRIX.md for the current A–D continuation, exact external blockers,
-executed tests and unrun physical/live acceptance. B Shopify and D SIWC must not be
-presented as verified integrations. No production inventory or listings were changed.
+No continuous AI monitoring or automatic photo transmission. All application
+modifications need human review. No production or desktop data is modified.
+Physical Pixel SIWC and real Shopify development-store acceptance remain unrun;
+no broker deployment or verified account integration is claimed.

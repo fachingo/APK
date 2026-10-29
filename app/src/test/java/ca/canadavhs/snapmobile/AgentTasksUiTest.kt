@@ -51,7 +51,7 @@ class AgentTasksUiTest {
         val approvalImage=File(System.getProperty("snapims.testOutput"),"workflow-price-approval.png").apply {parentFile!!.mkdirs()};approvalImage.outputStream().use {compose.onNode(isDialog()).captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
         compose.onNodeWithText("Approve once").performClick();compose.waitUntil(10000) {compose.onAllNodesWithText("Approve once").fetchSemanticsNodes().isEmpty()};assertEquals(1200L,runBlocking {journal.inventoryDao().item(item.groupId)!!.priceCents})
         compose.onNodeWithText("← Chats").performClick();compose.onNodeWithText("Tasks").performClick()
-        compose.waitUntil(10000) {compose.onAllNodesWithText("Price 1 copy").fetchSemanticsNodes().isNotEmpty()};compose.onNodeWithText("COMPLETE · 1/1").assertExists()
+        compose.waitUntil(10000) {compose.onAllNodesWithText("Price 1 copy").fetchSemanticsNodes().isNotEmpty()};compose.waitUntil(10000) {compose.onAllNodesWithText("COMPLETE · 1/1",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()};compose.onNodeWithText("COMPLETE · 1/1",useUnmergedTree=true).assertExists()
         val tasksImage=File(System.getProperty("snapims.testOutput"),"workflow-tasks.png").apply {parentFile!!.mkdirs()};tasksImage.outputStream().use {compose.onAllNodes(isRoot()).onLast().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
         compose.onNodeWithText("New inventory review task").performClick();compose.onNodeWithText("Create review task").assertIsNotEnabled()
         compose.onAllNodes(isToggleable())[0].performClick();compose.onNodeWithText("Create review task").performClick()

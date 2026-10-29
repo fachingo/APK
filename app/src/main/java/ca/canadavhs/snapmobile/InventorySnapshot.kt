@@ -13,8 +13,8 @@ import java.io.FileOutputStream
 import java.util.zip.ZipFile
 import ca.canadavhs.snapmobile.core.sha256
 
-internal val snapshotTables = listOf("sessions","groups","photos","archives","events","recognition","inventory_batches","inventory","inventory_audit","transfer_jobs","pricing_evidence_native","chat_conversations","chat_messages","ai_capabilities","agent_approvals","listing_plans","siwc_proofs","shopify_jobs","shopify_job_items","market_imports","price_decisions","market_searches","agent_tasks","shopify_reviews")
-internal val snapshotPrimaryKeys = mapOf("inventory_batches" to "sessionId", "inventory" to "groupId")
+internal val snapshotTables = listOf("sessions","groups","photos","archives","events","recognition","inventory_batches","inventory","inventory_audit","transfer_jobs","pricing_evidence_native","chat_conversations","chat_messages","ai_capabilities","agent_approvals","listing_plans","siwc_proofs","shopify_jobs","shopify_job_items","market_imports","price_decisions","market_searches","agent_tasks","shopify_reviews","agent_policies","agent_traces")
+internal val snapshotPrimaryKeys = mapOf("inventory_batches" to "sessionId", "inventory" to "groupId", "agent_policies" to "conversationId")
 internal const val MAX_SNAPSHOT_BYTES = 32 * 1024 * 1024
 internal const val MAX_PACKAGE_FILES = 100_000
 internal const val MAX_PACKAGE_BYTES = 100_000_000_000L
@@ -71,7 +71,7 @@ internal suspend fun CaptureRepository.buildSnapshot(): JSONObject = mutate {
     require(files.size <= MAX_PACKAGE_FILES) { "Export separate batches: backup exceeds the package file limit." }
     val manifestFiles = JSONArray()
     // Hashing is performed after the consistent metadata snapshot, outside camera's lock.
-    JSONObject().put("format","snapims.inventory.snapshot").put("version",1).put("schema",8)
+    JSONObject().put("format","snapims.inventory.snapshot").put("version",1).put("schema",9)
         .put("tables",tables).put("files",manifestFiles).put("file_paths",JSONArray(files.keys.toList()))
 }
 internal suspend fun CaptureRepository.hashSnapshotFiles(snapshot: JSONObject): JSONObject = withContext(Dispatchers.IO) {
@@ -90,14 +90,15 @@ internal suspend fun CaptureRepository.hashSnapshotFiles(snapshot: JSONObject): 
     snapshot
 }
 internal fun CaptureRepository.validateSnapshot(snapshot: JSONObject) {
-    require(snapshot.getString("format") == "snapims.inventory.snapshot" && snapshot.getInt("version") == 1 && snapshot.getInt("schema") in 3..8) { "Unsupported inventory snapshot version." }
+    require(snapshot.getString("format") == "snapims.inventory.snapshot" && snapshot.getInt("version") == 1 && snapshot.getInt("schema") in 3..9) { "Unsupported inventory snapshot version." }
     val tables = snapshot.getJSONObject("tables")
-    if(snapshot.getInt("schema")<8) {
-        val count=when(snapshot.getInt("schema")) {3->10;4->17;5->19;6->22;else->23}
+    if(snapshot.getInt("schema")<9) {
+        val count=when(snapshot.getInt("schema")) {3->10;4->17;5->19;6->22;7->23;else->24}
         require(tables.keys().asSequence().toSet()==snapshotTables.take(count).toSet()) {"Incomplete legacy inventory snapshot."}
         snapshotTables.drop(count).forEach {tables.put(it,JSONArray())}
         if(snapshot.getInt("schema")<7) {val recognition=tables.getJSONArray("recognition");for(i in 0 until recognition.length()) recognition.getJSONObject(i).put("authBinding","").put("approvalId","")}
-        snapshot.put("schema",8)
+        val messages=tables.getJSONArray("chat_messages");for(i in 0 until messages.length()) messages.getJSONObject(i).put("usageJson","{}")
+        snapshot.put("schema",9)
     }
     require(tables.keys().asSequence().toSet() == snapshotTables.toSet()) { "Incomplete inventory snapshot." }
     val files = snapshot.getJSONArray("files"); require(files.length() <= MAX_PACKAGE_FILES)
@@ -152,16 +153,18 @@ internal fun CaptureRepository.validateSnapshot(snapshot: JSONObject) {
                     require(file.getLong("bytes") == row.getLong("bytes") && file.getString("sha256") == row.getString("sha256"))
                 }
                 "agent_tasks" -> {
-                    requireUuid(row.getString("approvalId"));requireUuid(row.getString("conversationId"));jsonIds(JSONArray(row.getString("groupIdsJson")));val jobs=JSONArray(row.getString("jobIdsJson"));require(jobs.length()<=50);for(j in 0 until jobs.length()) requireUuid(jobs.getString(j));JSONObject(row.getString("resultJson"))
+                    requireUuid(row.getString("approvalId"));requireUuid(row.getString("conversationId"));JSONArray(row.getString("groupIdsJson")).let {if(it.length()>0) jsonIds(it)};val jobs=JSONArray(row.getString("jobIdsJson"));require(jobs.length()<=50);for(j in 0 until jobs.length()) requireUuid(jobs.getString(j));JSONObject(row.getString("resultJson"))
                     require(row.getString("state") in listOf("SCHEDULE_PENDING","SCHEDULED","CANCEL_PENDING","CANCELLED","PAUSED_REVIEW","COMPLETE","OPEN"))
                     if(row.getString("kind")=="SHOPIFY_DRAFT") require(jobs.length()==1)
-                    require(row.getString("kind") in listOf("RECOGNITION","MARKET_PRICE","SHOPIFY_DRAFT","REVIEW_BATCH"))
+                    require(row.getString("kind") in listOf("RECOGNITION","MARKET_PRICE","SHOPIFY_DRAFT","REVIEW_BATCH","INVENTORY_WORKFLOW","APP_OPERATION","BATCH_OPERATION","TASK_CONTROL","SETTINGS_CHANGE","SHOPIFY_MANAGEMENT"))
                 }
                 "price_decisions" -> {
                     require(row.getString("recordType") in listOf("OPERATOR_APPROVED_PRICE","MANUAL_ESTIMATE","AI_SUGGESTION"))
                     require(row.getLong("priceCents") in 0..ca.canadavhs.snapmobile.core.InventoryRules.maxPriceCents)
                     require(row.getString("currency")=="CAD");JSONArray(row.getString("evidenceJson"));JSONObject(row.getString("provenanceJson"))
                 }
+                "agent_policies" -> {requireUuid(row.getString("conversationId"));require(row.getInt("contextChars") in 8000..64000 && row.getInt("maxRounds") in 1..12 && row.getInt("maxCalls") in 1..48)}
+                "agent_traces" -> {requireUuid(row.getString("conversationId"));require(row.getString("state") in listOf("RUNNING","COMPLETE","ERROR","INTERRUPTED"))}
                 "shopify_reviews" -> {
                     require(row.getString("kind") in listOf("CREATE_DRAFT","PUBLISH_LIVE","LINK_EXISTING","UPDATE_METADATA"))
                     require(row.getString("state") in listOf("PENDING","APPLIED","REJECTED","EXPIRED"));JSONObject(row.getString("payloadJson"));JSONObject(row.getString("resultJson"))
@@ -184,7 +187,7 @@ internal fun CaptureRepository.validateSnapshot(snapshot: JSONObject) {
                         val file=indexed[path] ?: error("Backup is missing a chat attachment.")
                         require(file.getString("sha256")==a.getString("sha256") && file.getLong("bytes")==a.getLong("bytes") && file.getLong("bytes")<=8_000_000)
                     }
-                    JSONArray(row.getString("toolCallsJson"))
+                    JSONArray(row.getString("toolCallsJson"));JSONObject(row.getString("usageJson"))
                 }
                 "chat_conversations" -> {
                     val provider=AiProvider.get(row.getString("provider"))
@@ -253,6 +256,7 @@ internal suspend fun CaptureRepository.mergeSnapshot(snapshot: JSONObject, stage
         val rows = tables.getJSONArray(table)
         for(i in 0 until rows.length()) {
             val row = JSONObject(rows.getJSONObject(i).toString())
+            if(table=="agent_traces" && row.getString("state")=="RUNNING") row.put("state","INTERRUPTED").put("summary","Restored trace; no tool or model request restarted.")
             if(table=="shopify_reviews" && row.getString("state")=="PENDING") row.put("state","EXPIRED").put("resultJson","{\"error\":\"Restored review requires fresh verification\"}")
             if(table=="agent_tasks" && row.getString("state") !in listOf("COMPLETE","CANCELLED")) row.put("state","PAUSED_REVIEW").put("error","Restored task requires fresh review; no external action restarted.")
             if(table=="inventory") {

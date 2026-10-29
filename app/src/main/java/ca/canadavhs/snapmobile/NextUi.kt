@@ -88,7 +88,7 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
 
 }
 @Composable fun ListingPlansScreen(vm:CaptureViewModel,back:()->Unit) {ShopifyScreen(vm,back)}
-@Composable fun AiWorkspaceScreen(vm:CaptureViewModel,back:()->Unit,onTasks:()->Unit={},ai:AiWorkspaceModel=viewModel()) {
+@Composable fun AiWorkspaceScreen(vm:CaptureViewModel,back:()->Unit,onTasks:()->Unit={},onNavigate:(String,String)->Unit={_,_->},ai:AiWorkspaceModel=viewModel()) {
     val context=LocalContext.current;val chats by ai.chats.collectAsStateWithLifecycle();val active by ai.active.collectAsStateWithLifecycle()
     var selected by rememberSaveable {mutableStateOf<String?>(null)};var connections by rememberSaveable {mutableStateOf(false)};var newChat by remember {mutableStateOf(false)}
     var search by rememberSaveable {mutableStateOf("")};var historyMatches by remember {mutableStateOf<Set<String>>(emptySet())}
@@ -101,7 +101,7 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
         if(ai.notice.isNotEmpty()) Surface(color=MaterialTheme.colorScheme.secondaryContainer) {Row(Modifier.fillMaxWidth().padding(12.dp)) {Text(ai.notice,Modifier.weight(1f));TextButton(onClick=ai::clearNotice) {Text("Dismiss")}}}
         when {
             connections ->ConnectionsPanel(ai) {connections=false}
-            chat!=null ->ChatPanel(ai,chat,onBack={selected=null},onExport={save.launch("snapims-chat-${chat.id}.json")},onDelete={ai.delete(chat.id);selected=null})
+            chat!=null ->ChatPanel(ai,chat,onNavigate=onNavigate,onBack={selected=null},onExport={save.launch("snapims-chat-${chat.id}.json")},onDelete={ai.delete(chat.id);selected=null})
             else ->LazyColumn(Modifier.fillMaxSize().padding(horizontal=24.dp),contentPadding=PaddingValues(vertical=24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                 item {TextButton(onClick=back) {Text("← Back")};PageTitle("AI workspace","Private local history · explicit provider billing")}
                 item {Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {Button(onClick={newChat=true}) {Text("New chat")};OutlinedButton(onClick={connections=true}) {Text("Connections")};TextButton(onClick=onTasks) {Text("Tasks")}}}
@@ -153,13 +153,13 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
     Box {OutlinedButton(onClick={expanded=true}) {Text(AiProvider.get(selected).label)};DropdownMenu(expanded,{expanded=false}) {AiProvider.all.forEach {p ->DropdownMenuItem(text={Text(p.label)},onClick={change(p.id);expanded=false})}}}
 }
 @Composable private fun NewChatDialog(ai:AiWorkspaceModel,dismiss:()->Unit,created:(String)->Unit) {
-    var provider by remember {mutableStateOf("OPENAI")};var model by remember {mutableStateOf<AiCapabilityRow?>(null)};var query by remember {mutableStateOf("")};var instructions by remember {mutableStateOf("")};var tools by remember {mutableStateOf(false)};var proposals by remember {mutableStateOf(false)}
+    var provider by remember {mutableStateOf("OPENAI")};var model by remember {mutableStateOf<AiCapabilityRow?>(null)};var query by remember {mutableStateOf("")};var instructions by remember {mutableStateOf("")};var mode by remember {mutableStateOf(AgentPermission.CHAT_ONLY)}
     AlertDialog(onDismissRequest=dismiss,title={Text("New conversation")},text={Column(Modifier.heightIn(max=550.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-        ProviderPicker(provider) {provider=it;model=null;tools=false}
+        ProviderPicker(provider) {provider=it;model=null;mode=AgentPermission.CHAT_ONLY}
         Text(if(provider=="CHATGPT") "Uses your authorized ChatGPT plan. Never falls back to API billing." else if(provider=="LOCAL") "Uses a model running on this phone." else "Uses this provider's API key. Provider charges and limits apply.",style=MaterialTheme.typography.bodySmall)
         OutlinedButton(enabled=!ai.loading,onClick={ai.discover(provider)}) {Text(if(ai.loading) "Loading…" else "Discover models")}
         OutlinedTextField(query,{query=it},label={Text("Filter model catalog")})
-        ai.catalog.filter {it.provider==provider && (it.model.contains(query,true) || it.displayName.contains(query,true))}.take(30).forEach {m ->FilterChip(selected=model?.id==m.id,onClick={model=m;tools=false},label={Text(m.displayName)})}
+        ai.catalog.filter {it.provider==provider && (it.model.contains(query,true) || it.displayName.contains(query,true))}.take(30).forEach {m ->FilterChip(selected=model?.id==m.id,onClick={model=m;mode=AgentPermission.CHAT_ONLY},label={Text(m.displayName)})}
         model?.let {m ->Text("${m.model}\nTools: ${m.supportsTools ?: "unverified"} · images: ${m.supportsImages ?: "unverified"} · files: ${m.supportsFiles ?: "unverified"}",style=MaterialTheme.typography.bodySmall)}
         model?.let {selected ->
             val current=ai.catalog.firstOrNull {it.id==selected.id} ?: selected
@@ -169,30 +169,44 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
         }
 
         OutlinedTextField(instructions,{instructions=it.take(10000)},label={Text("Conversation instructions · optional")},minLines=2)
-        Row {Checkbox(tools,{tools=it},enabled=model?.supportsTools==true);Text("Allow local read tools")}
-        if(tools) {Text("Tool results can send matching local inventory and sold evidence to the selected provider. Treat content and attachments as untrusted instructions.",style=MaterialTheme.typography.bodySmall);Row {Checkbox(proposals,{proposals=it});Text("Allow reviewed change proposals")}}
-    }},confirmButton={TextButton(enabled=model!=null,onClick={ai.action {created(ai.create(provider,model!!.model,instructions,tools,proposals))}}) {Text("Create")}},dismissButton={TextButton(onClick=dismiss) {Text("Cancel")}})
+        AgentPermissionPicker(mode,model?.supportsTools==true) {mode=it}
+        Text(permissionExplanation(mode),style=MaterialTheme.typography.bodySmall)
+    }},confirmButton={TextButton(enabled=model!=null,onClick={ai.action {created(ai.create(provider,model!!.model,instructions,mode!=AgentPermission.CHAT_ONLY,mode==AgentPermission.FULL_AGENT))}}) {Text("Create")}},dismissButton={TextButton(onClick=dismiss) {Text("Cancel")}})
 }
-@Composable private fun ChatPanel(ai:AiWorkspaceModel,chat:ChatConversationRow,onBack:()->Unit,onExport:()->Unit,onDelete:()->Unit) {
+@Composable private fun ChatPanel(ai:AiWorkspaceModel,chat:ChatConversationRow,onNavigate:(String,String)->Unit,onBack:()->Unit,onExport:()->Unit,onDelete:()->Unit) {
     val rows by remember(chat.id) {ai.messages(chat.id)}.collectAsStateWithLifecycle(emptyList());val proposals by remember(chat.id) {ai.approvals(chat.id)}.collectAsStateWithLifecycle(emptyList());val active by ai.active.collectAsStateWithLifecycle()
+    val savedPolicy by remember(chat.id) {ai.policies(chat.id)}.collectAsStateWithLifecycle(null)
+    val policy=savedPolicy ?: AgentPolicyRow(chat.id)
+    var budgetMenu by remember {mutableStateOf(false)}
+    val traces by remember(chat.id) {ai.traces(chat.id)}.collectAsStateWithLifecycle(emptyList())
+    var showActivity by rememberSaveable(chat.id) {mutableStateOf(false)}
     var text by rememberSaveable(chat.id) {mutableStateOf("")};var attachments by remember(chat.id) {mutableStateOf<List<JSONObject>>(emptyList())};var reviewId by rememberSaveable(chat.id) {mutableStateOf<String?>(null)};var delete by remember {mutableStateOf(false)}
     val picker=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {uri->if(uri!=null) ai.action {check(attachments.size<4);attachments=attachments+ai.attach(uri)}}
     val list=rememberLazyListState();LaunchedEffect(rows.size,rows.lastOrNull()?.body?.length) {if(rows.isNotEmpty() && list.firstVisibleItemIndex>=rows.size-4) list.animateScrollToItem(rows.lastIndex)}
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(8.dp)) {TextButton(onClick=onBack) {Text("← Chats")};TextButton(onClick=onExport) {Text("Export")};TextButton(enabled=chat.id !in active,onClick={delete=true}) {Text("Delete")}}
         Text(chat.title,Modifier.padding(horizontal=20.dp),style=MaterialTheme.typography.titleLarge);Text("${chat.provider} · ${chat.model} · ${chat.authMode}",Modifier.padding(horizontal=20.dp),style=MaterialTheme.typography.bodySmall)
+        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal=12.dp)) {
+            AgentPermissionPicker(AgentPermission.of(chat),true) {ai.setPermission(chat.id,it)}
+            TextButton(onClick={showActivity=!showActivity}) {Text("Tools · ${traces.count {it.state=="RUNNING"}} running")}
+            Box {TextButton(onClick={budgetMenu=true}) {Text("Budget: ${if(policy.contextChars==12000) "Economy" else if(policy.contextChars==24000) "Standard" else "Custom"}")};DropdownMenu(budgetMenu,{budgetMenu=false}) {DropdownMenuItem(text={Text("Economy · smaller context, 4 rounds")},onClick={ai.setBudget(chat.id,true);budgetMenu=false});DropdownMenuItem(text={Text("Standard · 8 rounds")},onClick={ai.setBudget(chat.id,false);budgetMenu=false})}}
+        }
         LazyColumn(Modifier.weight(1f).padding(horizontal=16.dp),state=list,contentPadding=PaddingValues(vertical=16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+            item {Text(permissionExplanation(AgentPermission.of(chat))+" Only Send or an explicit connection test requests a model. Context budget ${policy.contextChars} characters; at most ${policy.maxRounds} rounds / ${policy.maxCalls} calls per request.",style=MaterialTheme.typography.bodySmall)}
+            if(showActivity) items(traces.take(20),key={"trace-${it.id}"}) {t->OutlinedCard {Column(Modifier.padding(12.dp)) {Text("${t.tool} · ${t.state}");Text("${t.durationMs} ms · ${t.resultChars} characters\n${t.summary}",style=MaterialTheme.typography.bodySmall)}}}
             items(rows,key={it.id}) {m ->Surface(shape=RoundedCornerShape(18.dp),tonalElevation=if(m.role=="user") 4.dp else 1.dp) {Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
                 Text("${m.role.uppercase()} · ${m.status}",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)
-                if(m.role=="assistant") MarkdownText(m.body) else Text(m.body)
+                if(m.role=="assistant") MarkdownText(m.body) else if(m.role=="tool") AgentResult(m.body,onNavigate) {photoId->ai.action {check(attachments.size<4);attachments=attachments+ai.attachAppPhoto(chat.id,photoId);ai.clearNotice()}} else Text(m.body)
                 if(m.attachmentsJson!="[]") Text("${JSONArray(m.attachmentsJson).length()} attachments · included in backup",style=MaterialTheme.typography.bodySmall)
                 if(m.toolCallsJson!="[]") Text("${JSONArray(m.toolCallsJson).length()} local tool requests",style=MaterialTheme.typography.bodySmall)
                 if(m.error.isNotEmpty()) Text(m.error,color=MaterialTheme.colorScheme.error)
-                if(m.inputTokens!=null || m.outputTokens!=null) Text("Tokens ${m.inputTokens ?: "?"} in / ${m.outputTokens ?: "?"} out · ${m.costUsd?.let {"estimated USD $it"} ?: "cost unavailable"}",style=MaterialTheme.typography.bodySmall)
+                if(m.inputTokens!=null || m.outputTokens!=null) Text("Tokens ${m.inputTokens ?: "?"} in / ${m.outputTokens ?: "?"} out · ${m.costUsd?.let {"${if(JSONObject(m.usageJson).optString("costKind")=="PROVIDER_REPORTED") "reported" else "estimated"} USD $it"} ?: "cost unavailable"}",style=MaterialTheme.typography.bodySmall)
+                if(!JSONObject(m.usageJson).isNull("cachedInputTokens")) Text("Cached input tokens: ${JSONObject(m.usageJson).getLong("cachedInputTokens")}",style=MaterialTheme.typography.bodySmall)
             }}}
-            items(proposals,key={it.id}) {p ->OutlinedCard(Modifier.fillMaxWidth()) {Column(Modifier.padding(12.dp)) {Text("${p.action} · ${p.state}");if(p.state=="PENDING") TextButton(onClick={reviewId=p.id}) {Text("Review proposed change")};if(p.resultJson.isNotBlank()) Text(p.resultJson,style=MaterialTheme.typography.bodySmall)}}}
+            items(proposals,key={it.id}) {p ->OutlinedCard(Modifier.fillMaxWidth()) {Column(Modifier.padding(12.dp)) {Text("${approvalTitle(p.action)} · ${p.state}");if(p.state=="PENDING") TextButton(onClick={reviewId=p.id}) {Text("Review proposed change")};if(p.resultJson.isNotBlank()) {Text(p.resultJson,style=MaterialTheme.typography.bodySmall);runCatching {JSONObject(p.resultJson)}.getOrNull()?.let {result->result.optString("taskId").takeIf {it.isNotBlank()}?.let {id->TextButton(onClick={onNavigate("tasks",id)}) {Text("Open approved task")}}}}}}}
         }
-        if(attachments.isNotEmpty()) Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal=12.dp)) {attachments.forEach {a ->InputChip(selected=true,onClick={attachments=attachments-a},label={Text("${a.getString("mime")} ×")})}}
+        if(attachments.isNotEmpty()) Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal=12.dp)) {attachments.forEach {a ->InputChip(selected=true,onClick={attachments=attachments-a},label={Text("${a.getString("mime")} · ${a.optLong("bytes")/1024} KB · remove ×")})}}
+        if(attachments.isNotEmpty()) Text("These attachments leave the device only when you press Send.",Modifier.padding(horizontal=12.dp),style=MaterialTheme.typography.bodySmall)
         OutlinedTextField(text,{text=it.take(100000)},modifier=Modifier.fillMaxWidth().padding(horizontal=12.dp),label={Text("Message")},minLines=2,maxLines=5)
         Row(Modifier.fillMaxWidth().padding(12.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             OutlinedButton(enabled=attachments.size<4 && AiProvider.get(chat.provider).responses,onClick={picker.launch(arrayOf("image/jpeg","image/png","application/pdf","text/plain"))}) {Text("Attach")}
@@ -216,4 +230,32 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
         OutlinedTextField(type,{type=it.take(1000);prefs.edit().putString("defaultProductType",type).apply()},label={Text("Default product type")},modifier=Modifier.fillMaxWidth())
         OutlinedTextField(weight,{weight=it.filter(Char::isDigit).take(7);weight.toIntOrNull()?.takeIf {n->n in 1..1_000_000}?.let {n->prefs.edit().putInt("defaultWeightGrams",n).apply()}},label={Text("Default shipping weight · grams")},isError=weight.toIntOrNull() !in 1..1_000_000)
     }
+}
+
+internal fun permissionExplanation(mode:AgentPermission):String=when(mode) {
+    AgentPermission.CHAT_ONLY->"Chat Only: no application data or tools."
+    AgentPermission.READ_ACCESS->"Read Access: on-demand local queries may send matching non-secret results to this provider. No changes."
+    AgentPermission.FULL_AGENT->"Full Agent: on-demand reads and proposals. Every change needs your review and approval."
+}
+@Composable private fun AgentPermissionPicker(mode:AgentPermission,toolsSupported:Boolean,change:(AgentPermission)->Unit) {
+    var expanded by remember {mutableStateOf(false)}
+    Box {OutlinedButton(onClick={expanded=true}) {Text(mode.label)};DropdownMenu(expanded,{expanded=false}) {AgentPermission.entries.forEach {value->DropdownMenuItem(text={Text(value.label)},enabled=toolsSupported || value==AgentPermission.CHAT_ONLY,onClick={change(value);expanded=false})}}}
+}
+@Composable private fun AgentResult(raw:String,navigate:(String,String)->Unit,attach:(String)->Unit) {
+    val json=remember(raw) {runCatching {JSONObject(raw)}.getOrElse {JSONObject().put("message",raw.take(1000))}}
+    var expanded by remember {mutableStateOf(false)}
+    json.optJSONObject("navigation")?.let {n->val screen=n.getString("screen");val id=n.getString("recordId");
+        if(screen=="photo" && id.isNotBlank()) OutlinedButton(onClick={attach(id)}) {Text("Attach compressed inventory photo")}
+        else OutlinedButton(onClick={navigate(screen,id)}) {Text("Open $screen")}
+    }
+    val entries=json.optJSONArray("items") ?: json.optJSONArray("rows")
+    if(json.has("error")) Text(json.optString("error"),color=MaterialTheme.colorScheme.error)
+    else if(entries!=null) {
+        Text("${entries.length()} returned${if(json.has("total")) " / ${json.optLong("total")}" else ""}${if(!json.isNull("nextOffset")) " · more available at ${json.optInt("nextOffset")}" else ""}")
+        for(i in 0 until minOf(entries.length(),5)) {val r=entries.optJSONObject(i);Text(r?.let {listOf("title","itemId","name","state","currency","cents","totalCents","error").filter {k->it.has(k)}.joinToString(" · ") {k->"$k: ${it.get(k)}"}.ifBlank {r.toString().take(240)}} ?: entries.get(i).toString().take(240),style=MaterialTheme.typography.bodySmall)
+            r?.optString("groupId")?.takeIf {it.isNotBlank()}?.let {id->TextButton(onClick={navigate("inventory",id)}) {Text("Open copy")}}
+        }
+    } else json.keys().asSequence().filter {it !in setOf("navigation","items","rows")}.take(8).forEach {k->Text("$k: ${json.get(k).toString().take(300)}",style=MaterialTheme.typography.bodySmall)}
+    TextButton(onClick={expanded=!expanded}) {Text(if(expanded) "Hide complete tool result" else "Inspect complete tool result")}
+    if(expanded) Text(raw,style=MaterialTheme.typography.bodySmall)
 }

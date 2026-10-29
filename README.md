@@ -1,18 +1,23 @@
-# SnapIMS Next 0.7.0
+# SnapIMS Next 0.8.0
 
-**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.7.0-debug.apk)** · [SHA-256](releases/SnapIMS-Next-0.7.0-debug.apk.sha256) · [Source ZIP](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.7.0-source.zip)
+**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.0-debug.apk)** · [SHA-256](releases/SnapIMS-Next-0.8.0-debug.apk.sha256) · [Source ZIP](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.0-source.zip)
 
 Standalone native Android inventory for Canada VHS, built on the existing SnapIMS
 rules and compatible capture formats. No desktop process, local HTTP server or LAN
 connection is required for capture, inventory, search, review or backup.
 
-This update continues the critical **Shopify milestone** with cursor-paged listing
-search, explicit linking of owned SnapIMS drafts, and selected metadata updates.
-Native upload/publication reviews are now saved, one-use receipts bound to the
-reviewed inventory, photos and barcode evidence. Existing Tasks, batch recognition,
-pricing, market imports and standalone capture remain available.
-[Shopify review and reconciliation guide](docs/next/SHOPIFY_RECONCILIATION.md) ·
-[Feature matrix](docs/next/FEATURE_MATRIX.md).
+This update expands the existing **AI workspace into an on-demand application agent**.
+Choose Chat Only, Read Access or Full Agent. The agent can inspect non-secret app
+records through compact local tools, cross-reference the offline market library,
+and propose reviewed inventory/pricing/recognition/listing workflows. Batch, task,
+public-settings and existing Shopify controls use validated native services.
+Tool activity, change previews, task links and token/cost records stay in the workspace.
+Nothing changes without human approval; there is no continuous AI monitoring,
+model polling or automatic photo transmission. Economy/Standard budgets bound requests.
+[Agent capabilities and limits](docs/agent/APPLICATION_AGENT.md) ·
+[0.8.0 release notes](docs/agent/RELEASE_0.8.0.md) ·
+[Executed tests](docs/TEST_RESULTS.md) · [Feature matrix](docs/next/FEATURE_MATRIX.md).
+
 The A–D program is not complete: Shopify authorization and development-store
 acceptance are unverified, and no broker is deployed. **Continue with ChatGPT is an experimental native prototype;
 physical Pixel sign-in, discovery and subscription streaming are still unverified.**

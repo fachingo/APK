@@ -7,7 +7,7 @@ import org.json.*
 import java.util.UUID
 
 internal data class AgentDecisionOptions(val replaceManual:Boolean=false,val allowHistorical:Boolean=false,val allowPaidRecognition:Boolean=false,
-    val rate:String="",val rateDate:String="",val adjustedCents:Long?=null)
+    val rate:String="",val rateDate:String="",val adjustedCents:Long?=null,val allowFinancial:Boolean=false,val allowDestructive:Boolean=false,val confirmation:String="")
 internal fun jsonIds(value:JSONArray,max:Int=50):List<String> {
     require(value.length() in 1..max) {"Select between 1 and $max items."}
     return (0 until value.length()).map {requireUuid(value.getString(it))}.also {require(it.distinct().size==it.size) {"Each physical copy may appear only once."}}
@@ -20,9 +20,13 @@ internal fun marketRecommendationFromJson(j:JSONObject):MarketRecommendation {
     return MarketRecommendation(requireUuid(j.getString("groupId")),j.getLong("revision"),j.getString("titleKey"),j.getString("edition"),if(j.isNull("year")) null else j.getInt("year"),currency,
         SoldStatistics(j.getLong("averageCents"),j.getLong("medianCents"),j.getLong("lowestCents"),j.getLong("highestCents"),j.getInt("count")),ids,j.getString("oldest"),j.getString("newest"),j.getString("hash"))
 }
+internal fun taskGroups(row:AgentTaskRow):List<String> = JSONArray(row.groupIdsJson).let {if(it.length()==0) emptyList() else jsonIds(it)}
 internal data class AgentTaskStatus(val state:String,val done:Int,val total:Int,val detail:String,val jobs:JSONArray=JSONArray())
 internal suspend fun CaptureRepository.agentTaskStatus(row:AgentTaskRow):AgentTaskStatus {
-    val groups=jsonIds(JSONArray(row.groupIdsJson));val refs=JSONArray(row.jobIdsJson)
+    val groups=taskGroups(row);val refs=JSONArray(row.jobIdsJson)
+    if(row.kind=="INVENTORY_WORKFLOW" && refs.length()>0) {val base=agentTaskStatus(row.copy(kind="RECOGNITION"));return base.copy(done=base.done+groups.size-refs.length(),total=groups.size,detail="Local reviewed changes committed for ${groups.size} copies. "+base.detail)}
+    if(row.kind=="SHOPIFY_MANAGEMENT" && refs.length()>0) return agentTaskStatus(row.copy(kind="SHOPIFY_DRAFT"))
+    if(row.kind=="BATCH_OPERATION" && JSONObject(row.resultJson).optString("operation")=="FINISH" && row.state !in listOf("SCHEDULE_PENDING","CANCEL_PENDING","CANCELLED","PAUSED_REVIEW")) {val jobs=dao.archives(JSONObject(row.resultJson).getString("sessionId"));val done=jobs.count {it.state=="READY"};return AgentTaskStatus(if(jobs.all {it.state=="READY"}) "COMPLETE" else if(jobs.any {it.state=="ERROR"}) "NEEDS_REVIEW" else "RUNNING",done,jobs.size,"Batch finished; $done/${jobs.size} local archives verified. Originals retained.")}
     if(row.kind !in listOf("RECOGNITION","SHOPIFY_DRAFT") && row.state in listOf("SCHEDULE_PENDING","CANCEL_PENDING","CANCELLED","PAUSED_REVIEW","COMPLETE")) return AgentTaskStatus(row.state,if(row.state=="COMPLETE") groups.size else 0,groups.size,row.error.ifBlank {if(row.state=="PAUSED_REVIEW") "Restored task needs fresh review; no external work restarted." else ""})
     if(row.kind=="RECOGNITION") {
         val jobs=(0 until refs.length()).mapNotNull {dao.recognition(refs.getString(it))}
@@ -47,10 +51,25 @@ internal suspend fun CaptureRepository.scheduleAgentTask(id:String) {
     if(task.state!="SCHEDULE_PENDING") return
     try {
         val refs=JSONArray(task.jobIdsJson)
+        val result=JSONObject(task.resultJson)
+        if(task.kind in listOf("SETTINGS_CHANGE","TASK_CONTROL","BATCH_OPERATION","SHOPIFY_MANAGEMENT")) {
+            when(task.kind) {
+                "SETTINGS_CHANGE"->{val patch=result.getJSONObject("patch");val before=result.getJSONObject("before");val current=AgentApplicationActions.publicSettings(this)
+                    patch.keys().forEach {key->check(current.get(key)==before.get(key) || current.get(key)==patch.get(key)) {"Settings changed after review; prepare a fresh proposal."}}
+                    val edit=preferences.edit();patch.keys().forEach {key->when(val value=patch.get(key)) {is Boolean->edit.putBoolean(key,value);is Number->edit.putInt(key,value.toInt());else->edit.putString(key,value.toString())}};check(edit.commit()) {"Could not persist settings."}
+                    if(patch.has("recognitionMode")) setRecognitionMode(patch.getString("recognitionMode"))}
+                "TASK_CONTROL"->{val target=result.getString("targetTaskId");val old=journal.agentTaskDao().get(target) ?: error("Task missing");if(result.getString("operation")=="CANCEL") {if(old.state!="CANCELLED") cancelAgentTask(target)} else if(old.state!="COMPLETE") completeReviewTask(target)}
+                "BATCH_OPERATION"->{if(result.getString("operation")=="FINISH") queueArchives(result.getString("sessionId"))}
+                "SHOPIFY_MANAGEMENT"->{val reviewId=result.getString("nativeReviewId");var review=journal.shopifyDao().review(reviewId) ?: error("Native review missing");if(review.state=="PENDING") {decideShopifyReview(reviewId,true,result.optString("confirmation"));review=journal.shopifyDao().review(reviewId)!!};check(review.state=="APPLIED") {"Native Shopify review is no longer approved."};val job=JSONObject(review.resultJson).getString("jobId");refs.put(job)
+                    if(journal.agentTaskDao().get(id)?.state!="SCHEDULE_PENDING") {cancelShopify(job);return}
+                }
+            }
+            mutate {val current=journal.agentTaskDao().get(id);if(current?.state=="SCHEDULE_PENDING") journal.agentTaskDao().update(current.copy(jobIdsJson=refs.toString(),state=if(task.kind in listOf("SHOPIFY_MANAGEMENT","BATCH_OPERATION")) "SCHEDULED" else "COMPLETE",error="",updatedAt=System.currentTimeMillis()))};return
+        }
         for(i in 0 until refs.length()) {
             currentCoroutineContext().ensureActive();if(journal.agentTaskDao().get(id)?.state!="SCHEDULE_PENDING") return
             when(task.kind) {
-                "RECOGNITION"->{val row=dao.recognition(refs.getString(i)) ?: error("Recognition job missing.");scheduleRecognition(row)}
+                "RECOGNITION","INVENTORY_WORKFLOW"->{val row=dao.recognition(refs.getString(i)) ?: error("Recognition job missing.");scheduleRecognition(row)}
                 "SHOPIFY_DRAFT"->enqueueShopify(refs.getString(i)).result.get()
                 else->error("This task has no background scheduler.")
             }
@@ -66,12 +85,17 @@ internal suspend fun CaptureRepository.recoverAgentTasks() {
 }
 internal suspend fun CaptureRepository.cancelAgentTask(id:String) {
     val task=mutate {val row=journal.agentTaskDao().get(id) ?: error("Task missing");check(row.state!="COMPLETE") {"Completed history cannot be cancelled."};val saved=row.copy(state="CANCEL_PENDING",error="",updatedAt=System.currentTimeMillis());journal.agentTaskDao().update(saved)
-        if(row.kind=="RECOGNITION") {val refs=JSONArray(row.jobIdsJson);for(i in 0 until refs.length()) dao.recognition(refs.getString(i))?.takeIf {it.state in listOf("RUNNING","QUEUED")}?.let {dao.update(it.copy(state="CANCELLED",error="Cancelled from Tasks; original photographs retained.",completedAt=System.currentTimeMillis()))}}
+        if(row.kind in listOf("RECOGNITION","INVENTORY_WORKFLOW")) {val refs=JSONArray(row.jobIdsJson);for(i in 0 until refs.length()) dao.recognition(refs.getString(i))?.takeIf {it.state in listOf("RUNNING","QUEUED")}?.let {dao.update(it.copy(state="CANCELLED",error="Cancelled from Tasks; original photographs retained.",completedAt=System.currentTimeMillis()))}}
         saved}
     val refs=JSONArray(task.jobIdsJson)
     when(task.kind) {
-        "RECOGNITION"->for(i in 0 until refs.length()) dao.recognition(refs.getString(i))?.workId?.takeIf {it.isNotBlank()}?.let {WorkManager.getInstance(context).cancelWorkById(UUID.fromString(it))}
-        "SHOPIFY_DRAFT"->for(i in 0 until refs.length()) cancelShopify(refs.getString(i))
+        "RECOGNITION","INVENTORY_WORKFLOW"->for(i in 0 until refs.length()) dao.recognition(refs.getString(i))?.workId?.takeIf {it.isNotBlank()}?.let {WorkManager.getInstance(context).cancelWorkById(UUID.fromString(it))}
+        "SHOPIFY_DRAFT","SHOPIFY_MANAGEMENT"->for(i in 0 until refs.length()) cancelShopify(refs.getString(i))
+    }
+    if(task.kind=="SHOPIFY_MANAGEMENT" && refs.length()==0) {
+        val review=journal.shopifyDao().review(JSONObject(task.resultJson).getString("nativeReviewId"))
+        if(review?.state=="PENDING") decideShopifyReview(review.id,false)
+        else if(review?.state=="APPLIED") cancelShopify(JSONObject(review.resultJson).getString("jobId"))
     }
     mutate {journal.agentTaskDao().get(id)?.let {journal.agentTaskDao().update(it.copy(state="CANCELLED",error="Remaining local work cancelled. Already-sent API requests and existing remote drafts are retained.",updatedAt=System.currentTimeMillis()))}}
 }
@@ -81,8 +105,9 @@ internal suspend fun CaptureRepository.completeReviewTask(id:String)=mutate {
     journal.agentTaskDao().update(task.copy(state="COMPLETE",updatedAt=System.currentTimeMillis()))
 }
 
-internal suspend fun CaptureRepository.createLocalReviewTask(groups:List<String>):String=mutate {
+internal suspend fun CaptureRepository.createLocalReviewTask(groups:List<String>):String=mutate {createLocalReviewTaskLocked(groups)}
+internal suspend fun CaptureRepository.createLocalReviewTaskLocked(groups:List<String>,title:String="Review ${groups.size} physical copies",approvalId:String=newId(),conversationId:String="00000000-0000-0000-0000-000000000000"):String=run {
     jsonIds(JSONArray(groups));groups.forEach {check(journal.inventoryDao().item(it)?.archived==false) {"Choose active saved copies."}}
-    val task=AgentTaskRow(approvalId=newId(),conversationId="00000000-0000-0000-0000-000000000000",kind="REVIEW_BATCH",title="Review ${groups.size} physical copies",groupIdsJson=JSONArray(groups).toString(),state="OPEN",resultJson=JSONObject().put("createdBy","OPERATOR_UI").toString())
+    val task=AgentTaskRow(approvalId=approvalId,conversationId=conversationId,kind="REVIEW_BATCH",title=title,groupIdsJson=JSONArray(groups).toString(),state="OPEN",resultJson=JSONObject().put("createdBy","OPERATOR_UI").toString())
     journal.agentTaskDao().insert(task);task.id
 }

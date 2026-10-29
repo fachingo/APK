@@ -17,7 +17,7 @@ data class ChatConversationRow(@PrimaryKey val id:String=newId(),val title:Strin
 data class ChatMessageRow(@PrimaryKey val id:String=newId(),val conversationId:String,val role:String,val body:String="",
     val attachmentsJson:String="[]",val toolCallsJson:String="[]",val toolCallId:String="",val status:String="COMPLETE",
     val provider:String="",val model:String="",val responseId:String="",val inputTokens:Long?=null,val outputTokens:Long?=null,
-    val costUsd:String?=null,val error:String="",val createdAt:Long=System.currentTimeMillis(),val updatedAt:Long=createdAt)
+    val costUsd:String?=null,@ColumnInfo(defaultValue="'{}'") val usageJson:String="{}",val error:String="",val createdAt:Long=System.currentTimeMillis(),val updatedAt:Long=createdAt)
 @Entity(tableName="ai_capabilities",indices=[Index(value=["provider","model"],unique=true)])
 data class AiCapabilityRow(@PrimaryKey val id:String,val provider:String,val model:String,val displayName:String,
     val supportsText:Boolean?=null,val supportsTools:Boolean?=null,val supportsImages:Boolean?=null,val supportsFiles:Boolean?=null,

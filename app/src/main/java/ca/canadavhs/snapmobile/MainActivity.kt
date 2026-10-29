@@ -71,8 +71,17 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
     val destinations = listOf("Home" to Icons.Outlined.Home, "Capture" to Icons.Outlined.CameraAlt, "Inventory" to Icons.Outlined.Inventory2, "Batches" to Icons.Outlined.PhotoLibrary, "Settings" to Icons.Outlined.Tune)
     val destinationRoutes = listOf(4,0,5,1,3)
     var screen by rememberSaveable { mutableIntStateOf(4) }
+    var marketTarget by rememberSaveable {mutableStateOf<String?>(null)}
+    var taskTarget by rememberSaveable {mutableStateOf<String?>(null)}
+    var batchTarget by rememberSaveable {mutableStateOf<String?>(null)}
+    var photoTarget by rememberSaveable {mutableStateOf<String?>(null)}
     var inventoryTarget by rememberSaveable {mutableStateOf<String?>(null)}
     var light by remember { mutableStateOf(vm.repo.preferences.getBoolean("light", false)) }
+    DisposableEffect(vm.repo.preferences) {
+        val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener {prefs,key->if(key=="light") light=prefs.getBoolean("light",false)}
+        vm.repo.preferences.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {vm.repo.preferences.unregisterOnSharedPreferenceChangeListener(listener)}
+    }
     var startDialog by remember { mutableStateOf(false) }
     var finishDialog by remember { mutableStateOf(false) }
     val active = sessions.firstOrNull { !it.finished }
@@ -123,7 +132,7 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
                 Box(Modifier.weight(1f).fillMaxHeight()) {
                 when (screen) {
                     0 -> CaptureScreen(vm, engine, active, current, currentPhotos, onStart = { startDialog = true }, onFinish = { if (!vm.pendingCapture) finishDialog = true }, onReview = { if (!vm.busy) screen = 1 })
-                    1 -> BatchesScreen(vm, sessions, groups, photos, archives, onStart = { startDialog = true })
+                    1 -> BatchesScreen(vm, sessions, groups, photos, archives, onStart = { startDialog = true },initialSessionId=batchTarget,initialPhotoId=photoTarget)
                     2 -> Column(Modifier.fillMaxSize().padding(24.dp)) {
                         PageTitle("Transfers", "Portable archives · originals stay on this device")
                         Text("Save verified capture ZIPs to Files or share them. Your inventory remains usable on this phone. Open Settings → Backup & import for protected backups and inventory packages.", style = MaterialTheme.typography.bodyMedium)
@@ -142,11 +151,24 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
                     4 -> InventoryHome(vm, capture = { screen = 0 }, inventory = { screen = 5 }, batches = { screen = 1 }, backups = { screen = 6 })
                     5 -> InventoryScreen(vm, reviewPhotos = { screen = 1 },initialGroupId=inventoryTarget)
                     6 -> BackupScreen(vm) { screen = 3 }
-                    7 -> AiWorkspaceScreen(vm,back={screen=3},onTasks={screen=11})
+                    7 -> AiWorkspaceScreen(vm,back={screen=3},onTasks={screen=11},onNavigate={route,id->
+                        if(!vm.busy && !vm.maintenance) when(route) {
+                            "inventory","recognition"->{inventoryTarget=id.ifBlank {null};screen=5}
+                            "batches"->{batchTarget=id.ifBlank {null};photoTarget=null;screen=1}
+                            "market"->{marketTarget=id.ifBlank {null};screen=10}
+                            "shopify"->screen=9
+                            "tasks"->{taskTarget=id.ifBlank {null};screen=11}
+                            "settings"->screen=3
+                            "home"->screen=4
+                            "capture"->screen=0
+                            "pricing"->screen=8
+                            "backup"->screen=6
+                        }
+                    })
                     8 -> PricingScreen(vm) {screen=3}
-                    10 -> MarketDatabaseScreen(vm,{screen=3})
+                    10 -> MarketDatabaseScreen(vm,{screen=3},initialGroupId=marketTarget)
                     9 -> ListingPlansScreen(vm) {screen=3}
-                    11 -> TasksScreen(vm,back={screen=3},inventory={inventoryTarget=it;screen=5},shopify={screen=9})
+                    11 -> TasksScreen(vm,back={screen=3},inventory={inventoryTarget=it;screen=5},shopify={screen=9},initialTaskId=taskTarget,batch={batchTarget=it;photoTarget=null;screen=1})
                 }
                 if (!vm.initialized) Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { Box(contentAlignment = Alignment.Center) { Text("Recovering your capture journal…") } }
             }
@@ -300,8 +322,9 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
         TextButton(onClick = { vm.action { vm.repo.barcode(group.id, null); photos.lastOrNull { it.role == "BACK" }?.let { vm.repo.rescan(it.id) }; dismiss() } }) { Text("Rescan back photo") }
     } }, confirmButton = { TextButton(onClick = { vm.action { vm.repo.barcode(group.id, value); dismiss() } }) { Text("Confirm") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
-@Composable fun BatchesScreen(vm: CaptureViewModel, sessions: List<SessionRow>, groups: List<GroupRow>, photos: List<PhotoRow>, archives: List<ArchiveRow>, onStart: () -> Unit) {
-    var selected by remember { mutableStateOf<String?>(null) }
+@Composable fun BatchesScreen(vm: CaptureViewModel, sessions: List<SessionRow>, groups: List<GroupRow>, photos: List<PhotoRow>, archives: List<ArchiveRow>, onStart: () -> Unit,initialSessionId:String?=null,initialPhotoId:String?=null) {
+    var selected by remember { mutableStateOf<String?>(initialSessionId) }
+    LaunchedEffect(initialSessionId) {if(initialSessionId!=null) selected=initialSessionId}
     val session = sessions.firstOrNull { it.id == selected } ?: sessions.firstOrNull()
     val recognitionRows by vm.recognition.collectAsStateWithLifecycle()
     var recognitionGroup by remember { mutableStateOf<GroupRow?>(null) }
@@ -309,6 +332,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
     var notesGroup by remember { mutableStateOf<GroupRow?>(null) }
     var editBarcode by remember { mutableStateOf<GroupRow?>(null) }
     var inspected by remember { mutableStateOf<PhotoRow?>(null) }
+    LaunchedEffect(initialPhotoId,photos) {if(initialPhotoId!=null) inspected=photos.firstOrNull {it.id==initialPhotoId}}
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(vertical = 20.dp)) {
         item { PageTitle("Your batches", "Every photograph stays yours") }
         item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { sessions.forEach { s -> FilterChip(selected = s.id == session?.id, onClick = { selected = s.id }, label = { Text(s.name) }) }; if (sessions.none { !it.finished }) AssistChip(onClick = onStart, label = { Text("New batch") }) } }

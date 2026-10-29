@@ -15,6 +15,7 @@ class AiWorkspaceModel(application:Application):AndroidViewModel(application) {
     val repo=(application as CaptureApplication).repository
     private val dao=repo.journal.nextDao()
     private val client=AiClient(application)
+    internal var modelRequest:suspend(ChatConversationRow,List<ChatMessageRow>,JSONArray,suspend(String)->Unit)->AiClient.Result={chat,history,definitions,delta->client.stream(chat,history,definitions,delta)}
     private val tools=AgentTools(repo)
     val chats=dao.watchChats().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),emptyList())
     val proofs=dao.watchProofs().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),emptyList())
@@ -27,7 +28,9 @@ class AiWorkspaceModel(application:Application):AndroidViewModel(application) {
     var loading by mutableStateOf(false);private set
     val messages:(String)->Flow<List<ChatMessageRow>> = {dao.watchMessages(it)}
     val approvals:(String)->Flow<List<AgentApprovalRow>> = {dao.watchApprovals(it)}
-    init {viewModelScope.launch {dao.interruptedMessages().forEach {dao.update(it.copy(status="INTERRUPTED",error="App stopped before completion. Retry manually; no request restarted."))}}}
+    val policies:(String)->Flow<AgentPolicyRow?> = {repo.journal.agentPolicyDao().watchPolicy(it)}
+    val traces:(String)->Flow<List<AgentTraceRow>> = {repo.journal.agentPolicyDao().watchTraces(it)}
+    init {viewModelScope.launch {repo.journal.agentPolicyDao().interruptedTraces().forEach {repo.journal.agentPolicyDao().update(it.copy(state="INTERRUPTED",summary="Application stopped; no tool or model request restarted."))};dao.interruptedMessages().forEach {dao.update(it.copy(status="INTERRUPTED",error="App stopped before completion. Retry manually; no request restarted."))}}}
     fun action(block:suspend()->Unit) {viewModelScope.launch {try {block()} catch(e:CancellationException) {throw e} catch(e:Exception) {error=e.message ?: "Operation failed. Retry manually."}}}
     fun clearError() {error=""}
     fun clearNotice() {notice=""}
@@ -92,9 +95,9 @@ class AiWorkspaceModel(application:Application):AndroidViewModel(application) {
     }
     fun send(id:String,text:String,attachments:JSONArray) {
         if(id in jobs || (text.isBlank() && attachments.length()==0)) return
-        require(text.length<=100000 && attachments.length()<=4)
+        if(text.length>100000 || attachments.length()>4) {error="Use a shorter message and at most four attachments.";return}
         active.value=active.value+id
-        jobs[id]=viewModelScope.launch {
+        val job=viewModelScope.launch(start=CoroutineStart.LAZY) {
             var current:ChatMessageRow?=null
             try {
                 val chat=dao.chat(id) ?: error("Chat no longer exists.")
@@ -102,33 +105,63 @@ class AiWorkspaceModel(application:Application):AndroidViewModel(application) {
                 for(i in 0 until attachments.length()) {val mime=attachments.getJSONObject(i).getString("mime")
                     check(AiProvider.get(chat.provider).responses && if(mime.startsWith("image/")) cap.supportsImages==true else cap.supportsFiles==true) {"This model's attachment capability is unverified or unsupported. Use a compatible API-key model."}
                 }
-                dao.insert(ChatMessageRow(conversationId=id,role="user",body=text,attachmentsJson=attachments.toString(),provider=chat.provider,model=chat.model))
+                val policy=repo.journal.agentPolicyDao().policy(id) ?: AgentPolicyRow(id)
+                var lastMessageTime=maxOf(policy.changedAt,dao.messages(id).maxOfOrNull {it.createdAt} ?: 0)
+                fun nextMessageTime():Long=maxOf(System.currentTimeMillis(),lastMessageTime+1).also {lastMessageTime=it}
+                dao.insert(ChatMessageRow(conversationId=id,role="user",createdAt=nextMessageTime(),body=text,attachmentsJson=attachments.toString(),provider=chat.provider,model=chat.model))
                 dao.update(chat.copy(title=if(chat.title=="New conversation") text.take(70).ifBlank {"Attachment conversation"} else chat.title,updatedAt=System.currentTimeMillis()))
-                var rounds=0
+                var rounds=0;var toolCalls=0;var toolChars=0
                 while(true) {
-                    check(++rounds<=4) {"Tool-round limit reached. Review results and send another message to continue."}
-                    val history=dao.messages(id);check(history.sumOf {it.body.length+it.attachmentsJson.length+it.toolCallsJson.length}<=300000) {"Conversation is too long for a safe request. Export it and start a new chat."}
-                    var row=ChatMessageRow(conversationId=id,role="assistant",status="STREAMING",provider=chat.provider,model=chat.model)
+                    check(++rounds<=policy.maxRounds) {"Tool-round limit reached. Review results and send another message to continue."}
+                    val latest=dao.chat(id) ?: error("Chat deleted");check(AgentPermission.of(latest)==AgentPermission.of(chat)) {"Permission changed. Send a fresh request in the selected mode."}
+                    val history=AgentContext.window(dao.messages(id),policy).let {rows->if(rounds==1) rows else rows.map {r->if(r.attachmentsJson!="[]") r.copy(attachmentsJson="[]",body=r.body+"\n[Attachments were sent on this turn’s first request and are omitted from later tool rounds to avoid repeated image/file charges. Ask the operator to send again if needed.]") else r}}
+                    var row=ChatMessageRow(conversationId=id,role="assistant",createdAt=nextMessageTime(),status="STREAMING",provider=chat.provider,model=chat.model)
                     dao.insert(row);current=row;val output=StringBuilder();var lastSave=0L
-                    val result=client.stream(chat,history,if(chat.toolsEnabled) tools.definitions(chat.proposalsEnabled) else JSONArray()) {delta ->
+                    val result=modelRequest(chat.copy(instructions=AgentContext.instructions(chat)),history,tools.applicationDefinitions(chat)) {delta ->
                         output.append(delta);row=row.copy(body=output.toString(),updatedAt=System.currentTimeMillis());current=row
                         if(System.currentTimeMillis()-lastSave>100) {dao.update(row);lastSave=System.currentTimeMillis()}
                     }
                     val cost=if(cap.inputUsdPerToken!=null && cap.outputUsdPerToken!=null && result.inputTokens!=null && result.outputTokens!=null)
                         runCatching {cap.inputUsdPerToken.toBigDecimal()*result.inputTokens.toBigDecimal()+cap.outputUsdPerToken.toBigDecimal()*result.outputTokens.toBigDecimal()}.getOrNull()?.toPlainString() else null
-                    row=row.copy(body=result.text,toolCallsJson=result.calls.toString(),status="COMPLETE",responseId=result.responseId,inputTokens=result.inputTokens,outputTokens=result.outputTokens,costUsd=cost,updatedAt=System.currentTimeMillis());dao.update(row);current=null
+                    row=row.copy(body=result.text,toolCallsJson=result.calls.toString(),status="COMPLETE",responseId=result.responseId,inputTokens=result.inputTokens,outputTokens=result.outputTokens,costUsd=result.reportedCostUsd ?: cost,usageJson=JSONObject().put("costKind",if(result.reportedCostUsd!=null) "PROVIDER_REPORTED" else if(cost!=null) "ESTIMATED" else "UNAVAILABLE").put("cachedInputTokens",result.cachedInputTokens ?: JSONObject.NULL).put("contextCharacters",history.sumOf {it.body.length+it.toolCallsJson.length}).toString(),updatedAt=System.currentTimeMillis());dao.update(row);current=null
                     if(chat.provider=="CHATGPT") SiwcConnection.proof(repo,"STREAM_COMPLETED","A ChatGPT-plan response reached response.completed. ${result.responseId.take(100)} · model ${chat.model.take(100)}")
                     if(result.calls.length()==0) break
-                    check(result.calls.length()<=16)
+                    check(chat.toolsEnabled) {"Chat Only cannot execute application tools."}
+                    check(result.calls.length()<=16 && toolCalls+result.calls.length()<=policy.maxCalls) {"Tool-call budget reached. Results are retained; continue explicitly if needed."};toolCalls+=result.calls.length()
                     for(i in 0 until result.calls.length()) {val call=result.calls.getJSONObject(i)
-                        val value=try {tools.execute(chat,call.getString("name"),JSONObject(call.getString("arguments")))} catch(e:Exception) {JSONObject().put("error",e.message ?: "Tool failed")}
-                        dao.insert(ChatMessageRow(conversationId=id,role="tool",body=value.toString(),toolCallId=call.getString("call_id"),provider=chat.provider,model=chat.model))
+                        val value=try {tools.execute(chat,call.getString("name"),JSONObject(call.getString("arguments")))} catch(e:CancellationException) {throw e} catch(e:Exception) {JSONObject().put("error",safeAgentText(e.message ?: "Tool failed"))}
+                        toolChars+=value.toString().length;check(toolChars<=48000) {"Tool-result budget reached. Use narrower queries."}
+                        dao.insert(ChatMessageRow(conversationId=id,role="tool",createdAt=nextMessageTime(),body=value.toString(),toolCallId=call.getString("call_id"),provider=chat.provider,model=chat.model))
                     }
                 }
             } catch(e:CancellationException) {withContext(NonCancellable) {current?.let {dao.update(it.copy(status="CANCELLED",error="Stopped by operator. Partial response retained.",updatedAt=System.currentTimeMillis()))}};throw e}
             catch(e:Exception) {current?.let {dao.update(it.copy(status="ERROR",error=e.message ?: "Request failed",updatedAt=System.currentTimeMillis()))};error=e.message ?: "Request failed. Retry manually."}
             finally {jobs.remove(id);active.value=active.value-id}
-        }
+        };jobs[id]=job;job.start()
+    }
+    internal fun setPermission(id:String,mode:AgentPermission)=action {
+        jobs[id]?.cancelAndJoin()
+        val selected=dao.chat(id) ?: error("Conversation missing");check(mode==AgentPermission.CHAT_ONLY || dao.capability(selected.provider,selected.model)?.supportsTools==true) {"Verify function-tool support with a connection test first."}
+        repo.mutate {val row=dao.chat(id) ?: error("Conversation missing");dao.update(row.copy(toolsEnabled=mode!=AgentPermission.CHAT_ONLY,proposalsEnabled=mode==AgentPermission.FULL_AGENT,updatedAt=System.currentTimeMillis()))
+            val policy=repo.journal.agentPolicyDao().policy(id) ?: AgentPolicyRow(id);repo.journal.agentPolicyDao().save(policy.copy(changedAt=maxOf(System.currentTimeMillis(),(dao.messages(id).maxOfOrNull {it.createdAt} ?: 0)+1)))
+            repo.journal.openHelper.writableDatabase.execSQL("UPDATE agent_approvals SET state='EXPIRED',resultJson='{\"error\":\"Permission changed; request a fresh proposal\"}' WHERE conversationId=? AND state='PENDING'",arrayOf(id))}
+        notice="${mode.label} selected. A fresh provider context starts on your next Send; local history is retained."
+    }
+    internal fun setBudget(id:String,economy:Boolean)=action {
+        jobs[id]?.cancelAndJoin()
+        repo.mutate {check(dao.chat(id)!=null);val p=repo.journal.agentPolicyDao().policy(id) ?: AgentPolicyRow(id)
+            repo.journal.agentPolicyDao().save(p.copy(contextChars=if(economy) 12000 else 24000,maxRounds=if(economy) 4 else 8,maxCalls=if(economy) 12 else 24))}
+        notice="${if(economy) "Economy" else "Standard"} request budget selected. No model request started."
+    }
+    internal suspend fun attachAppPhoto(chatId:String,photoId:String):JSONObject=withContext(Dispatchers.IO) {
+        val chat=dao.chat(chatId) ?: error("Chat missing");check(chat.toolsEnabled) {"Choose Read Access or Full Agent before requesting inventory photos."}
+        val photo=repo.dao.photo(requireUuid(photoId));check(!photo.deleted && photo.state=="READY");val original=repo.original(photo.id);check(hashFile(original)==photo.sha256) {"Photo changed; review the original first."}
+        val dir=File(repo.dataRoot,"chat-attachments").apply {mkdirs()};val target=File(dir,"${newId()}.jpg")
+        try {for(size in listOf(960,720,512)) {val bitmap=recognitionBitmap(original,size)
+            try {target.outputStream().use {check(bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG,75,it))}} finally {bitmap.recycle()}
+            if(target.length()<=500000) break
+        };check(target.length()<=500000) {"Photo derivative exceeds the cost budget."}} catch(e:Exception) {target.delete();throw e}
+        JSONObject().put("path",target.name).put("name",target.name).put("mime","image/jpeg").put("bytes",target.length()).put("sha256",hashFile(target)).put("sourcePhotoId",photo.id)
     }
     fun stop(id:String) {jobs[id]?.cancel()}
     fun delete(id:String) {check(id !in jobs) {"Stop the response before deleting this chat."};action {dao.deleteChat(id)}}

@@ -14,12 +14,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.*
 import org.json.*
 
-@Composable fun TasksScreen(vm:CaptureViewModel,back:()->Unit,inventory:(String)->Unit,shopify:()->Unit) {
+@Composable fun TasksScreen(vm:CaptureViewModel,back:()->Unit,inventory:(String)->Unit,shopify:()->Unit,initialTaskId:String?=null,batch:(String)->Unit={}) {
     BackHandler(onBack=back)
     val rows by remember {vm.repo.journal.agentTaskDao().watch()}.collectAsStateWithLifecycle(emptyList())
     val items by vm.inventory.collectAsStateWithLifecycle()
     val photos by vm.photos.collectAsStateWithLifecycle()
     val recognition by vm.recognition.collectAsStateWithLifecycle()
+    val archives by vm.archives.collectAsStateWithLifecycle()
     val shopifyJobs by remember {vm.repo.journal.shopifyDao().watchJobs()}.collectAsStateWithLifecycle(emptyList())
     val shopifyItems by remember {vm.repo.journal.shopifyDao().watchItems()}.collectAsStateWithLifecycle(emptyList())
     var statuses by remember {mutableStateOf<Map<String,AgentTaskStatus>>(emptyMap())}
@@ -31,8 +32,10 @@ import org.json.*
     var error by remember {mutableStateOf("")}
     val scope=rememberCoroutineScope()
     fun run(block:suspend()->Unit) {if(working) return;working=true;error="";scope.launch {try {block()} catch(e:CancellationException) {throw e} catch(e:Exception) {error=e.message ?: "Task action failed."} finally {working=false}}}
-    LaunchedEffect(rows,items,photos,recognition,shopifyJobs,shopifyItems) {try {statuses=withContext(Dispatchers.IO) {rows.associate {it.id to vm.repo.agentTaskStatus(it)}}} catch(e:CancellationException) {throw e} catch(e:Exception) {error=e.message ?: "Task status needs review."}}
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal=20.dp),contentPadding=PaddingValues(vertical=20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+    LaunchedEffect(rows,items,photos,recognition,shopifyJobs,shopifyItems,archives) {try {statuses=withContext(Dispatchers.IO) {rows.associate {it.id to vm.repo.agentTaskStatus(it)}}} catch(e:CancellationException) {throw e} catch(e:Exception) {error=e.message ?: "Task status needs review."}}
+    val listState=rememberLazyListState()
+    LaunchedEffect(initialTaskId,rows) {val index=rows.indexOfFirst {it.id==initialTaskId};if(index>=0) listState.scrollToItem(index+2)}
+    LazyColumn(state=listState,modifier=Modifier.fillMaxSize().padding(horizontal=20.dp),contentPadding=PaddingValues(vertical=20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item {TextButton(onClick=back) {Text("← Back")};PageTitle("Tasks","Real job progress · inventory stays on this device")}
         item {Button(onClick={create=true;selected=emptyList()},enabled=!working) {Text("New inventory review task")};Text("AI proposals are reviewed in their conversation. Recognition needs printed-title confirmation. Shopify completion requires verified server results.",style=MaterialTheme.typography.bodySmall)}
         if(error.isNotBlank()) item {Text(error,color=MaterialTheme.colorScheme.error)}
@@ -43,13 +46,16 @@ import org.json.*
                 Text("${status?.state ?: row.state} · ${status?.done ?: 0}/${status?.total ?: JSONArray(row.groupIdsJson).length()}")
                 if(status!=null) {LinearProgressIndicator(progress={if(status.total==0) 0f else status.done.toFloat()/status.total},modifier=Modifier.fillMaxWidth());Text(status.detail)}
                 if(row.error.isNotBlank()) Text(row.error,color=MaterialTheme.colorScheme.error)
-                val groups=remember(row.groupIdsJson) {jsonIds(JSONArray(row.groupIdsJson))}
+                val groups=remember(row.groupIdsJson) {taskGroups(row)}
                 groups.forEach {id->val item=items.firstOrNull {it.groupId==id};TextButton(onClick={inventory(id)}) {Text("Review ${item?.title?.ifBlank {"Untitled copy"} ?: "missing copy"} · ${item?.itemId ?: id}")}}
                 val jobs=status?.jobs ?: JSONArray()
                 for(i in 0 until jobs.length()) {val job=jobs.getJSONObject(i);Text("${job.optString("state")} ${job.optString("step")}",style=MaterialTheme.typography.bodySmall);if(job.optString("error").isNotBlank()) Text(job.getString("error"),color=MaterialTheme.colorScheme.error)}
+                val outcomes=JSONObject(row.resultJson).optJSONArray("items") ?: JSONArray()
+                for(i in 0 until outcomes.length()) {val o=outcomes.getJSONObject(i);Text("${o.optString("itemId")} · revision ${o.optLong("revision")} · ready ${o.optBoolean("ready")}${if(o.has("recognitionState")) " · recognition ${o.optString("recognitionState")}" else ""}${if(o.has("listingState")) " · local listing ${o.optString("listingState")}" else ""}",style=MaterialTheme.typography.bodySmall)}
                 val prices=JSONObject(row.resultJson).optJSONArray("prices") ?: JSONArray()
                 for(i in 0 until prices.length()) {val p=prices.getJSONObject(i);Text("${p.getString("itemId")} · CAD ${ca.canadavhs.snapmobile.core.InventoryRules.priceText(p.getLong("priceCents"))}")}
-                if(row.kind=="SHOPIFY_DRAFT") TextButton(onClick=shopify) {Text("Open Shopify jobs & server verification")}
+                if(row.kind=="BATCH_OPERATION") TextButton(onClick={batch(JSONObject(row.resultJson).getString("sessionId"))}) {Text("Open batch")}
+                if(row.kind in listOf("SHOPIFY_DRAFT","SHOPIFY_MANAGEMENT")) TextButton(onClick=shopify) {Text("Open Shopify jobs & server verification")}
                 if(row.state=="SCHEDULE_PENDING") OutlinedButton(enabled=!working,onClick={run {vm.repo.scheduleAgentTask(row.id)}}) {Text("Retry scheduling existing jobs")}
                 if(row.kind=="REVIEW_BATCH" && row.state=="OPEN") OutlinedButton(enabled=!working && status!=null && status.done==status.total,onClick={run {vm.repo.completeReviewTask(row.id)}}) {Text("Mark reviewed task complete")}
                 if(row.state=="PAUSED_REVIEW") Text("Restored task is paused. Review inventory and request a fresh proposal; external requests will not restart automatically.")

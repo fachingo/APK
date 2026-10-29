@@ -1,10 +1,15 @@
-# SnapIMS Next 0.7.0 validation
+# SnapIMS Next 0.8.0 validation
 
 | Check | Executed result |
-|---|---|
+| --- | --- |
+| AgentApplicationTest | 18 passed |
+| AgentContextTest | 7 passed |
+| AgentIntegrationUiTest | 1 passed |
+| AgentOnDemandTest | 10 passed |
+| AgentPermissionUiTest | 1 passed |
 | AgentTasksUiTest | 1 passed |
 | AgentWorkflowTest | 11 passed |
-| AiProtocolTest | 5 passed |
+| AiProtocolTest | 7 passed |
 | CameraLayoutTest | 1 passed |
 | CameraUpdateTest | 6 passed |
 | JournalIntegrationTest | 6 passed |
@@ -14,7 +19,7 @@
 | NextIntegrationTest | 7 passed |
 | RecognitionClientTest | 7 passed |
 | RecognitionStorageTest | 7 passed |
-| ShopifyManagementTest | 13 passed |
+| ShopifyManagementTest | 15 passed |
 | ShopifyManagementUiTest | 1 passed |
 | ShopifyUiTest | 1 passed |
 | ShopifyUploadReviewUiTest | 1 passed |
@@ -28,56 +33,69 @@
 | LocalRecognitionTest | 6 passed |
 | MarketCsvTest | 2 passed |
 | PricingConformanceTest | 3 passed |
-| Unique native/core host checks | **136 passed, 0 failed, 0 skipped** |
+| Unique native/core host checks | **177 passed, 0 failed, 0 skipped** |
 | Broker mock/crypto/SQLite/query checks | **21 passed** |
-| Total unique validated tests | **157 passed** |
-| Full regression and APK builds | **BUILD SUCCESSFUL**; both app and instrumentation APK built |
-| Android lint | **0 errors**, 62 warnings remain; no checks disabled |
-| Version/signing/alignment | 0.7.0, versionCode9; retained certificate;16KB alignment verified |
-| Explicit upgrade |1→2→3→4→5→6→7→8 validates; populated6→8 preserves captures/IDs and expires old pending AI approvals |
-| Native listing management | Cursor-paged title/status browse, exact-ID inspection, single-variant/ownership/SKU validation and scalar metadata review implemented |
-| Broker safeguards |22 GraphQL document syntaxes parsed; literal search escaping, page/cursor bounds, ownership/duplicate/stale/production guards, exact field allowlist |
-| Metadata uncertainty | Accepted response-loss case reconciles by read; desired/protected hashes preserve other fields; exactly one write; conflicting retry rejected |
-| Native link/update outcomes | One-use approval, no change before approval, local/remote changes reject, exact metadata fields only, server mismatch never becomes success |
-| Cancellation | Accepted create retains remote IDs and CANCELLED state; accepted metadata/cancel cannot become SUCCESS; no later steps dispatched |
-| Native upload approvals | Durable reviewed snapshots bind selected item/photo/barcode evidence and connection; changes expire without a job; SUBMIT required for publication |
-| Native UI | Catalog inspection, saved link review, stale rejection, queued-job navigation, portrait/landscape controls; native upload review includes exact SKU, price, weight, barcode and photo order |
-| Backup/restore | Schema8 includes saved reviews; schemas3–7 supported; pending restored reviews expire; unfinished restored management items require fresh approval |
-| Broker container | Built and starts UID10001 with read-only root and network disabled; current runtime source matches image; **not deployed** |
-| Actual supplied CSV | All75,054 USD records imported natively; source SHA unchanged; repeated import adds0; private input excluded from APK/source |
-| Dataset restart |100,000 generated +75,054 actual =175,054 current observations preserved after reopening persistent SQLite |
-| Host indexed benchmark | FTS4 median2ms; range1–9ms; physical Pixel timing UNRUN |
-| Desktop preservation | SnapIMS5c790dc and Pricing_module64c472c unchanged; pre-existing untracked desktop adapters retained |
-| Physical Pixel / live SIWC | **UNRUN**: no bound Pixel/eligible account; no sign-in/model/stream success claimed |
-| Real Shopify authorization / store acceptance | **UNRUN**; no deployed broker/account bound; no production mutation |
+| Total unique validated checks | **198 passed** |
+| Regression and APK builds | **BUILD SUCCESSFUL**; app and instrumentation APKs built |
+| Android lint | **0 errors**, 63 warnings; no checks disabled |
+| APK compatibility | Version0.8.0 / versionCode10 / same package and retained certificate /16KB alignment verified |
+| Populated migration |8→9 retains physical IDs, photo hashes, chat/usage and reviews;1→9 and populated6→9 chains also validate |
+| Compact registry |5 root tools in Full Agent,4 in Read Access,0 in Chat Only; every resource/action schema and every entity's actual Room columns checked |
+| Permission enforcement | Fresh stored modes reject stale caller copies; Chat Only blocks reads; Read Access blocks proposals; downgrade cancels the response and expires pending reviews |
+| Actual local reads | Full inventory fields, custom projection, local filters, latest-batch unpriced, cross-batch duplicates, complete-scope currency ranking and cache invalidation |
+| Mixed approved workflow | Corrected-title evidence, metadata/prices/readiness/local plans commit atomically; changed second cohort rolls back metadata, prices, audit and task rows |
+| Rejection and stale reviews | Rejected/stale selections make no inventory changes or recognition jobs; one-use approvals cannot replay |
+| Explicit paid/destructive/financial/live controls | Reviewed prices/archive/paid recognition require their consent; live publication requires SUBMIT before native job creation |
+| Existing services | Batch/task/settings controls, actual archive worker/hash verification, native Shopify management review and owning jobs reused |
+| Remote completion | Queued recognition/Shopify remains incomplete; mocked verified native ownership/link outcome controls task success |
+| On-demand-only behavior | Initialization, inventory edits, history, mode/budget changes and photo staging make0 mocked model requests; Send runs bounded tool rounds then idles |
+| Error recovery | Bad typed query returns an actionable error and can recover next round; provider failures keep partial output with no retry/fallback |
+| Context/cost bounds | Complete current tool results and pagination retained; older previews/context are bounded; older and subsequent-tool-round attachments are omitted |
+| Usage/cost units | Token/cache counts recorded; known USD costs labelled reported, catalog USD rates estimated; unknown units/plan credits never labelled dollars |
+| Photo staging | Explicit derivative≤960px/500KB, unchanged original/hash; staging sends0 requests and Chat Only cannot stage app photos |
+| Native UI | Named permissions, review expiry, actual record shortcut, before/after preview, financial consent and portrait/landscape approval controls |
+| Backup/restore | Schema9 policies/traces/usage retained; legacy3–8 supported; unfinished restored tasks pause and RUNNING traces become INTERRUPTED |
+| Actual supplied CSV | All75,054 USD records plus100,000 synthetic records imported natively; private source bytes unchanged; repeat adds0 |
+| Full library restart |175,054 current observations preserved after reopening persistent SQLite |
+| Agent against actual dataset | Native market search and overview passed; largest observed tested result 9897 characters≤10,000; no provider contacted |
+| Host indexed benchmark |FTS4 median2ms; range1–11ms; physical Pixel timing UNRUN |
+| Desktop preservation | SnapIMS5c790dc and Pricing_module64c472c untouched; pre-existing untracked desktop adapters retained |
+| Physical Pixel / eligible SIWC account | **UNRUN**; no device/account bound; no real sign-in, model discovery or subscription stream success claimed |
+| Real Shopify authorization / development store | **UNRUN**; no deployed broker/account bound; no production mutation |
 
-The final full regression passed136 unique host checks in one invocation, including
-the actual owner-data import/restart case. Earlier focused UI failures involved
-scrolling to virtualized controls; final tests scroll the native list before
-interacting. The final full run includes those corrections and all cancellation,
-barcode-binding and schema8 changes. There are no overlapping targeted runs added
-to the test count. Broker21 checks passed separately. Lint ran after compilation
-and test tasks finished. Native UI screenshots were visually inspected.
+The final full regression passed176 host checks in one invocation, including the
+actual supplied CSV import, complete current-context fix, agent reads and restart.
+The final USD-unit parser change then passed all7 protocol and10 on-demand checks
+and rebuilt both APKs. The final evidence set replaces those class reports and
+contains177 unique host checks, not the sum of overlapping runs. Broker21 checks
+passed separately. Lint ran after test/compilation completed. Native UI screenshots
+were visually inspected. Earlier focused UI checks were corrected to wait for
+reactive Room/Compose state and isolate each activity fixture; no assertions or
+lint checks were disabled. WorkManager host-test teardown emitted CloseGuard
+warnings; the test suite has0 failures/errors/skips.
 
-Evidence: /workspace/.setup/v070-validated-junit,
-v070-full-validation.log, v070-final-lint.log, v070-broker-final.log,
-v070-market-benchmark.json, v070-signing.txt, v070-docker-final-build.log and
-v070-docker-smoke.log. UI images: app/build/fixture-output/shopify-link-review.png
-and shopify-native-draft-review.png. Host mocks/container startup do not establish
-Shopify schema, authorization or physical-device acceptance.
+Evidence: /workspace/.setup/v080-validated-junit,
+v080-final-full-validation.log, v080-final-cost-validation.log,
+v080-final-lint.log, v080-broker-tests.log, v080-market-benchmark.json,
+v080-signing.txt and v080-alignment.txt. Native generated UI image:
+app/build/fixture-output/agent-mixed-review-landscape.png. The private market CSV,
+credentials, signing key, runtime databases and generated build/test directories
+are excluded from public APK/source.
 
-Current scope: listing inspection, explicit owned-DRAFT link and selected scalar
-metadata updates, plus saved native upload/publication reviews. Existing-product
-price/stock/media editing, foreign/legacy ownership stamping, server JSONL bulk
-operations and production writes are not delivered. Shopify scalar productUpdate
-has no atomic compare-and-set contract here: an independent admin write between
-preflight and mutation remains a real limitation. Inspect post-verification errors.
-The A–D program's external gates remain incomplete; business calendar/communications
-have not started. See next/SHOPIFY_RECONCILIATION.md for usage and exact limits.
+Read [agent usage and exact limits](agent/APPLICATION_AGENT.md),
+[release notes](agent/RELEASE_0.8.0.md) and [baseline audit](agent/INTEGRATION_AUDIT.md).
+The agent uses on-demand typed services and human approvals. Unsupported native
+operations are not invented: photo editing/SAF file selection/credentials remain
+human workflows, there is no SQL/shell/tap tool or continuous AI observation, and
+not every native error retains a failure timestamp/history. Shopify still blocks
+production writes, unrelated-product adoption and unsupported existing-product
+price/stock/media editing. Actual model reasoning quality and physical/store/account
+acceptance are not established by mocked transport or host UI tests.
 
-APK SHA-256: `17e47f64fe5a6ea9332c6e27c6cc6652994bdd49d10cf3936f4c3d5b89173dd9`
+APK SHA-256: `8656bfe9ea021b610286bbd71688ddc7340f6283adde98d57416668a62c48af5`
 
 Signing certificate SHA-256:
 `b262fd08c7a58f338027260d47a94a33e5c939d72752034dddb2f4f6bf73faae`.
-Install over the existing app; do not uninstall or clear private storage. Conventional
-API-key support remains independent; SIWC errors never switch to API billing.
+Install over the previous official app; do not uninstall or clear private storage.
+Conventional API-key support remains independent; subscription errors never switch
+to separate API billing. Approved remote resources/consumed usage cannot be undone.

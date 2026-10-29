@@ -22,6 +22,11 @@ internal data class AiProvider(val id:String,val label:String,val base:String,va
     }
 }
 internal fun providerKey(context:Context,id:String)=if(id=="OPENAI") SecureApiKeyStore(context) else SecureApiKeyStore(context,preferenceName="ai-key-$id",alias="snapims.ai.$id.v1")
+/** Only expose a dollar amount when its units are defined, never plan credits or unknown units. */
+internal fun reportedUsdCost(provider:String,usage:JSONObject?):String? {
+    if(usage==null || (provider!="OPENROUTER" && !usage.optString("cost_currency").equals("USD",true))) return null
+    return usage.optString("cost").takeIf {it.length<=64 && it.toBigDecimalOrNull()?.signum()?.let {n->n>=0}==true}
+}
 internal class AiClient(private val context:Context,private val http:OkHttpClient=OkHttpClient.Builder().connectTimeout(20,TimeUnit.SECONDS).readTimeout(90,TimeUnit.SECONDS).followRedirects(false).build(),private val credentials:(suspend(AiProvider)->String)?=null) {
     private suspend fun bearer(provider:AiProvider):String=credentials?.invoke(provider) ?: if(provider.subscription) SiwcConnection.token(context) else if(provider.id=="LOCAL") "local-no-key" else providerKey(context,provider.id).read() ?: error("Save this provider's API key first. ChatGPT plan access is a separate connection.")
     private fun failure(code:Int,subscription:Boolean):AiRequestException=AiRequestException(code,when(code) {
@@ -44,7 +49,7 @@ internal class AiClient(private val context:Context,private val http:OkHttpClien
                     val architecture=item.optJSONObject("architecture");val modalities=architecture?.optJSONArray("input_modalities")
                     val inputs=modalities?.let {(0 until it.length()).map {n->it.getString(n)}}
                     val params=item.optJSONArray("supported_parameters")?.let {(0 until it.length()).map {n->it.getString(n)}}
-                    val pricing=item.optJSONObject("pricing")
+                    val pricing=item.optJSONObject("pricing")?.takeIf {provider.id=="OPENROUTER" || it.optString("currency").equals("USD",true)}
                     AiCapabilityRow(stableRowId("${provider.id}/$model"),provider.id,model,item.optString(if(provider.subscription) "display_name" else "name",model),
                         supportsText=if(inputs!=null) "text" in inputs else if(verifiedOpenAi) true else null,
                         supportsTools=if(params!=null) "tools" in params else if(verifiedOpenAi) true else null,
@@ -95,7 +100,7 @@ internal class AiClient(private val context:Context,private val http:OkHttpClien
             if(tools.length()>0) put("tools",JSONArray((0 until tools.length()).map {index ->val tool=JSONObject(tools.getJSONObject(index).toString());tool.remove("type");JSONObject().put("type","function").put("function",tool)}))
         }
     }
-    data class Result(val text:String,val calls:JSONArray,val responseId:String,val inputTokens:Long?,val outputTokens:Long?)
+    data class Result(val text:String,val calls:JSONArray,val responseId:String,val inputTokens:Long?,val outputTokens:Long?,val reportedCostUsd:String?=null,val cachedInputTokens:Long?=null)
     suspend fun stream(chat:ChatConversationRow,messages:List<ChatMessageRow>,tools:JSONArray,onDelta:suspend(String)->Unit):Result=withContext(Dispatchers.IO) {
         val provider=AiProvider.get(chat.provider)
         check(chat.authMode==if(provider.subscription) "CHATGPT_PLAN" else "API_KEY") {"Conversation authentication does not match the selected provider."}
@@ -108,7 +113,7 @@ internal class AiClient(private val context:Context,private val http:OkHttpClien
             try {call.execute().use {response ->
                 if(!response.isSuccessful) throw failure(response.code,provider.subscription)
                 val source=response.body?.source() ?: error("Empty streaming response")
-                val text=StringBuilder();var completed=false;var done=false;var id="";var inputTokens:Long?=null;var outputTokens:Long?=null;var calls=JSONArray()
+                val text=StringBuilder();var completed=false;var done=false;var id="";var inputTokens:Long?=null;var outputTokens:Long?=null;var calls=JSONArray();var reportedCostUsd:String?=null;var cachedInputTokens:Long?=null
                 val pendingCalls=sortedMapOf<Int,JSONObject>();var finishReason="";val data=StringBuilder();var eventBytes=0
                 suspend fun event() {
                     if(data.isEmpty()) return
@@ -116,13 +121,14 @@ internal class AiClient(private val context:Context,private val http:OkHttpClien
                     if(raw=="[DONE]") {done=true;return}
                     val item=JSONObject(raw)
                     if(item.has("error")) error("Provider reported a streaming error. Partial text is retained. Retry manually.")
+                    item.optJSONObject("usage")?.let {u->inputTokens=u.optLong("prompt_tokens").takeIf {u.has("prompt_tokens")};outputTokens=u.optLong("completion_tokens").takeIf {u.has("completion_tokens")};reportedCostUsd=reportedUsdCost(provider.id,u);cachedInputTokens=u.optJSONObject("prompt_tokens_details")?.optLong("cached_tokens")}
                     if(provider.responses) when(item.optString("type")) {
                         "response.output_text.delta" -> {val delta=item.getString("delta");text.append(delta);onDelta(delta)}
                         "response.completed" -> {
                             val result=item.getJSONObject("response");check(result.optString("status")=="completed") {"Response did not complete."}
                             id=result.getString("id");val output=result.getJSONArray("output");calls=JSONArray()
                             for(i in 0 until output.length()) {val out=output.getJSONObject(i);if(out.optString("type")=="function_call") calls.put(out)}
-                            val usage=result.optJSONObject("usage");inputTokens=usage?.optLong("input_tokens");outputTokens=usage?.optLong("output_tokens");completed=true;done=true
+                            val usage=result.optJSONObject("usage");inputTokens=usage?.optLong("input_tokens");outputTokens=usage?.optLong("output_tokens");cachedInputTokens=usage?.optJSONObject("input_tokens_details")?.optLong("cached_tokens");reportedCostUsd=reportedUsdCost(provider.id,usage);completed=true;done=true
                         }
                         "response.failed","response.incomplete","error" -> error("Provider did not complete the response. Partial text is retained. Retry manually.")
                     } else {
@@ -147,7 +153,7 @@ internal class AiClient(private val context:Context,private val http:OkHttpClien
                 if(data.isNotEmpty() && !done) event()
                 if(!provider.responses) {completed=done && finishReason in listOf("stop","tool_calls");calls=JSONArray(pendingCalls.values.toList())}
                 check(completed) {"Stream ended before confirmed completion. Partial text is retained. No automatic retry was sent."}
-                Result(text.toString(),calls,id,inputTokens,outputTokens)
+                Result(text.toString(),calls,id,inputTokens,outputTokens,reportedCostUsd,cachedInputTokens)
             }} catch(e:Exception) {currentCoroutineContext().ensureActive();throw e} finally {guard.cancel()}
         }
     }

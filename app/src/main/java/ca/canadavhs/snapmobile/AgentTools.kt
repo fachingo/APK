@@ -7,6 +7,8 @@ import org.json.*
 internal class AgentTools(private val repo:CaptureRepository) {
     private val dao=repo.journal.nextDao()
     private val workflows=AgentWorkflows(repo)
+    private val application by lazy {AgentApplicationTools(repo,this)}
+    fun applicationDefinitions(chat:ChatConversationRow):JSONArray=if(!chat.toolsEnabled) JSONArray() else application.definitions(chat.proposalsEnabled)
     fun definitions(proposals:Boolean):JSONArray {
         fun tool(name:String,description:String,fields:Map<String,JSONObject>):JSONObject=JSONObject().put("type","function").put("name",name).put("description",description)
             .put("parameters",JSONObject().put("type","object").put("properties",JSONObject(fields)).put("required",JSONArray(fields.keys.toList())).put("additionalProperties",false)).put("strict",true)
@@ -32,6 +34,19 @@ internal class AgentTools(private val repo:CaptureRepository) {
         return sha256((canonicalJson(inventoryJson(item))+photoFingerprint(repo.dao.photos(id).filter {!it.deleted && it.state=="READY"})).toByteArray())
     }
     suspend fun execute(chat:ChatConversationRow,name:String,args:JSONObject):JSONObject {
+        val current=dao.chat(chat.id) ?: error("Conversation no longer exists.")
+        check(current.toolsEnabled) {"Chat Only has no application tool access."}
+        val isWrite=name=="app_propose" || name.startsWith("propose_")
+        check(!isWrite || current.proposalsEnabled) {"Full Agent is required to propose modifications."}
+        val start=System.currentTimeMillis();val label=if(name=="app_read") "$name:${args.optString("resource")}" else if(name=="app_propose") "$name:${args.optString("action")}" else name
+        val trace=AgentTraceRow(conversationId=current.id,tool=label,argumentsJson=(safeAgentJson(args) as JSONObject).toString().take(2500));repo.journal.agentPolicyDao().insert(trace)
+        try {
+            val result=compactAgentJson(if(name.startsWith("app_")) application.execute(current,name,args) else executeRaw(current,name,args))
+            repo.journal.agentPolicyDao().update(trace.copy(state="COMPLETE",summary="Returned ${result.optJSONArray("items")?.length() ?: result.optJSONArray("groups")?.length() ?: 1} result entries. ${result.optString("message").take(180)}",resultChars=result.toString().length,durationMs=System.currentTimeMillis()-start));return result
+        } catch(e:kotlinx.coroutines.CancellationException) {kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {repo.journal.agentPolicyDao().update(trace.copy(state="INTERRUPTED",summary="Stopped by operator; no provider retry.",durationMs=System.currentTimeMillis()-start))};throw e}
+        catch(e:Exception) {repo.journal.agentPolicyDao().update(trace.copy(state="ERROR",summary=safeAgentText(e.message.orEmpty()).take(1000),durationMs=System.currentTimeMillis()-start));throw e}
+    }
+    internal suspend fun executeRaw(chat:ChatConversationRow,name:String,args:JSONObject):JSONObject {
         check(chat.toolsEnabled) {"Local tools are disabled for this chat."}
         if(name in workflowActions || name in setOf("capture_batches","batch_review","task_status","shopify_connection")) return workflows.execute(chat,name,args)
         return when(name) {
@@ -93,7 +108,7 @@ internal class AgentTools(private val repo:CaptureRepository) {
                     check(r.inputFingerprint==photoFingerprint(repo.dao.photos(item.groupId).filter {!it.deleted && it.state=="READY"})) {"Recognition photos changed."}
                     payload.put("recognizedTitle",r.acceptedTitle)
                 }
-                if(name=="propose_inventory_update") validatePatch(item,JSONObject(args.getString("patch_json")))
+                if(name=="propose_inventory_update") {validatePatch(item,JSONObject(args.getString("patch_json")));payload.put("before",inventoryJson(item))}
                 if(name=="propose_sold_price") {val e=dao.evidence(args.getString("evidence_id")) ?: error("Evidence not found.");check(e.usable() && e.titleKey==InventoryRules.normalizedTitle(item.title));require(args.getString("method") in listOf("AVERAGE","MEDIAN"));val stats=e.statistics() ?: error("No sold statistics");payload.put("soldReview",JSONObject().put("count",stats.count).put("priceCents",if(args.getString("method")=="MEDIAN") stats.medianCents else stats.averageCents).put("collectedAt",e.collectedAt).put("expiresAt",e.expiresAt))}
                 val row=AgentApprovalRow(conversationId=chat.id,action=name,payloadJson=payload.toString(),bindingHash=binding(item.groupId))
                 dao.insert(row);JSONObject().put("approval_id",row.id).put("state","PENDING_OPERATOR_REVIEW").put("message","No change applied. Operator must review the proposal in SnapIMS.")
@@ -101,8 +116,8 @@ internal class AgentTools(private val repo:CaptureRepository) {
             else -> error("Unsupported local tool.")
         }
     }
-    private fun validatePatch(item:InventoryRow,patch:JSONObject):InventoryRow {
-        val allowed=setOf("title","condition","conditionNotes","location","tags","description","quantity")
+    internal fun validatePatch(item:InventoryRow,patch:JSONObject):InventoryRow {
+        val allowed=agentMetadataFields
         require(patch.length() in 1..allowed.size && patch.keys().asSequence().all {it in allowed}) {"Only approved metadata fields may be proposed."}
         val json=inventoryJson(item);patch.keys().forEach {key->json.put(key,patch.get(key))};json.put("ready",false)
         return inventoryFromJson(json)
@@ -110,6 +125,8 @@ internal class AgentTools(private val repo:CaptureRepository) {
     suspend fun decide(id:String,accept:Boolean,replaceManual:Boolean=false):String=decide(id,accept,AgentDecisionOptions(replaceManual=replaceManual))
     suspend fun decide(id:String,accept:Boolean,options:AgentDecisionOptions):String {
         val replaceManual=options.replaceManual
+        val pending=dao.approval(id) ?: error("Approval missing");check(dao.chat(pending.conversationId)?.let {it.toolsEnabled && it.proposalsEnabled}==true) {"Full Agent permission is required to approve application changes."}
+        if(pending.action in AgentApplicationActions.newActions) return AgentApplicationActions(repo).decide(id,accept,options)
         var taskId:String?=null
         var scheduled:String?=null
         val message=repo.mutate {

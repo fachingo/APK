@@ -1,13 +1,13 @@
-# Feature completion matrix — 0.7.0 preview
+# Feature completion matrix — 0.8.0 preview
 
 Status follows delivered code and executed evidence. The A–D program is not complete.
 
 | Milestone / capability | Status |
 | --- | --- |
-| A: native camera/NEXT/zoom/resolution/landscape/original preservation | Published 0.2.0; retained in 0.7.0. Physical Pixel acceptance unrun |
+| A: native camera/NEXT/zoom/resolution/landscape/original preservation | Published 0.2.0; retained in 0.8.0. Physical Pixel acceptance unrun |
 | A: standalone inventory/search/editor/conditions/IDs/readiness/audit | Implemented; deterministic integration/UI tests |
 | A: finished-item photo corrections/retake | Implemented; originals and prior ZIP bytes preserved |
-| A: protected photo-inclusive backup/merge and duplicate-safe imports | Implemented; 0.5.0 includes streamed market SQLite, decisions, chat/attachments and credential-redacted Shopify checkpoints; tasks and recognition bindings in schema7; saved Shopify review receipts in schema8; legacy schema3–7 supported |
+| A: protected photo-inclusive backup/merge and duplicate-safe imports | Implemented; 0.5.0 includes streamed market SQLite, decisions, chat/attachments and credential-redacted Shopify checkpoints; tasks and recognition bindings in schema7; saved Shopify review receipts in schema8; schema9 adds agent policies/traces and response usage; legacy schema3–8 supported |
 | A: interoperability/CSV/read-only desktop export/CI workflow | Delivered; hosted CI execution not claimed |
 | A: 100 real products / 300 physical photographs | Unrun; synthetic 100×300 stress test passed |
 | B: current official Shopify auth/API review | Owner externally supplied current official requirements; implemented from that contract. Cloud independent fetch still blocked |
@@ -37,3 +37,17 @@ Status follows delivered code and executed evidence. The A–D program is not co
 Usage: MARKET_DATABASE.md, MILESTONE_A.md, MILESTONE_B.md and MILESTONE_CD.md. External gates: SHOPIFY_SETUP.md and
 SIWC_INVESTIGATION.md. Validation evidence: ../TEST_RESULTS.md. API-key connections
 remain independent; SIWC errors never select billable API credentials automatically.
+
+## 0.8.0 application-agent expansion
+
+The existing workspace now exposes named modes, app-specific instructions, bounded
+schema-discovered read access across all native business domains and reviewed mixed
+inventory/pricing/recognition/readiness/listing plans. Native batch/task/settings,
+archive and Shopify management/publication services are integrated. Changes require
+human approval; price/destructive/paid/upload/live safeguards remain. Economy/Standard
+budgets, tool traces, compact/paginated results, native shortcuts, explicit compressed
+photo staging, local cache and token/cost receipts are delivered. No idle model
+requests, background AI monitoring, automatic photograph transmission or billing
+fallback are introduced. See [exact behavior and limitations](../agent/APPLICATION_AGENT.md)
+and [executed evidence](../TEST_RESULTS.md). Physical device/account/store acceptance
+remains unrun; unsupported native services are not invented as agent capabilities.

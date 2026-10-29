@@ -47,10 +47,23 @@ class AiProtocolTest {
         assertEquals("eligible",result.single().model);assertEquals("Eligible model",result.single().displayName);assertNull(result.single().supportsImages)
         try {client(200,"{\"data\":[{\"id\":\"api-only\"}]}").models(AiProvider.get("CHATGPT"));fail()} catch(_:JSONException) {}
     }
+    @Test fun streamingUsagePreservesProviderReportedCostAndCachedTokens():Unit=runBlocking {
+        val fixture="data: "+JSONObject().put("type","response.completed").put("response",JSONObject().put("id","usage-fixture").put("status","completed").put("output",JSONArray()).put("usage",JSONObject().put("input_tokens",100).put("output_tokens",5).put("cost","0.000123").put("cost_currency","USD").put("input_tokens_details",JSONObject().put("cached_tokens",80)))).toString()+"\n\n"
+        val result=client(200,fixture).stream(chat(),messages,JSONArray()) {};assertEquals("0.000123",result.reportedCostUsd);assertEquals(80L,result.cachedInputTokens);assertEquals(100L,result.inputTokens)
+        val completion="data: "+JSONObject().put("choices",JSONArray().put(JSONObject().put("index",0).put("delta",JSONObject().put("content","OK")).put("finish_reason","stop"))).put("usage",JSONObject().put("prompt_tokens",20).put("completion_tokens",3).put("cost",0.002).put("prompt_tokens_details",JSONObject().put("cached_tokens",15))).toString()+"\n\ndata: [DONE]\n\n"
+        val local=client(200,completion).stream(chat("OPENROUTER"),messages,JSONArray()) {};assertEquals("0.002",local.reportedCostUsd);assertEquals(15L,local.cachedInputTokens);assertEquals(20L,local.inputTokens)
+    }
     @Test fun localCompletionAssemblesToolDeltasAndRequiresDone():Unit=runBlocking {
         val fixture="data: {\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call-fixture\",\"function\":{\"name\":\"inventory_search\",\"arguments\":\"{\\\"query\\\":\"}}]},\"finish_reason\":null}]}\n\n"+
             "data: {\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"\\\"Alien\\\"}\"}}]},\"finish_reason\":\"tool_calls\"}]}\n\ndata: [DONE]\n\n"
         val result=client(200,fixture).stream(chat("LOCAL"),messages,JSONArray()) {}
         assertEquals("inventory_search",result.calls.getJSONObject(0).getString("name"));assertEquals("Alien",JSONObject(result.calls.getJSONObject(0).getString("arguments")).getString("query"))
     }
+    @Test fun unknownCostUnitsPlanCreditsAndInvalidRatesNeverBecomeDollarCharges():Unit=runBlocking {
+        assertNull(reportedUsdCost("CHATGPT",JSONObject().put("cost",50)));assertNull(reportedUsdCost("LOCAL",JSONObject().put("cost",50).put("cost_currency","CREDITS")));assertNull(reportedUsdCost("OPENROUTER",JSONObject().put("cost",-1)));assertNull(reportedUsdCost("OPENROUTER",JSONObject().put("cost","NaN")))
+        assertEquals("0.0002",reportedUsdCost("OPENROUTER",JSONObject().put("cost","0.0002")));assertEquals("0.03",reportedUsdCost("LOCAL",JSONObject().put("cost","0.03").put("cost_currency","USD")))
+        val catalog="{\"data\":[{\"id\":\"fixture\",\"pricing\":{\"prompt\":\"1.2\",\"completion\":\"3.4\",\"currency\":\"CREDITS\"}}]}"
+        assertNull(client(200,catalog).models(AiProvider.get("LOCAL")).single().inputUsdPerToken)
+    }
+
 }

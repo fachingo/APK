@@ -42,7 +42,8 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, val d
     fun pendingFile(id: String) = File(originals, "$id.pending")
     private suspend fun event(session: String, group: String?, action: String) = dao.insert(EventRow(sessionId = session, groupId = group, action = action))
     internal suspend fun <T> mutate(block: suspend () -> T): T = withContext(Dispatchers.IO) { lock.withLock { journal.withTransaction { block() } } }
-    suspend fun start(name: String, location: String): SessionRow = mutate {
+    suspend fun start(name: String, location: String): SessionRow = mutate {startBatchLocked(name,location)}
+    internal suspend fun startBatchLocked(name:String,location:String):SessionRow = run {
         check(dao.active() == null) { "Finish the current batch before starting another." }
         require(name.isNotBlank() && name.length <= 80) { "Use a batch name of 1–80 characters." }
         require(validLocation(location)) { "Location must be A1–J10, Q1, or blank." }
@@ -125,13 +126,12 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, val d
         event(previous.sessionId, previous.id, "UNDO_NEXT")
     }
     suspend fun finish() {
-        val session = mutate {
-            val group = current(); editable(group)
-            check(dao.photos(group.id).none { it.state != "READY" && !it.deleted }) { "Review interrupted captures before finishing." }
-            dao.update(group.copy(closed = true)); dao.update(dao.session(group.sessionId).copy(finished = true))
-            event(group.sessionId, group.id, "CVHS1:BATCH:END"); group.sessionId
-        }
-        queueArchives(session)
+        val session=mutate {finishBatchLocked()};queueArchives(session)
+    }
+    internal suspend fun finishBatchLocked():String {
+        val group=current();editable(group)
+        check(dao.photos(group.id).none {it.state!="READY" && !it.deleted}) {"Review interrupted captures before finishing."}
+        dao.update(group.copy(closed=true));dao.update(dao.session(group.sessionId).copy(finished=true));event(group.sessionId,group.id,"CVHS1:BATCH:END");return group.sessionId
     }
     suspend fun location(value: String) = mutate {
         require(validLocation(value)) { "Use A1–J10, Q1, or blank." }
