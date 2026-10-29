@@ -42,7 +42,7 @@ class ShopifyUploadReviewUiTest {
         }}}
         compose.onNodeWithText("Settings").performClick();compose.onNodeWithText("Shopify").performScrollTo().performClick()
         compose.onNodeWithText("Test connection").performScrollTo().performClick()
-        compose.waitUntil(10000) {compose.onAllNodesWithText("Main location").fetchSemanticsNodes().isNotEmpty()}
+        compose.waitUntil(10000) {runCatching {compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Main location"))}.isSuccess}
         compose.onNodeWithText("Main location").performScrollTo().performClick()
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(item.title));compose.onAllNodes(isToggleable()).onFirst().performClick()
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("I approve sending the selected listing data and photographs to Shopify."));compose.onAllNodes(isToggleable()).onLast().performClick()

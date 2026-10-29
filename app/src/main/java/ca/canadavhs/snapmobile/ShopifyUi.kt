@@ -23,7 +23,7 @@ import ca.canadavhs.snapmobile.core.*
 
 class ShopifyModel(app:Application):AndroidViewModel(app) {
     private val repo=(app as CaptureApplication).repository
-    internal var gatewayFactory:(String)->ShopifyGateway={ShopifyBrokerClient(repo.context,it)}
+    internal var gatewayFactory:(String)->ShopifyGateway={if(repo.preferences.getBoolean("shopifyDirect",false)) DirectShopifyGateway(repo.context) else ShopifyBrokerClient(repo.context,it)}
     var catalog by mutableStateOf<JSONObject?>(null);private set
     var productDetail by mutableStateOf<JSONObject?>(null);private set
     var catalogFetchedAt by mutableStateOf("");private set
@@ -36,20 +36,25 @@ class ShopifyModel(app:Application):AndroidViewModel(app) {
     var error by mutableStateOf("");private set
     var message by mutableStateOf("");private set
     internal fun action(block:suspend ()->Unit) {if(busy) return;busy=true;viewModelScope.launch {try {block();error=""} catch(e:CancellationException) {throw e} catch(e:Exception) {error=e.message.orEmpty()} finally {busy=false}}}
+    fun saveDirect(shop:String,client:String,secret:String)=action {withContext(Dispatchers.IO) {DirectShopifyGateway(repo.context).save(shop.trim().lowercase(),client,secret)};repo.preferences.edit().putBoolean("shopifyDirect",true).putBoolean("shopifyPaired",true).commit();paired=true;checkConnection();catalog=gatewayFactory(base).call(ca.canadavhs.snapmobile.core.newId(),"browse",JSONObject().put("query","").put("status","").put("cursor",""));message="Direct read-only connection verified. Open Listings & saved reviews to browse. No products were changed."}
+    fun clearDirect()=action {DirectShopifyGateway(repo.context).clear();repo.preferences.edit().putBoolean("shopifyDirect",false).putBoolean("shopifyPaired",false).commit();paired=false;health=null;catalog=null;productDetail=null}
     fun changeBase(value:String) {if(value!=base) {base=value.take(2000);health=null;paired=false;catalog=null;productDetail=null}}
-    fun pair(code:String)=action {withContext(Dispatchers.IO) {ShopifyBrokerClient(repo.context,base).pair(code)};check(repo.preferences.edit().putString("shopifyBroker",base).putBoolean("shopifyPaired",true).commit());paired=true;message="Device paired. Authorize and test the Shopify connection."}
+    fun pair(code:String)=action {withContext(Dispatchers.IO) {ShopifyBrokerClient(repo.context,base).pair(code)};check(repo.preferences.edit().putString("shopifyBroker",base).putBoolean("shopifyDirect",false).putBoolean("shopifyPaired",true).commit());paired=true;message="Device paired. Authorize and test the Shopify connection."}
     fun authorize(open:(String)->Unit)=action {val result=ShopifyBrokerClient(repo.context,base).authorize();val url=result.optString("url");if(url.isNotBlank()) {val uri=java.net.URI(url);check(uri.scheme=="https" && uri.host?.endsWith(".myshopify.com")==true && uri.path=="/admin/oauth/authorize");open(url)} else message=result.optString("message")}
-    internal suspend fun checkConnection():JSONObject {check(paired) {"Pair this device first."};return gatewayFactory(base).call(newId(),"health",JSONObject()).also {health=it;message="Connection checked against Shopify. Development-store publishing acceptance is still unverified."}}
+    internal suspend fun checkConnection():JSONObject {check(paired) {"Pair this device first."};return gatewayFactory(base).call(newId(),"health",JSONObject()).also {health=it;message="Store identity and scopes checked against Shopify. No write was performed."}}
     fun test()=action {checkConnection()}
     fun disconnect(revoke:Boolean)=action {
+        if(repo.preferences.getBoolean("shopifyDirect",false)) {
+            DirectShopifyGateway(repo.context).clear();repo.preferences.edit().putBoolean("shopifyDirect",false).putBoolean("shopifyPaired",false).commit();health=null;paired=false;catalog=null;productDetail=null;message="Direct credentials cleared locally. Shopify app installation is unchanged.";return@action
+        }
         if(revoke) ShopifyBrokerClient(repo.context,base).revoke()
         repo.journal.shopifyDao().active().forEach {repo.pauseShopify(it.id)}
         withContext(Dispatchers.IO) {ShopifyDeviceIdentity(repo.context).forget()};health=null;paired=false;check(repo.preferences.edit().putBoolean("shopifyPaired",false).commit());message=if(revoke) "Device access revoked at broker." else "Device key removed locally. Revoke the old device in the broker administration tool."
     }
     fun browse(query:String,status:String,cursor:String)=action {checkConnection();val page=gatewayFactory(base).call(newId(),"browse",JSONObject().put("query",query).put("status",status).put("cursor",cursor));check(page.getJSONArray("nodes").length()<=20);catalog=page;catalogQuery=query;catalogStatus=status;catalogFetchedAt=java.time.OffsetDateTime.now().toString()}
     fun inspect(product:String,location:String)=action {check(paired);productDetail=gatewayFactory(base).call(newId(),"product",JSONObject().put("productId",product).put("locationId",location)).also {check(!it.optBoolean("missing")) {"Product no longer exists."}}}
-    fun prepareUpload(ids:Set<String>,location:String,live:Boolean,publication:String,prepared:(String)->Unit)=action {val h=checkConnection();prepared(repo.prepareShopifyUploadReview(ids,h,base,location,live,publication).id)}
-    fun prepareManagement(group:String,product:String,location:String,fields:Set<String>,prepared:(String)->Unit)=action {val h=checkConnection();prepared(repo.prepareShopifyManagement(group,product,h,base,location,fields,gatewayFactory(base)).id)}
+    fun prepareUpload(ids:Set<String>,location:String,live:Boolean,publication:String,prepared:(String)->Unit)=action {check(!repo.preferences.getBoolean("shopifyDirect",false)) {"Direct writes are not enabled in this read-only preview."};val h=checkConnection();prepared(repo.prepareShopifyUploadReview(ids,h,base,location,live,publication).id)}
+    fun prepareManagement(group:String,product:String,location:String,fields:Set<String>,prepared:(String)->Unit)=action {check(!repo.preferences.getBoolean("shopifyDirect",false)) {"Direct writes are not enabled in this read-only preview."};val h=checkConnection();prepared(repo.prepareShopifyManagement(group,product,h,base,location,fields,gatewayFactory(base)).id)}
     fun decideReview(id:String,accept:Boolean,confirmation:String,done:()->Unit)=action {message=repo.decideShopifyReview(id,accept,confirmation);done()}
     fun cancel(id:String)=action {repo.cancelShopify(id)}
     fun pause(id:String)=action {repo.pauseShopify(id)}
@@ -58,16 +63,18 @@ class ShopifyModel(app:Application):AndroidViewModel(app) {
 @Composable fun ShopifyScreen(vm:CaptureViewModel,back:()->Unit,model:ShopifyModel=viewModel()) {
     val context=LocalContext.current;val inventory by vm.inventory.collectAsStateWithLifecycle()
     val jobs by vm.repo.journal.shopifyDao().watchJobs().collectAsStateWithLifecycle(emptyList());val items by vm.repo.journal.shopifyDao().watchItems().collectAsStateWithLifecycle(emptyList())
-    var code by remember {mutableStateOf("")};var selected by rememberSaveable {mutableStateOf<Set<String>>(emptySet())}
+    var showDirect by rememberSaveable {mutableStateOf(false)};var directShop by remember {mutableStateOf("")};var directClient by remember {mutableStateOf("")};var directSecret by remember {mutableStateOf("")};var code by remember {mutableStateOf("")};var selected by rememberSaveable {mutableStateOf<Set<String>>(emptySet())}
     var location by rememberSaveable {mutableStateOf("")};var publication by rememberSaveable {mutableStateOf("")};var consent by rememberSaveable {mutableStateOf(false)}
     var reviewId by rememberSaveable {mutableStateOf<String?>(null)}
     var manage by rememberSaveable {mutableStateOf(false)}
     val reviews by remember {vm.repo.journal.shopifyDao().watchReviews()}.collectAsStateWithLifecycle(emptyList())
     DisposableEffect(Unit) {val window=(context as? android.app.Activity)?.window;val previous=(window?.attributes?.flags ?: 0) and android.view.WindowManager.LayoutParams.FLAG_SECURE !=0;window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);onDispose {if(!previous) window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)}}
+    LaunchedEffect(model.catalog) {if(model.catalog!=null && vm.repo.preferences.getBoolean("shopifyDirect",false)) manage=true}
     if(manage) {ShopifyListingsScreen(vm,model) {manage=false};return}
     LazyColumn(Modifier.fillMaxSize().padding(horizontal=24.dp),contentPadding=PaddingValues(vertical=24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item {TextButton(onClick=back) {Text("← Back")};Text("Shopify",style=MaterialTheme.typography.headlineLarge);Text("Drafts and durable jobs",style=MaterialTheme.typography.titleMedium);OutlinedButton(onClick={manage=true}) {Text("Listings & saved reviews")}}
-        item {Text("Integration preview · real device authorization and development-store publishing are UNVERIFIED. Inventory stays on this phone. Shopify requires a hosted credential broker; capture, pricing and backups work independently.")}
+        item {Text("Choose Direct Shopify Connection for your owner-operated phone, or an optional hosted broker. Inventory stays on this phone. Real-device connection acceptance remains unverified.")}
+        item {TextButton(onClick={showDirect=!showDirect}) {Text("Direct Shopify Connection")};if(showDirect) {OutlinedTextField(directShop,{directShop=it},label={Text("Store domain · myshopify.com")});OutlinedTextField(directClient,{directClient=it},label={Text("Shopify Client ID")});OutlinedTextField(directSecret,{directSecret=it},label={Text("Shopify Client Secret")},keyboardOptions=androidx.compose.foundation.text.KeyboardOptions(keyboardType=androidx.compose.ui.text.input.KeyboardType.Password,autoCorrectEnabled=false),visualTransformation=PasswordVisualTransformation());Button(enabled=directShop.isNotBlank() && directClient.isNotBlank() && directSecret.isNotBlank() && !model.busy,onClick={model.saveDirect(directShop,directClient,directSecret);directSecret=""}) {Text("Save credentials & connect directly")};TextButton(onClick=model::clearDirect) {Text("Clear direct credentials")};Text("Direct mode currently supports read-only browsing. Production writes remain disabled.")}}
         item {OutlinedTextField(model.base,model::changeBase,label={Text("Hosted broker HTTPS origin")},enabled=!model.busy,modifier=Modifier.fillMaxWidth(),singleLine=true)}
         item {OutlinedTextField(code,{code=it.take(200)},label={Text("One-use pairing code from broker owner")},visualTransformation=PasswordVisualTransformation(),enabled=!model.busy,modifier=Modifier.fillMaxWidth());Button(onClick={model.pair(code);code=""},enabled=!model.busy && code.isNotBlank()) {Text("Pair this device")}}
         item {FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {OutlinedButton(onClick={model.authorize {url->context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url)))}},enabled=model.paired && !model.busy) {Text("Authorize in browser")};Button(onClick=model::test,enabled=model.paired && !model.busy) {Text("Test connection")}}}

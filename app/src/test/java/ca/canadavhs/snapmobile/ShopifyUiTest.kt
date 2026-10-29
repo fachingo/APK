@@ -47,8 +47,8 @@ class ShopifyUiTest {
     @get:Rule val rule:RuleChain=RuleChain.outerRule(seed).around(compose)
     @Test fun shopifyPreviewShowsActualInventoryAndRequiresPairingWithoutNetworkRequests() {
         compose.onNodeWithText("Settings").performClick();compose.onNodeWithText("Shopify").performScrollTo().performClick()
-        compose.onNodeWithText("Hosted broker HTTPS origin").assertExists();compose.onNodeWithText("Pair this device").assertIsNotEnabled();compose.onNodeWithText("Test connection").assertIsNotEnabled()
-        compose.onNodeWithText("Existing phone tape").performScrollTo().assertExists()
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Hosted broker HTTPS origin"));compose.onNodeWithText("Hosted broker HTTPS origin").assertExists();compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Pair this device"));compose.onNodeWithText("Pair this device").assertIsNotEnabled();compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Test connection"));compose.onNodeWithText("Test connection").assertIsNotEnabled()
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Existing phone tape"));compose.onNodeWithText("Existing phone tape").assertExists()
         assertTrue(runBlocking {journal.shopifyDao().active().isEmpty()})
         val png=File(System.getProperty("snapims.testOutput"),"shopify-preview.png").apply {parentFile!!.mkdirs()}
         png.outputStream().use {compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}

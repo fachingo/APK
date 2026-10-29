@@ -1,3 +1,13 @@
+# Direct Shopify preview 0.8.2
+
+**[Download direct read-only preview APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.2-debug.apk)**
+
+Adds an owner-operated Direct Shopify Connection under Settings → Shopify, using
+your existing Dev Dashboard client credentials. Successful connection opens the
+catalog without a broker. **Real Canada VHS/Pixel acceptance remains unrun;
+direct production writes are not implemented in this preview.**
+[Setup, exact scope and acceptance status](docs/next/DIRECT_SHOPIFY.md).
+
 # SnapIMS Next 0.8.1
 
 **[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.1-debug.apk)** · [SHA-256](releases/SnapIMS-Next-0.8.1-debug.apk.sha256) · [Source ZIP](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.1-source.zip)

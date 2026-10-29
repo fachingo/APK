@@ -1,4 +1,4 @@
-# SnapIMS Next 0.8.1 validation
+# SnapIMS Next0.8.2 direct read-only preview validation
 
 | Check | Executed result |
 | --- | --- |
@@ -12,6 +12,8 @@
 | AiProtocolTest | 7 passed |
 | CameraLayoutTest | 1 passed |
 | CameraUpdateTest | 6 passed |
+| DirectShopifyModelTest | 1 passed |
+| DirectShopifyTest | 3 passed |
 | JournalIntegrationTest | 6 passed |
 | MarketDatabaseTest | 14 passed |
 | MarketDatasetValidationTest | 1 passed |
@@ -37,51 +39,44 @@
 | LocalRecognitionTest | 6 passed |
 | MarketCsvTest | 2 passed |
 | PricingConformanceTest | 3 passed |
-| Unique native/core host checks | **190 passed, 0 failed, 0 skipped** |
-| Broker mock/crypto/SQLite/query checks | **21 passed** |
-| Total unique validated checks | **211 passed** |
-| Consolidated regression / app / instrumentation builds | All unique checks green; final UI/build invocation **BUILD SUCCESSFUL** |
-| Android lint | **0 errors**, 63 warnings; no checks disabled |
-| Package / signing | ca.canadavhs.snapmobile ·0.8.1 · versionCode11 · retained certificate ·16KB alignment verified |
-| Batch deletion | Child records/photos disappear; recovery preserves IDs, leaves batch finished and does not start capture |
-| Record deletion | Hidden from inventory/groups/photos; new captures advance to a new record; Undo does not reopen Trash |
-| Photo deletion | Independent deletion, original/hash retained, exact seven-day recovery check, direct finished-batch UI button |
-| Local drafts | Local receipt/job and product markers hide entries; original remote JSON/IDs unchanged; no remote delete call |
-| Recovery | Independent child Trash survives parent recovery; blocked recovery rolls back; expired recovery rejected |
-| Upgrade | Populated8→10 and legacy chains retain inventory/history;9→10 creates Trash and preserves previously removed-photo recovery |
-| Snapshot | Schema10 includes Trash; legacy3–9 supported; usage JSON not overwritten for schema9 |
-| Native UI | Batch delete/recover, finished-photo delete/recover and local draft/job deletion without pairing exercised |
-| Agent compatibility | Existing compact registry, permission, approval, workflow, error/cost/idle-request tests pass; current/legacy reads exclude deleted inventory/batches |
-| Imported market data | Native regression imports100,000 synthetic records plus75,054 supplied records, safe repeat and restart checked; private CSV excluded from release |
-| Desktop preservation | No desktop repository changes made by this update |
-| Physical Pixel installation/camera | **UNRUN**; no bound physical device |
-| Eligible ChatGPT SIWC account | **UNRUN**; no real sign-in/model discovery/subscription stream claimed |
-| Real Shopify development store | **UNRUN**; no deployed broker/account, no real product mutation/deletion |
+| Unique host checks | **194 passed,0 failed,0 skipped** in consolidated reports |
+| Broker regression | **21 passed** |
+| Total unique checks | **215 passed** |
+| Final focused tests / APK build | BUILD SUCCESSFUL |
+| Lint |0 errors,69 warnings; no checks disabled |
+| Update compatibility | VersionCode12, same package/certificate; Room10 unchanged;16KB alignment verified |
+| Native direct transport | Client-credentials form, encrypted token persistence, reuse/renewal, domain checks and rejection of direct writes tested with mocked HTTP |
+| Rejected grant | Actual organization error preserved with secret redaction; no fallback request |
+| Disconnect | Direct credentials removed without a broker revocation request |
+| Existing components | SIWC encrypted namespace and existing inventory/agent/Shopify regression retained |
+| Real client-credentials exchange / Canada VHS catalog | **UNRUN**; no credentials or physical Pixel available |
+| Direct production writes and photo upload | **NOT IMPLEMENTED**; gateway rejects writes/uploads before network |
+| Independent current documentation fetch | HTTP403 from shopify.dev; uses owner's verified excerpts and existing broker GraphQL contract |
 
-The full regression ran against the delivered production source, with the owner's
-CSV passed explicitly to the native dataset test. Its187 non-Trash-UI checks passed.
-Two of three Trash UI cases failed during activity setup because a reused Android
-ViewModel factory referenced a closed prior-test database. Those three cases were
-split into separate process-isolated UI classes and all rerun successfully, with
-their assertions preserved. The consolidated evidence contains190 unique checks,
-not overlapping-run totals. Only test fixture organization changed after the full
-run. Broker tests ran separately; lint ran after compilation/tests. Reactive UI
-checks wait for actual Room/Compose state. WorkManager host teardown can emit
-CloseGuard warnings; the consolidated suite has zero failures/errors/skips.
+These are host/mocked checks, not real-store acceptance. The full regression had
+one UI wait failure after adding the connection selector: a location was outside
+the composed viewport. The test now scrolls to the actual location while waiting;
+all existing assertions remain. The final Shopify UI/direct tests were rerun and
+replace overlapping reports. The final direct tests additionally cover redacted
+organization rejection and local disconnect; counts above are unique class reports.
+Lint ran after compilation/tests. The market regression used100,000 synthetic
+records this run; the supplied75,054-row CSV remains private and was not reimported
+for this transport-only change. Historical real CSV validation remains in0.8.1.
 
-Deletion is local visibility plus a seven-day recovery window. Internal identity,
-audit and original file bytes remain retained, including after recovery expires;
-this is not secure erasure/storage reclamation. Historical exports and transcripts
-are not rewritten. Local recovery never resumes external work automatically.
-See [controls and exact limits](next/TRASH.md) and [release notes](next/RELEASE_0.8.1.md).
+This preview delivers the native read connection code and installable update. It
+does not establish that the real Canada VHS catalog loaded successfully. The
+requested order requires that physical-device read acceptance before production
+write enablement. No real products were created, updated, uploaded or deleted.
 
-Evidence: /workspace/.setup/v081-validated-junit, v081-final-full-validation.log,
-v081-ui-isolation-validation.log, v081-market-benchmark.json, v081-broker-tests.log,
-v081-lint.log, v081-signing.txt and v081-alignment.txt in the cloud workspace.
-The private CSV, runtime databases and signing key are excluded from public source.
+Evidence: /workspace/.setup/v082-validated-junit, v082-full-validation.log,
+v082-focused-validation.log, v082-final-direct-validation.log,
+v082-final-validation.log, v082-broker-tests.log, v082-lint.log,
+v082-signing.txt and v082-alignment.txt.
 
-APK SHA-256: `d79272d7b64072b74ccf325501fc22a99a111c45ae817a2369f8e9a227cc34d4`
+[Setup and exact acceptance limits](next/DIRECT_SHOPIFY.md).
 
-Signing certificate SHA-256:
+APK SHA256: `af03678ca7ea74c6c7dc53a9a1d1af118ad471ee1d245c9f7dc5f49396446884`
+
+Retained signing certificate SHA256:
 `b262fd08c7a58f338027260d47a94a33e5c939d72752034dddb2f4f6bf73faae`.
-Install over the previous official app without uninstalling or clearing storage.
+Install over the existing app; do not uninstall or clear private data.

@@ -93,7 +93,7 @@ internal fun metadataLabel(key:String)=when(key) {"descriptionHtml"->"Descriptio
             if(nodes.length()==0) item {EmptyState("No matching listings","Change the title or status filter.")}
             items((0 until nodes.length()).map {nodes.getJSONObject(it)}.filter {stableRowId(it.getString("id")) !in hiddenProducts},key={it.getString("id")}) {product->OutlinedCard(Modifier.fillMaxWidth()) {Column(Modifier.padding(14.dp)) {
                 Text("${product.getString("title")} · ${product.getString("status")}",style=MaterialTheme.typography.titleMedium)
-                val variants=product.getJSONObject("variants").getJSONArray("nodes");Text((0 until variants.length()).joinToString(" · ") {variants.getJSONObject(it).optString("sku").ifBlank {"No SKU"}})
+                val variants=product.getJSONObject("variants").getJSONArray("nodes");Text((0 until variants.length()).joinToString(" · ") {variants.getJSONObject(it).let {v->"${v.optString("sku").ifBlank {"No SKU"}} · ${v.optString("price")} · stock ${v.opt("inventoryQuantity") ?: "unknown"}"}})
                 if(product.getString("status")=="DRAFT") TextButton(onClick={vm.action {vm.repo.hideShopifyDraft(product);vm.message="Draft hidden in SnapIMS. Shopify is unchanged."}}) {Text("Delete draft from app")}
                 TextButton(enabled=location.isNotBlank() && !model.busy,onClick={model.inspect(product.getString("id"),location);fields=emptyList();selected=""}) {Text("Inspect listing")}
             }}}
