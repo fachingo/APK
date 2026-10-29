@@ -56,12 +56,12 @@ internal class AgentTools(private val repo:CaptureRepository) {
                 JSONObject().put("items",JSONArray(rows.map {inventoryJson(it)})).put("limit",10)
             }
             "inventory_get" -> {
-                require(args.keys().asSequence().toSet()==setOf("group_id"));val item=repo.journal.inventoryDao().item(args.getString("group_id")) ?: error("Item not found.")
+                require(args.keys().asSequence().toSet()==setOf("group_id"));val item=repo.journal.inventoryDao().item(args.getString("group_id")) ?: error("Item not found.");check(repo.journal.trashDao().target("INVENTORY",item.groupId)==null) {"Record is in Trash."}
                 inventoryJson(item).put("problems",JSONArray(inventoryProblems(item,repo.dao.photos(item.groupId),repo)))
             }
             "recognition_results" -> {
                 require(args.keys().asSequence().toSet()==setOf("group_id"));val id=args.getString("group_id")
-                require(repo.journal.inventoryDao().item(id)!=null)
+                require(repo.journal.inventoryDao().item(id)!=null);check(repo.journal.trashDao().target("INVENTORY",id)==null) {"Record is in Trash."}
                 JSONObject().put("suggestions",JSONArray(repo.dao.recognitions(id).take(10).map {r->JSONObject().put("id",r.id).put("provider",r.provider).put("state",r.state).put("acceptedTitle",r.acceptedTitle ?: JSONObject.NULL)}))
             }
             "pricing_evidence" -> {
@@ -90,7 +90,7 @@ internal class AgentTools(private val repo:CaptureRepository) {
                 check(chat.proposalsEnabled) {"Change proposals are disabled for this chat."}
                 val expected=when(name) {"propose_shopify_draft"->setOf("group_id","location_id");"propose_inventory_update"->setOf("group_id","patch_json");"propose_sold_price"->setOf("group_id","evidence_id","method");"propose_apply_recognition"->setOf("group_id","recognition_id");else->setOf("group_id")}
                 require(args.keys().asSequence().toSet()==expected)
-                val item=repo.journal.inventoryDao().item(args.getString("group_id")) ?: error("Item not found.")
+                val item=repo.journal.inventoryDao().item(args.getString("group_id")) ?: error("Item not found.");check(repo.journal.trashDao().target("INVENTORY",item.groupId)==null) {"Record is in Trash."}
                 val payload=JSONObject(args.toString()).put("expectedRevision",item.revision).put("currentTitle",item.title).put("itemId",item.itemId).put("currentPriceCents",item.priceCents ?: JSONObject.NULL)
                 if(name=="propose_shopify_draft") {
                     check(repo.preferences.getBoolean("shopifyPaired",false)) {"Pair Shopify in Settings first."}

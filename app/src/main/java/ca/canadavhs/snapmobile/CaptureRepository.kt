@@ -118,7 +118,7 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, val d
     suspend fun undoNext() = mutate {
         val current = current(); editable(current)
         check(dao.photos(current.id).none { !it.deleted }) { "Move or delete current photos before Undo Next." }
-        val previous = dao.groups(current.sessionId).lastOrNull { it.number < current.number } ?: error("There is no previous product.")
+        val previous = dao.groups(current.sessionId).lastOrNull { it.number < current.number && journal.trashDao().target("INVENTORY",it.id)==null } ?: error("There is no previous product.")
         editable(previous)
         val offset = (dao.photos(previous.id).maxOfOrNull { it.position } ?: -1) + 1
         dao.photos(current.id).forEachIndexed { i, p -> dao.update(p.copy(groupId = previous.id, position = offset + i)) }
@@ -162,13 +162,9 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, val d
         }
         event(group.sessionId, id, "BARCODE_CORRECTED")
     }
-    suspend fun deletePhoto(id: String) = mutate {
-        val photo = dao.photo(id); val group = dao.group(photo.groupId); editable(group)
-        dao.update(photo.copy(deleted = true)); invalidateInventory(group.id, "PHOTO_REMOVED"); event(group.sessionId, group.id, "PHOTO_REMOVED:$id")
-    }
-    suspend fun restorePhoto(id: String) = mutate {
-        val p = dao.photo(id); editable(dao.group(p.groupId)); dao.update(p.copy(deleted = false, position = (dao.photos(p.groupId).maxOfOrNull { it.position } ?: -1) + 1)); invalidateInventory(p.groupId, "PHOTO_RESTORED")
-    }
+    suspend fun deletePhoto(id:String)=trashLocal("PHOTO",id)
+    suspend fun restorePhoto(id:String) {val t=journal.trashDao().target("PHOTO",id) ?: error("Recover removed photographs in Trash.");restoreTrash(t.id)}
+
     suspend fun role(id: String, role: Role) = mutate {
         val photo = dao.photo(id); editable(dao.group(photo.groupId)); dao.update(photo.copy(role = role.name)); invalidateInventory(photo.groupId, "PHOTO_ROLE")
     }

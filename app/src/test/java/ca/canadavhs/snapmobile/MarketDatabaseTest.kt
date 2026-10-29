@@ -65,7 +65,7 @@ class MarketDatabaseTest {
     }
     @Test fun normalizedEvidenceAndDecisionsAreIncludedInPhotoBackupAndAtomicRestore():Unit=runBlocking {
         val item=item();import(row("1",currency="CAD"));val r=repo.recommendMarket(item.groupId,"CAD")!!;repo.applyMarketPrice(r,"MEDIAN",1300L,true,true)
-        val snapshot=repo.hashSnapshotFiles(repo.buildSnapshot());assertEquals(9,snapshot.getInt("schema"));val files=snapshot.getJSONArray("files");assertEquals(1,(0 until files.length()).count {files.getJSONObject(it).getString("path").startsWith("market/")})
+        val snapshot=repo.hashSnapshotFiles(repo.buildSnapshot());assertEquals(10,snapshot.getInt("schema"));val files=snapshot.getJSONArray("files");assertEquals(1,(0 until files.length()).count {files.getJSONObject(it).getString("path").startsWith("market/")})
         val stage=File(app.cacheDir,newId()).apply {mkdirs()};for(i in 0 until files.length()) {val path=files.getJSONObject(i).getString("path");File(stage,path).apply {parentFile!!.mkdirs();repo.snapshotFile(path).copyTo(this)}}
         val dest=create();dest.mergeSnapshot(snapshot,stage);assertEquals(1,dest.searchMarket(MarketFilters(query="alien")).groups.size);assertEquals(2,dest.journal.marketDao().decisionsForItem(item.groupId).size);assertEquals(1300L,dest.journal.inventoryDao().item(item.groupId)!!.priceCents)
         val archive=repo.exportMarketDatabase();val p=dest.previewMarket(archive,"export.sqlite");assertEquals(0L,dest.commitMarket(p).added)

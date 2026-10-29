@@ -14,12 +14,12 @@ data class ShopifyItemJobRow(@PrimaryKey val id:String=newId(),val jobId:String,
     val inputFingerprint:String,val snapshotJson:String,val creationKey:String,val state:String="QUEUED",val step:String="VALIDATE",val remoteJson:String="{}",val checkpointJson:String="{}",
     val error:String="",val attempts:Int=0,val createdAt:Long=System.currentTimeMillis(),val updatedAt:Long=createdAt)
 @Dao interface ShopifyDao {
-    @Query("SELECT * FROM shopify_reviews ORDER BY createdAt DESC LIMIT 100") fun watchReviews():Flow<List<ShopifyReviewRow>>
+    @Query("SELECT * FROM shopify_reviews WHERE NOT EXISTS(SELECT 1 FROM trash_entries t WHERE (t.kind='INVENTORY' AND instr(shopify_reviews.payloadJson,t.targetId)>0) OR (t.kind='DRAFT' AND instr(shopify_reviews.resultJson,t.targetId)>0)) ORDER BY createdAt DESC LIMIT 100") fun watchReviews():Flow<List<ShopifyReviewRow>>
     @Query("SELECT * FROM shopify_reviews WHERE id=:id") suspend fun review(id:String):ShopifyReviewRow?
     @Insert suspend fun insert(row:ShopifyReviewRow)
     @Update suspend fun update(row:ShopifyReviewRow)
-    @Query("SELECT * FROM shopify_jobs ORDER BY createdAt DESC") fun watchJobs():Flow<List<ShopifyJobRow>>
-    @Query("SELECT * FROM shopify_job_items ORDER BY createdAt DESC") fun watchItems():Flow<List<ShopifyItemJobRow>>
+    @Query("SELECT * FROM shopify_jobs WHERE id NOT IN (SELECT targetId FROM trash_entries WHERE kind='DRAFT') ORDER BY createdAt DESC") fun watchJobs():Flow<List<ShopifyJobRow>>
+    @Query("SELECT * FROM shopify_job_items WHERE id NOT IN (SELECT targetId FROM trash_entries WHERE kind='DRAFT_ITEM') AND jobId NOT IN (SELECT targetId FROM trash_entries WHERE kind='DRAFT') AND groupId NOT IN (SELECT targetId FROM trash_entries WHERE kind='INVENTORY') ORDER BY createdAt DESC") fun watchItems():Flow<List<ShopifyItemJobRow>>
     @Query("SELECT * FROM shopify_jobs WHERE id=:id") suspend fun job(id:String):ShopifyJobRow?
     @Query("SELECT * FROM shopify_job_items WHERE id=:id") suspend fun item(id:String):ShopifyItemJobRow?
     @Query("SELECT * FROM shopify_job_items WHERE jobId=:id ORDER BY createdAt,id") suspend fun items(id:String):List<ShopifyItemJobRow>

@@ -105,10 +105,10 @@ class JournalIntegrationTest {
             verifyArchive(target, m)
         }
         assertTrue(repo.original(first.id).exists() && repo.original(second.id).exists())
-        try { repo.deletePhoto(first.id); fail("Archived group must be immutable") } catch (_: IllegalStateException) { }
         // Simulate crash after atomic rename but before READY; same archive is verified/reused.
         repo.dao.update(ready.copy(state = "BUILDING")); worker.doWork()
         assertEquals(ready.sha256, repo.dao.archive(archive.id).sha256)
+        repo.deletePhoto(first.id); assertTrue(repo.dao.photo(first.id).deleted); assertEquals(ready.sha256,hashFile(target));repo.restorePhoto(first.id);assertFalse(repo.dao.photo(first.id).deleted)
         // Hand this real Android-generated ZIP to the desktop interoperability check.
         val fixtureOutput = File(System.getProperty("snapims.testOutput"), "native-export.zip")
         fixtureOutput.parentFile!!.mkdirs(); target.copyTo(fixtureOutput, overwrite = true)

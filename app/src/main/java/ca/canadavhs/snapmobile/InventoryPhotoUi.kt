@@ -33,7 +33,7 @@ import ca.canadavhs.snapmobile.core.Role
         LazyColumn(Modifier.weight(1f).padding(horizontal=20.dp),contentPadding=PaddingValues(bottom=20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
             item {Text("Corrections update this inventory record. Previously exported ZIPs stay unchanged. Removed photos can be restored; original files are retained.",style=MaterialTheme.typography.bodySmall)}
             item {Button(enabled=!vm.pendingCapture && !item.archived,onClick={capture(null)}) {Text("Add photographs")}}
-            items(photos.sortedBy {it.position},key={it.id}) { photo ->
+            items(photos.filter {!it.deleted}.sortedBy {it.position},key={it.id}) { photo ->
                 Column {
                     AsyncImage(if(photo.state=="READY") vm.repo.original(photo.id) else vm.repo.pendingFile(photo.id),"${photo.role} original",Modifier.fillMaxWidth().height(if(expanded==photo.id) 320.dp else 160.dp).clickable {expanded=if(expanded==photo.id) null else photo.id},contentScale=androidx.compose.ui.layout.ContentScale.Fit)
                     Text("${photo.role} · ${if(photo.deleted) "Removed · original retained" else photo.state.lowercase()}",style=MaterialTheme.typography.labelLarge)
@@ -47,7 +47,7 @@ import ca.canadavhs.snapmobile.core.Role
                         }
                         Row(Modifier.horizontalScroll(rememberScrollState())) {
                             TextButton(enabled=!vm.pendingCapture,onClick={vm.action {vm.repo.reviseInventoryPhoto(photo.id,"ROLE",Role.entries[(Role.valueOf(photo.role).ordinal+1)%3].name)}}) {Text("Change role")}
-                            TextButton(enabled=!vm.pendingCapture,onClick={vm.action {vm.repo.reviseInventoryPhoto(photo.id,"REMOVE")}}) {Text("Remove photo")}
+                            TextButton(enabled=!vm.pendingCapture,onClick={vm.action {vm.repo.reviseInventoryPhoto(photo.id,"REMOVE")}}) {Text("Delete photo")}
                             if(others.isNotEmpty()) Box {
                                 TextButton(enabled=!vm.pendingCapture,onClick={moving=photo.id}) {Text("Move to another item")}
                                 DropdownMenu(expanded=moving==photo.id,onDismissRequest={moving=null}) {

@@ -89,7 +89,7 @@ class RecognitionStorageTest {
         }
         val original = File(app.filesDir, "originals/photo-v1.jpg").apply { parentFile!!.mkdirs(); writeBytes(byteArrayOf(1, 2, 3, 4)) }
         helper.close()
-        val upgraded = Room.databaseBuilder(app, CaptureJournal::class.java, name).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9).allowMainThreadQueries().build()
+        val upgraded = Room.databaseBuilder(app, CaptureJournal::class.java, name).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10).allowMainThreadQueries().build()
         try {
             upgraded.openHelper.writableDatabase
             val dao = upgraded.dao()

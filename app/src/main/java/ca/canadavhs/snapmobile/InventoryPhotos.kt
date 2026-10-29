@@ -32,10 +32,15 @@ suspend fun CaptureRepository.reserveInventoryPhoto(groupId: String, replaceId: 
 suspend fun CaptureRepository.replaceInventoryPhoto(oldId: String, newId: String) = mutate {
     val old=dao.photo(oldId); val replacement=dao.photo(newId)
     check(old.groupId==replacement.groupId && !old.deleted && replacement.state=="READY")
+    journal.trashDao().target("PHOTO",old.id)?.let {error("Original already in Trash")}
+    journal.trashDao().insert(TrashRow(kind="PHOTO",targetId=old.id,label="${old.role} photograph before retake"))
     dao.update(old.copy(deleted=true)); dao.update(replacement.copy(position=old.position,role=old.role))
     invalidateInventory(old.groupId,"PHOTO_RETAKEN")
 }
-suspend fun CaptureRepository.reviseInventoryPhoto(id: String, action: String, value: String="") = mutate {
+suspend fun CaptureRepository.reviseInventoryPhoto(id:String,action:String,value:String="") {
+    if(action=="REMOVE") {trashLocal("PHOTO",id);return}
+    if(action=="RESTORE") {restorePhoto(id);return}
+    mutate {
     val photo=dao.photo(id); editableInventoryPhotos(photo.groupId)
     val active=dao.photos(photo.groupId).filter { !it.deleted }.toMutableList()
     when(action) {
@@ -59,6 +64,7 @@ suspend fun CaptureRepository.reviseInventoryPhoto(id: String, action: String, v
         else -> error("Unsupported photo correction.")
     }
     invalidateInventory(photo.groupId,"PHOTO_$action")
+}
 }
 
 suspend fun CaptureRepository.applyQrLocation(value: String) = mutate {

@@ -68,6 +68,8 @@ internal fun metadataLabel(key:String)=when(key) {"descriptionHtml"->"Descriptio
 @Composable internal fun ShopifyListingsScreen(vm:CaptureViewModel,model:ShopifyModel,back:()->Unit) {
     BackHandler(onBack=back)
     val inventory by vm.inventory.collectAsStateWithLifecycle()
+    val trash by remember {vm.repo.journal.trashDao().watchAll()}.collectAsStateWithLifecycle(emptyList())
+    val hiddenProducts=trash.filter {it.kind=="PRODUCT"}.map {it.targetId}.toSet()
     val reviews by remember {vm.repo.journal.shopifyDao().watchReviews()}.collectAsStateWithLifecycle(emptyList())
     var query by rememberSaveable {mutableStateOf("")};var status by rememberSaveable {mutableStateOf("")};var location by rememberSaveable {mutableStateOf("")}
     var localSearch by rememberSaveable {mutableStateOf("")};var selected by rememberSaveable {mutableStateOf("")}
@@ -89,14 +91,15 @@ internal fun metadataLabel(key:String)=when(key) {"descriptionHtml"->"Descriptio
             item {Text("${model.catalogQuery.ifBlank {"All titles"}} · ${model.catalogStatus.ifBlank {"all statuses"}} · ${model.catalogFetchedAt}",style=MaterialTheme.typography.bodySmall);Text("Results are a read snapshot. Preparing a review fetches the listing again.",style=MaterialTheme.typography.bodySmall)}
             val nodes=page.getJSONArray("nodes")
             if(nodes.length()==0) item {EmptyState("No matching listings","Change the title or status filter.")}
-            items((0 until nodes.length()).map {nodes.getJSONObject(it)},key={it.getString("id")}) {product->OutlinedCard(Modifier.fillMaxWidth()) {Column(Modifier.padding(14.dp)) {
+            items((0 until nodes.length()).map {nodes.getJSONObject(it)}.filter {stableRowId(it.getString("id")) !in hiddenProducts},key={it.getString("id")}) {product->OutlinedCard(Modifier.fillMaxWidth()) {Column(Modifier.padding(14.dp)) {
                 Text("${product.getString("title")} · ${product.getString("status")}",style=MaterialTheme.typography.titleMedium)
                 val variants=product.getJSONObject("variants").getJSONArray("nodes");Text((0 until variants.length()).joinToString(" · ") {variants.getJSONObject(it).optString("sku").ifBlank {"No SKU"}})
+                if(product.getString("status")=="DRAFT") TextButton(onClick={vm.action {vm.repo.hideShopifyDraft(product);vm.message="Draft hidden in SnapIMS. Shopify is unchanged."}}) {Text("Delete draft from app")}
                 TextButton(enabled=location.isNotBlank() && !model.busy,onClick={model.inspect(product.getString("id"),location);fields=emptyList();selected=""}) {Text("Inspect listing")}
             }}}
             if(page.getJSONObject("pageInfo").optBoolean("hasNextPage")) item {OutlinedButton(enabled=!model.busy,onClick={model.browse(model.catalogQuery,model.catalogStatus,page.getJSONObject("pageInfo").getString("endCursor"))}) {Text("Next 20 listings")}}
         }
-        if(detail!=null) {
+        if(detail!=null && stableRowId(detail.getString("id")) !in hiddenProducts) {
             item {HorizontalDivider();Text("Listing details",style=MaterialTheme.typography.titleLarge);Text("${detail.getString("title")} · ${detail.getString("status")}");Text(detail.getString("id"),style=MaterialTheme.typography.bodySmall)
                 Text(detail.getString("descriptionHtml"));val variants=detail.getJSONObject("variants").getJSONArray("nodes");for(i in 0 until variants.length()) {val v=variants.getJSONObject(i);Text("SKU ${v.getString("sku")} · CAD ${v.getString("price")}")}
                 Text("${detail.getJSONObject("media").getJSONArray("nodes").length()} images · updated ${detail.getString("updatedAt")}")

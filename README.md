@@ -1,12 +1,21 @@
-# SnapIMS Next 0.8.0
+# SnapIMS Next 0.8.1
 
-**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.0-debug.apk)** · [SHA-256](releases/SnapIMS-Next-0.8.0-debug.apk.sha256) · [Source ZIP](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.0-source.zip)
+**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.1-debug.apk)** · [SHA-256](releases/SnapIMS-Next-0.8.1-debug.apk.sha256) · [Source ZIP](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.1-source.zip)
 
 Standalone native Android inventory for Canada VHS, built on the existing SnapIMS
 rules and compatible capture formats. No desktop process, local HTTP server or LAN
 connection is required for capture, inventory, search, review or backup.
 
-This update expands the existing **AI workspace into an on-demand application agent**.
+This update adds **easy local deletion and seven-day Trash recovery**. Delete a
+batch from Batches, a record from its inventory details, a photograph beside its
+preview, or a local draft from Shopify screens. Deleted entries disappear from
+ordinary app lists. Recover them from **Settings → Trash** within seven days.
+**Deleting here never deletes a Shopify product.** Recovery does not restart work.
+Original photo bytes, immutable exports and internal identity/audit records are
+retained; this is not secure erasure or storage reclamation.
+[Deletion and recovery details](docs/next/TRASH.md).
+
+The existing **AI workspace remains an on-demand application agent**.
 Choose Chat Only, Read Access or Full Agent. The agent can inspect non-secret app
 records through compact local tools, cross-reference the offline market library,
 and propose reviewed inventory/pricing/recognition/listing workflows. Batch, task,
@@ -15,7 +24,7 @@ Tool activity, change previews, task links and token/cost records stay in the wo
 Nothing changes without human approval; there is no continuous AI monitoring,
 model polling or automatic photo transmission. Economy/Standard budgets bound requests.
 [Agent capabilities and limits](docs/agent/APPLICATION_AGENT.md) ·
-[0.8.0 release notes](docs/agent/RELEASE_0.8.0.md) ·
+[0.8.1 release notes](docs/next/RELEASE_0.8.1.md) ·
 [Executed tests](docs/TEST_RESULTS.md) · [Feature matrix](docs/next/FEATURE_MATRIX.md).
 
 The A–D program is not complete: Shopify authorization and development-store

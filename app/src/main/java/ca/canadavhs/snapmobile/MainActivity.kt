@@ -147,7 +147,7 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
                             } }
                         }; if (archives.isEmpty()) item { EmptyState("No archives yet", "Next closes a product. Finish Batch or Finalize Part packages complete groups.") } }
                     }
-                    3 -> SettingsScreen(vm, light, onBackups = { screen = 6 }, onExports = { screen = 2 }, onWorkspace={screen=7},onPricing={screen=8},onListings={screen=9},onMarket={screen=10},onTasks={screen=11}) { light = it }
+                    3 -> SettingsScreen(vm, light, onBackups = { screen = 6 }, onExports = { screen = 2 }, onWorkspace={screen=7},onPricing={screen=8},onListings={screen=9},onMarket={screen=10},onTasks={screen=11},onTrash={screen=12}) { light = it }
                     4 -> InventoryHome(vm, capture = { screen = 0 }, inventory = { screen = 5 }, batches = { screen = 1 }, backups = { screen = 6 })
                     5 -> InventoryScreen(vm, reviewPhotos = { screen = 1 },initialGroupId=inventoryTarget)
                     6 -> BackupScreen(vm) { screen = 3 }
@@ -168,6 +168,7 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
                     8 -> PricingScreen(vm) {screen=3}
                     10 -> MarketDatabaseScreen(vm,{screen=3},initialGroupId=marketTarget)
                     9 -> ListingPlansScreen(vm) {screen=3}
+                    12 -> TrashScreen(vm) {screen=3}
                     11 -> TasksScreen(vm,back={screen=3},inventory={inventoryTarget=it;screen=5},shopify={screen=9},initialTaskId=taskTarget,batch={batchTarget=it;photoTarget=null;screen=1})
                 }
                 if (!vm.initialized) Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { Box(contentAlignment = Alignment.Center) { Text("Recovering your capture journal…") } }
@@ -339,6 +340,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
         if (session == null) item { EmptyState("Start with one tape", "Create a batch in Capture. Your photos and unfinished product are restored when you return.") }
         if (session != null) {
             item { Row(verticalAlignment = Alignment.CenterVertically) { Text(if (session.finished) "Finished · source photos retained" else "Capturing · ${groups.count { it.sessionId == session.id && it.closed }} products", Modifier.weight(1f)); TextButton(onClick = { vm.action { vm.repo.queueArchives(session.id) } }) { Text("Finalize part") } } }
+            item {TextButton(onClick={vm.action {vm.repo.trashLocal("BATCH",session.id);selected=null;vm.message="Batch moved to Trash for seven days."}}) {Text("Delete batch · move to Trash")}}
             item { TextButton(onClick = { batchRecognitionDialog = true }) { Text("Recognize completed products") } }
             items(groups.filter { it.sessionId == session.id }.sortedByDescending { it.number }, key = { it.id }) { group ->
                 val list = photos.filter { it.groupId == group.id }.sortedBy { it.position }; val visible = list.filter { !it.deleted }
@@ -364,8 +366,8 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
                             if (photo.state == "ERROR" && !locked) TextButton(onClick = { vm.action { vm.repo.complete(photo.id) } }) { Text("Recover file", fontSize = 11.sp) }
                             if (!locked) {
                                 Row { IconButton(onClick = { vm.action { vm.repo.reorder(photo.id, -1) } }, modifier = Modifier.size(48.dp)) { Icon(Icons.Outlined.KeyboardArrowLeft, "Move photo earlier") }; IconButton(onClick = { vm.action { vm.repo.reorder(photo.id, 1) } }, modifier = Modifier.size(48.dp)) { Icon(Icons.Outlined.KeyboardArrowRight, "Move photo later") } }
-                                TextButton(onClick = { vm.action { vm.repo.deletePhoto(photo.id) } }) { Text("Remove", fontSize = 11.sp) }
                             }
+                            TextButton(onClick = { vm.action { vm.repo.deletePhoto(photo.id) } }) { Text("Delete photo", fontSize = 11.sp) }
                         }
                     } }
                     if (!locked && list.any { it.deleted }) TextButton(onClick = { vm.action { list.lastOrNull { it.deleted }?.let { vm.repo.restorePhoto(it.id) } } }) { Text("Restore last removed photo") }
@@ -396,12 +398,12 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
             if (groups.firstOrNull { it.id == p.groupId }?.archiveId == null && session?.finished == false) {
                 TextButton(onClick = { vm.action { vm.repo.move(p.id, -1); inspected = null } }) { Text("Move to previous product") }
                 TextButton(onClick = { vm.action { vm.repo.move(p.id, 1); inspected = null } }) { Text("Move to next product") }
-                TextButton(onClick = { vm.action { vm.repo.deletePhoto(p.id); inspected = null } }) { Text("Remove · original retained") }
             }
+            TextButton(onClick = { vm.action { vm.repo.deletePhoto(p.id); inspected = null } }) { Text("Delete photo · move to Trash") }
         } }, confirmButton = { TextButton(onClick = { inspected = null }) { Text("Done") } })
     }
 }
-@Composable fun SettingsScreen(vm: CaptureViewModel, light: Boolean, onBackups: () -> Unit = {}, onExports: () -> Unit = {}, onWorkspace:()->Unit={},onPricing:()->Unit={},onListings:()->Unit={},onMarket:()->Unit={},onTasks:()->Unit={}, appearance: (Boolean) -> Unit) {
+@Composable fun SettingsScreen(vm: CaptureViewModel, light: Boolean, onBackups: () -> Unit = {}, onExports: () -> Unit = {}, onWorkspace:()->Unit={},onPricing:()->Unit={},onListings:()->Unit={},onMarket:()->Unit={},onTasks:()->Unit={},onTrash:()->Unit={}, appearance: (Boolean) -> Unit) {
     val prefs = vm.repo.preferences
     val context = LocalContext.current
     var showLicenses by remember { mutableStateOf(false) }
@@ -411,6 +413,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
         item { PageTitle("Settings", "Your collection, your controls") }
         item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { OutlinedButton(onClick = onBackups) { Text("Backup & import") }; OutlinedButton(onClick = onExports) { Text("Transfers") } } }
         item { Row(Modifier.horizontalScroll(rememberScrollState())) {OutlinedButton(onClick=onTasks) {Text("Tasks")};OutlinedButton(onClick=onWorkspace) {Text("AI workspace")};OutlinedButton(onClick=onPricing) {Text("Sold pricing")};OutlinedButton(onClick=onListings) {Text("Shopify")};OutlinedButton(onClick=onMarket) {Text("Market database")}} }
+        item {OutlinedButton(onClick=onTrash) {Text("Trash · recover deleted records")}}
         item { Text("CAMERA", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
         item { ResolutionSettings(prefs) }
         item { PreferenceSwitch("Fast capture", prefs.getBoolean("fastCapture", true)) { prefs.edit().putBoolean("fastCapture", it).apply() } }
@@ -426,7 +429,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
         item { Text("ARCHIVES & RETENTION", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
         item { OutlinedTextField(archiveMb, { value -> archiveMb = value.filter(Char::isDigit).take(5); val n = archiveMb.toIntOrNull(); if (n != null && n in 1..10000) prefs.edit().putInt("archiveMb", n).apply() }, label = { Text("Archive target · MB") }, supportingText = { Text("1–10,000 MB · whole products only; oversized products stay together") }, isError = archiveMb.toIntOrNull() !in 1..10000, singleLine = true) }
         item { OutlinedTextField(location, { location = it.uppercase().take(3); if (validLocation(location)) prefs.edit().putString("defaultLocation", location).apply() }, label = { Text("Default location") }, supportingText = { Text("A1–J10 or Q1, optional") }, isError = !validLocation(location), singleLine = true) }
-        item { Text("Choose an export destination each time using Save to Files. Existing capture ZIPs remain unchanged; make inventory and photo corrections in Inventory. Removing a photo keeps its source file. No automatic deletion or cloud backup. Uninstalling Android apps removes private files: save and verify all ZIPs before uninstalling or clearing storage.", style = MaterialTheme.typography.bodySmall) }
+        item { Text("Choose an export destination each time using Save to Files. Existing capture ZIPs remain unchanged; make inventory and photo corrections in Inventory. Removing a photo keeps its source file. Deleted records can be recovered in Trash for seven days. Historical exports remain unchanged. No automatic cloud backup. Uninstalling Android apps removes private files: save and verify all ZIPs before uninstalling or clearing storage.", style = MaterialTheme.typography.bodySmall) }
         item { PreferenceSwitch("Light appearance", light) { prefs.edit().putBoolean("light", it).apply(); appearance(it) } }
         item { TextButton(onClick = { showLicenses = true }) { Text("Third-party notices & licenses") } }
         item { Text("SnapIMS Next 0.3.0 · standalone inventory & AI preview", style = MaterialTheme.typography.bodySmall) }

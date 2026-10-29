@@ -12,7 +12,7 @@ data class AgentTaskRow(@PrimaryKey val id:String=newId(),val approvalId:String,
     val groupIdsJson:String,val jobIdsJson:String="[]",val state:String="SCHEDULE_PENDING",val resultJson:String="{}",val error:String="",
     val createdAt:Long=System.currentTimeMillis(),val updatedAt:Long=createdAt)
 @Dao interface AgentTaskDao {
-    @Query("SELECT * FROM agent_tasks ORDER BY createdAt DESC LIMIT 200") fun watch():Flow<List<AgentTaskRow>>
+    @Query("SELECT * FROM agent_tasks WHERE NOT EXISTS(SELECT 1 FROM trash_entries t WHERE t.kind='INVENTORY' AND instr(agent_tasks.groupIdsJson,t.targetId)>0) ORDER BY createdAt DESC LIMIT 200") fun watch():Flow<List<AgentTaskRow>>
     @Query("SELECT * FROM agent_tasks WHERE id=:id") suspend fun get(id:String):AgentTaskRow?
     @Query("SELECT * FROM agent_tasks WHERE state='SCHEDULE_PENDING' ORDER BY createdAt") suspend fun pending():List<AgentTaskRow>
     @Query("SELECT * FROM agent_tasks WHERE state NOT IN ('CANCELLED','COMPLETE')") suspend fun unsettled():List<AgentTaskRow>

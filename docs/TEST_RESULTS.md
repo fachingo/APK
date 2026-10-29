@@ -1,4 +1,4 @@
-# SnapIMS Next 0.8.0 validation
+# SnapIMS Next 0.8.1 validation
 
 | Check | Executed result |
 | --- | --- |
@@ -27,75 +27,61 @@
 | SiwcProtocolTest | 6 passed |
 | StandaloneInventoryTest | 9 passed |
 | StandaloneUiTest | 1 passed |
+| TrashDraftUiTest | 1 passed |
+| TrashPhotoUiTest | 1 passed |
+| TrashTest | 10 passed |
+| TrashUiTest | 1 passed |
 | WorkspaceUiTest | 1 passed |
 | CaptureRulesTest | 10 passed |
 | DesktopConformanceTest | 4 passed |
 | LocalRecognitionTest | 6 passed |
 | MarketCsvTest | 2 passed |
 | PricingConformanceTest | 3 passed |
-| Unique native/core host checks | **177 passed, 0 failed, 0 skipped** |
+| Unique native/core host checks | **190 passed, 0 failed, 0 skipped** |
 | Broker mock/crypto/SQLite/query checks | **21 passed** |
-| Total unique validated checks | **198 passed** |
-| Regression and APK builds | **BUILD SUCCESSFUL**; app and instrumentation APKs built |
+| Total unique validated checks | **211 passed** |
+| Consolidated regression / app / instrumentation builds | All unique checks green; final UI/build invocation **BUILD SUCCESSFUL** |
 | Android lint | **0 errors**, 63 warnings; no checks disabled |
-| APK compatibility | Version0.8.0 / versionCode10 / same package and retained certificate /16KB alignment verified |
-| Populated migration |8→9 retains physical IDs, photo hashes, chat/usage and reviews;1→9 and populated6→9 chains also validate |
-| Compact registry |5 root tools in Full Agent,4 in Read Access,0 in Chat Only; every resource/action schema and every entity's actual Room columns checked |
-| Permission enforcement | Fresh stored modes reject stale caller copies; Chat Only blocks reads; Read Access blocks proposals; downgrade cancels the response and expires pending reviews |
-| Actual local reads | Full inventory fields, custom projection, local filters, latest-batch unpriced, cross-batch duplicates, complete-scope currency ranking and cache invalidation |
-| Mixed approved workflow | Corrected-title evidence, metadata/prices/readiness/local plans commit atomically; changed second cohort rolls back metadata, prices, audit and task rows |
-| Rejection and stale reviews | Rejected/stale selections make no inventory changes or recognition jobs; one-use approvals cannot replay |
-| Explicit paid/destructive/financial/live controls | Reviewed prices/archive/paid recognition require their consent; live publication requires SUBMIT before native job creation |
-| Existing services | Batch/task/settings controls, actual archive worker/hash verification, native Shopify management review and owning jobs reused |
-| Remote completion | Queued recognition/Shopify remains incomplete; mocked verified native ownership/link outcome controls task success |
-| On-demand-only behavior | Initialization, inventory edits, history, mode/budget changes and photo staging make0 mocked model requests; Send runs bounded tool rounds then idles |
-| Error recovery | Bad typed query returns an actionable error and can recover next round; provider failures keep partial output with no retry/fallback |
-| Context/cost bounds | Complete current tool results and pagination retained; older previews/context are bounded; older and subsequent-tool-round attachments are omitted |
-| Usage/cost units | Token/cache counts recorded; known USD costs labelled reported, catalog USD rates estimated; unknown units/plan credits never labelled dollars |
-| Photo staging | Explicit derivative≤960px/500KB, unchanged original/hash; staging sends0 requests and Chat Only cannot stage app photos |
-| Native UI | Named permissions, review expiry, actual record shortcut, before/after preview, financial consent and portrait/landscape approval controls |
-| Backup/restore | Schema9 policies/traces/usage retained; legacy3–8 supported; unfinished restored tasks pause and RUNNING traces become INTERRUPTED |
-| Actual supplied CSV | All75,054 USD records plus100,000 synthetic records imported natively; private source bytes unchanged; repeat adds0 |
-| Full library restart |175,054 current observations preserved after reopening persistent SQLite |
-| Agent against actual dataset | Native market search and overview passed; largest observed tested result 9897 characters≤10,000; no provider contacted |
-| Host indexed benchmark |FTS4 median2ms; range1–11ms; physical Pixel timing UNRUN |
-| Desktop preservation | SnapIMS5c790dc and Pricing_module64c472c untouched; pre-existing untracked desktop adapters retained |
-| Physical Pixel / eligible SIWC account | **UNRUN**; no device/account bound; no real sign-in, model discovery or subscription stream success claimed |
-| Real Shopify authorization / development store | **UNRUN**; no deployed broker/account bound; no production mutation |
+| Package / signing | ca.canadavhs.snapmobile ·0.8.1 · versionCode11 · retained certificate ·16KB alignment verified |
+| Batch deletion | Child records/photos disappear; recovery preserves IDs, leaves batch finished and does not start capture |
+| Record deletion | Hidden from inventory/groups/photos; new captures advance to a new record; Undo does not reopen Trash |
+| Photo deletion | Independent deletion, original/hash retained, exact seven-day recovery check, direct finished-batch UI button |
+| Local drafts | Local receipt/job and product markers hide entries; original remote JSON/IDs unchanged; no remote delete call |
+| Recovery | Independent child Trash survives parent recovery; blocked recovery rolls back; expired recovery rejected |
+| Upgrade | Populated8→10 and legacy chains retain inventory/history;9→10 creates Trash and preserves previously removed-photo recovery |
+| Snapshot | Schema10 includes Trash; legacy3–9 supported; usage JSON not overwritten for schema9 |
+| Native UI | Batch delete/recover, finished-photo delete/recover and local draft/job deletion without pairing exercised |
+| Agent compatibility | Existing compact registry, permission, approval, workflow, error/cost/idle-request tests pass; current/legacy reads exclude deleted inventory/batches |
+| Imported market data | Native regression imports100,000 synthetic records plus75,054 supplied records, safe repeat and restart checked; private CSV excluded from release |
+| Desktop preservation | No desktop repository changes made by this update |
+| Physical Pixel installation/camera | **UNRUN**; no bound physical device |
+| Eligible ChatGPT SIWC account | **UNRUN**; no real sign-in/model discovery/subscription stream claimed |
+| Real Shopify development store | **UNRUN**; no deployed broker/account, no real product mutation/deletion |
 
-The final full regression passed176 host checks in one invocation, including the
-actual supplied CSV import, complete current-context fix, agent reads and restart.
-The final USD-unit parser change then passed all7 protocol and10 on-demand checks
-and rebuilt both APKs. The final evidence set replaces those class reports and
-contains177 unique host checks, not the sum of overlapping runs. Broker21 checks
-passed separately. Lint ran after test/compilation completed. Native UI screenshots
-were visually inspected. Earlier focused UI checks were corrected to wait for
-reactive Room/Compose state and isolate each activity fixture; no assertions or
-lint checks were disabled. WorkManager host-test teardown emitted CloseGuard
-warnings; the test suite has0 failures/errors/skips.
+The full regression ran against the delivered production source, with the owner's
+CSV passed explicitly to the native dataset test. Its187 non-Trash-UI checks passed.
+Two of three Trash UI cases failed during activity setup because a reused Android
+ViewModel factory referenced a closed prior-test database. Those three cases were
+split into separate process-isolated UI classes and all rerun successfully, with
+their assertions preserved. The consolidated evidence contains190 unique checks,
+not overlapping-run totals. Only test fixture organization changed after the full
+run. Broker tests ran separately; lint ran after compilation/tests. Reactive UI
+checks wait for actual Room/Compose state. WorkManager host teardown can emit
+CloseGuard warnings; the consolidated suite has zero failures/errors/skips.
 
-Evidence: /workspace/.setup/v080-validated-junit,
-v080-final-full-validation.log, v080-final-cost-validation.log,
-v080-final-lint.log, v080-broker-tests.log, v080-market-benchmark.json,
-v080-signing.txt and v080-alignment.txt. Native generated UI image:
-app/build/fixture-output/agent-mixed-review-landscape.png. The private market CSV,
-credentials, signing key, runtime databases and generated build/test directories
-are excluded from public APK/source.
+Deletion is local visibility plus a seven-day recovery window. Internal identity,
+audit and original file bytes remain retained, including after recovery expires;
+this is not secure erasure/storage reclamation. Historical exports and transcripts
+are not rewritten. Local recovery never resumes external work automatically.
+See [controls and exact limits](next/TRASH.md) and [release notes](next/RELEASE_0.8.1.md).
 
-Read [agent usage and exact limits](agent/APPLICATION_AGENT.md),
-[release notes](agent/RELEASE_0.8.0.md) and [baseline audit](agent/INTEGRATION_AUDIT.md).
-The agent uses on-demand typed services and human approvals. Unsupported native
-operations are not invented: photo editing/SAF file selection/credentials remain
-human workflows, there is no SQL/shell/tap tool or continuous AI observation, and
-not every native error retains a failure timestamp/history. Shopify still blocks
-production writes, unrelated-product adoption and unsupported existing-product
-price/stock/media editing. Actual model reasoning quality and physical/store/account
-acceptance are not established by mocked transport or host UI tests.
+Evidence: /workspace/.setup/v081-validated-junit, v081-final-full-validation.log,
+v081-ui-isolation-validation.log, v081-market-benchmark.json, v081-broker-tests.log,
+v081-lint.log, v081-signing.txt and v081-alignment.txt in the cloud workspace.
+The private CSV, runtime databases and signing key are excluded from public source.
 
-APK SHA-256: `8656bfe9ea021b610286bbd71688ddc7340f6283adde98d57416668a62c48af5`
+APK SHA-256: `d79272d7b64072b74ccf325501fc22a99a111c45ae817a2369f8e9a227cc34d4`
 
 Signing certificate SHA-256:
 `b262fd08c7a58f338027260d47a94a33e5c939d72752034dddb2f4f6bf73faae`.
-Install over the previous official app; do not uninstall or clear private storage.
-Conventional API-key support remains independent; subscription errors never switch
-to separate API billing. Approved remote resources/consumed usage cannot be undone.
+Install over the previous official app without uninstalling or clearing storage.

@@ -34,8 +34,8 @@ data class TransferJobRow(@PrimaryKey val id: String = newId(), val kind: String
     val createdAt: String = OffsetDateTime.now().toString(), val updatedAt: String = createdAt)
 
 @Dao interface InventoryDao {
-    @Query("SELECT * FROM inventory ORDER BY createdAt DESC,itemId") fun watchItems(): Flow<List<InventoryRow>>
-    @Query("SELECT * FROM inventory ORDER BY itemId") suspend fun items(): List<InventoryRow>
+    @Query("SELECT * FROM inventory WHERE groupId NOT IN (SELECT targetId FROM trash_entries WHERE kind='INVENTORY') ORDER BY createdAt DESC,itemId") fun watchItems(): Flow<List<InventoryRow>>
+    @Query("SELECT * FROM inventory WHERE groupId NOT IN (SELECT targetId FROM trash_entries WHERE kind='INVENTORY') ORDER BY itemId") suspend fun items(): List<InventoryRow>
     @Query("SELECT * FROM inventory WHERE groupId=:id") suspend fun item(id: String): InventoryRow?
     @Query("SELECT * FROM inventory WHERE itemId=:id") suspend fun itemById(id: String): InventoryRow?
     @Query("SELECT * FROM inventory_batches WHERE sessionId=:sessionId") suspend fun batch(sessionId: String): InventoryBatchRow?

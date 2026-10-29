@@ -55,6 +55,6 @@ class ShopifyUploadReviewUiTest {
         compose.onNodeWithText("Approve once").performClick();compose.waitUntil(10000) {compose.onAllNodesWithText("Approve once").fetchSemanticsNodes().isEmpty()}
         assertTrue(runBlocking {journal.shopifyDao().active().isEmpty()})
         compose.onNode(hasScrollToIndexAction()).performScrollToIndex(0);compose.onNodeWithText("Listings & saved reviews").performClick()
-        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Approve Shopify drafts? · EXPIRED"));compose.onNodeWithText("Approve Shopify drafts? · EXPIRED").assertExists()
+        compose.waitUntil(10000) {runCatching {compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Approve Shopify drafts? · EXPIRED"))}.isSuccess};compose.onNodeWithText("Approve Shopify drafts? · EXPIRED").assertExists()
     }
 }

@@ -187,6 +187,7 @@ import coil.compose.AsyncImage
             }
             item { TextButton(onClick={showHistory=!showHistory; if(showHistory) vm.action { history=vm.repo.journal.inventoryDao().history(item.groupId) }}) { Text("${if(showHistory) "Hide" else "Show"} audit history") } }
             if(showHistory) items(history,key={it.id}) { audit -> Text("${audit.occurredAt.take(19)} · ${audit.action}",style=MaterialTheme.typography.bodySmall) }
+            item {TextButton(onClick={vm.action {vm.repo.trashLocal("INVENTORY",item.groupId);onClose();vm.message="Record moved to Trash for seven days."}}) {Text("Delete record · move to Trash")}}
             item { TextButton(onClick={archiveConfirmation=!archiveConfirmation}) { Text(if(item.archived) "Restore archived item" else "Archive this item") } }
             if(archiveConfirmation) item { Column {
                 Text("${if(item.archived) "Restore" else "Hide"} this physical-copy record? Its identity and original photographs are retained.")

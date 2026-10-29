@@ -1,4 +1,4 @@
-# SnapIMS Next 0.8.0 application agent
+# SnapIMS Next 0.8.1 application agent
 
 This extends the 0.7.0 workspace and native services. It does not replace inventory,
 recognition, market pricing, Shopify jobs or the task outbox. Start with Settings →
@@ -167,6 +167,8 @@ There is no model-accessible general filesystem, credential manager, arbitrary S
 product deletion, unrelated-product adoption or unrestricted existing-product
 price/stock/media editing. The independent desktop apps are unchanged.
 
-Room9 migrates existing data in place. Protected snapshot schema9 includes policies,
-traces and response usage; legacy schemas3–8 normalize on import. Install the signed
-0.8.0 APK over the existing app; do not uninstall or clear private storage.
+Room10 migrates existing data in place. Protected snapshot schema10 includes policies,
+traces, response usage and local Trash; legacy schemas3–9 normalize on import. Install the signed
+0.8.1 APK over the existing app; do not uninstall or clear private storage.
+
+Local deletion controls and seven-day recovery are documented in [Trash](../next/TRASH.md).
