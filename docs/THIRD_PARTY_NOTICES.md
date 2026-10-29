@@ -13,3 +13,9 @@ AndroidX, Kotlin/coroutines, Coil, OkHttp/Okio and supporting runtime components
 their original notices. Full Apache 2.0, BSD and MIT license texts and distributed
 notices are preserved. JDK/SDK/Gradle distributions retain their tooling licenses.
 No API key, release signing key, proprietary catalog or product photograph is shipped.
+
+Apache Commons Text1.14.0 and Commons Lang3.18.0 provide the bounded Levenshtein
+and Jaro-Winkler similarity routines used alongside SQLite full-text and trigram
+indexes. Their Apache2.0 license and original NOTICE texts are bundled under
+assets/licenses/Apache-Commons-NOTICES.txt. Similarity scores are heuristics, not
+calibrated identity probabilities.

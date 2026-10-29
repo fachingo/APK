@@ -1,4 +1,4 @@
-# SnapIMS Next 0.8.1 application agent
+# SnapIMS Next 0.8.3 application agent
 
 This extends the 0.7.0 workspace and native services. It does not replace inventory,
 recognition, market pricing, Shopify jobs or the task outbox. Start with Settings →
@@ -86,8 +86,8 @@ remain available through the gateway. Added actions provide:
 - Archive/restore selected copies with explicit destructive-operation consent;
   originals and immutable identities are preserved.
 - Review non-secret camera/recognition/business settings from a strict allowlist.
-- Delegate owned-draft linking/selected scalar metadata updates and live-publication
-  reviews to the existing native Shopify review/job services.
+- Delegate compatible marked-product linking, selected metadata/tags/price/weight/stock updates and live-publication reviews to native Shopify services.
+- Propose exact owner-selected product status/channel changes through `propose_shopify_status`; remote transitions require SUBMIT. Owner write/live switches remain human settings.
 
 The review shows metadata before/after values, exact SKUs, source-backed prices,
 recognition selection, readiness and listing actions. A single approval can cover the
@@ -157,7 +157,7 @@ Native host tests exercise real Room records, approved workflows, error recovery
 protocol fixtures and the private supplied 75,054-row market CSV. They do not prove
 real model reasoning quality, Pixel camera behavior, eligible-account SIWC success
 or actual Shopify API acceptance. Physical Pixel SIWC sign-in/model/stream proof
-and a real development-store authorization/upload remain **UNRUN**. No broker is
+and real Canada VHS authentication, mutations and website publication remain **UNRUN**. No broker is
 deployed by this release; no production inventory or products are modified.
 
 The agent operates through the delivered app's services. Photo editing/retaking,
@@ -169,6 +169,12 @@ price/stock/media editing. The independent desktop apps are unchanged.
 
 Room10 migrates existing data in place. Protected snapshot schema10 includes policies,
 traces, response usage and local Trash; legacy schemas3–9 normalize on import. Install the signed
-0.8.1 APK over the existing app; do not uninstall or clear private storage.
+0.8.3 APK over the existing app; do not uninstall or clear private storage.
 
 Local deletion controls and seven-day recovery are documented in [Trash](../next/TRASH.md).
+
+Direct Shopify operations use the phone gateway and encrypted on-device credentials;
+no broker is required. See [direct setup and safeguards](../next/DIRECT_SHOPIFY.md).
+[Independent match AI](../next/SMART_MARKET_MATCHING.md) is optional and uses one
+explicit, bounded text-only request, separate from photo recognition. Local
+SQLite/Commons Text matching uses no model tokens.

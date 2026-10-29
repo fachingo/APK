@@ -94,9 +94,9 @@ internal class AgentTools(private val repo:CaptureRepository) {
                 val payload=JSONObject(args.toString()).put("expectedRevision",item.revision).put("currentTitle",item.title).put("itemId",item.itemId).put("currentPriceCents",item.priceCents ?: JSONObject.NULL)
                 if(name=="propose_shopify_draft") {
                     check(repo.preferences.getBoolean("shopifyPaired",false)) {"Pair Shopify in Settings first."}
-                    val base=repo.preferences.getString("shopifyBroker","").orEmpty();requireBrokerUrl(base)
+                    val base=repo.shopifyEndpoint();requireBrokerUrl(base)
                     check(repo.shopifyProblems(item,repo.dao.photos(item.groupId).filter {!it.deleted}).isEmpty()) {"Review and mark the item ready first."}
-                    val health=ShopifyBrokerClient(repo.context,base).call(newId(),"health",JSONObject())
+                    val health=shopifyGateway(repo.context,base).call(newId(),"health",JSONObject())
                     check(health.getBoolean("developmentStore")) {"Only development-store drafts are supported."}
                     payload.put("broker",base).put("health",health).put("connectionFingerprint",shopifyConnectionFingerprint(repo.context,base))
                     payload.put("reviewedListing",shopifySnapshot(item,repo.dao.photos(item.groupId).filter {!it.deleted}.sortedBy {it.position},effectiveBarcode(item,repo.dao.group(item.groupId),repo.dao.photos(item.groupId))))

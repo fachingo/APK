@@ -1,12 +1,22 @@
-# Direct Shopify preview 0.8.2
+# SnapIMS Next0.8.3 — standalone Shopify and smart market matching
 
-**[Download direct read-only preview APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.2-debug.apk)**
+**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.3-debug.apk)** · [Source](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.3-source.zip)
 
-Adds an owner-operated Direct Shopify Connection under Settings → Shopify, using
-your existing Dev Dashboard client credentials. Successful connection opens the
-catalog without a broker. **Real Canada VHS/Pixel acceptance remains unrun;
-direct production writes are not implemented in this preview.**
-[Setup, exact scope and acceptance status](docs/next/DIRECT_SHOPIFY.md).
+Direct Shopify authentication, reviewed draft creation, staged photo uploads,
+SKU/price/weight/stock updates, compatible marked-product linking, protected edits,
+owner-approved status changes and selected-channel publication run on the phone.
+No broker, hosting or computer is required. Approved locally, Active and published
+to Online Store are distinct states with separate reviews and verified outcomes.
+
+Offline market lookup combines SQLite full-text/prefix/trigram indexes and Apache
+Commons Text similarity. Optional AI ranking uses a separately selected model and
+one explicit request approval; it never replaces the local evidence/pricing rules.
+
+[Release notes](docs/next/RELEASE_0.8.3.md) · [Direct Shopify setup and exact safeguards](docs/next/DIRECT_SHOPIFY.md) ·
+[Smart matching](docs/next/SMART_MARKET_MATCHING.md) · [Executed checks](docs/TEST_RESULTS.md).
+Real Canada VHS/physical Pixel/API publication acceptance remains UNRUN; host/mock
+tests are not real-store proof. No real store product was changed in this task.
+Install over the existing signed app without uninstalling or clearing private data.
 
 # SnapIMS Next 0.8.1
 

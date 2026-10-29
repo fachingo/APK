@@ -27,6 +27,7 @@ internal fun approvalTitle(action:String):String=when(action) {
     "propose_archive"->"Review archive / restore"
     "propose_settings"->"Review public settings"
     "propose_shopify_management"->"Review Shopify management"
+    "propose_shopify_status"->"Review Shopify status transition"
     "propose_shopify_publish"->"Authorize live publication"
     else->"Prepare local listing"
 }
@@ -44,7 +45,7 @@ internal fun approvalTitle(action:String):String=when(action) {
     var confirmation by rememberSaveable(row.id) {mutableStateOf("")}
     val mixed=row.action=="propose_inventory_workflow"
     val archive=row.action=="propose_archive"
-    val live=row.action=="propose_shopify_publish"
+    val live=row.action=="propose_shopify_publish" || payload.optBoolean("requires_submit")
     var localError by remember(row.id) {mutableStateOf("")}
     val items=payload.optJSONArray("items") ?: JSONArray()
     val recommendations=payload.optJSONArray("recommendations") ?: JSONArray()
@@ -60,7 +61,8 @@ internal fun approvalTitle(action:String):String=when(action) {
             Text(payload.optString("notice","Review this exact change. Approval expires if the selected inventory or photographs change."))
             if(payload.optJSONObject("recognition")!=null) {val config=payload.getJSONObject("recognition");Text("${config.getString("provider")} · ${config.getString("model")}");Text("Results remain suggestions. Confirm each printed title before applying it to inventory.")}
             if(row.action.startsWith("propose_shopify")) {val health=payload.optJSONObject("health");Text("Store: ${health?.optString("shop","paired store")}\nLocation: ${payload.optString("location_id",payload.optString("location"))}");Text(if(live) "LIVE publication · ${payload.optString("publication")}" else "Draft / selected metadata only; no live publication")}
-            if(row.action=="propose_shopify_management") payload.optJSONObject("before")?.let {remote->Text("Target Shopify product: ${remote.optString("id")}\n${remote.optString("title")} · ${remote.optString("status")}");Text("Selected operation: ${if(payload.optJSONObject("patch")?.length()==0) "Link owned draft; retain all remote metadata" else "Update only the fields displayed below"}")}
+            if(row.action=="propose_shopify_status") Text("Requested status/channel action: ${payload.optString("action")} · publication ${payload.optString("publication")}. Local approval does not publish; Active may be visible on existing channels.")
+            if(row.action in setOf("propose_shopify_management","propose_shopify_status")) payload.optJSONObject("before")?.let {remote->Text("Target Shopify product: ${remote.optString("id")}\n${remote.optString("title")} · ${remote.optString("status")}");Text("Selected operation: ${if(row.action=="propose_shopify_status") "Only the reviewed status/channel transition" else if(payload.optJSONObject("patch")?.length()==0) "Link owned draft; retain all remote metadata" else "Update only the fields displayed below"}")}
             if(payload.has("patch")) ReviewPatch(payload.optJSONObject("before") ?: JSONObject(),payload.getJSONObject("patch"))
             if(row.action=="propose_batch_change") Text("${payload.getString("operation")} · ${payload.optString("beforeName")} → ${payload.optString("name")}\nLocation: ${payload.optString("location")}\nBatch ${payload.optString("session_id")}")
             if(row.action=="propose_task_change") Text("${payload.getString("operation")} · ${payload.optString("beforeTitle")} → ${payload.optString("title")}\nCurrent state: ${payload.optString("beforeState")}\nTask ${payload.optString("task_id")}\nSelected copy IDs: ${payload.optJSONArray("group_ids")}")
@@ -73,7 +75,7 @@ internal fun approvalTitle(action:String):String=when(action) {
                 HorizontalDivider();Text(item.optString("title").ifBlank {"Untitled copy"},style=MaterialTheme.typography.titleMedium)
                 Text("SKU ${item.getString("itemId")} · ${item.optInt("photoCount")} photographs",style=MaterialTheme.typography.bodySmall)
                 if(payload.optJSONObject("recognition")!=null && (!mixed || item.optBoolean("recognize"))) {val selected=item.optJSONArray("recognitionPhotoIds") ?: JSONArray();Row(Modifier.horizontalScroll(rememberScrollState())) {for(j in 0 until selected.length()) coil.compose.AsyncImage(repo.original(selected.getString(j)),"Selected recognition photograph",Modifier.size(96.dp))}}
-                if(row.action in setOf("propose_shopify_management","propose_shopify_publish")) {
+                if(row.action in setOf("propose_shopify_management","propose_shopify_publish","propose_shopify_status")) {
                     Text("Quantity ${item.optInt("quantity")} · ${item.optInt("weightGrams")} g · ${item.optString("condition")}\n${item.optString("vendor")} · ${item.optString("productType")}\nTags: ${item.optString("tags")}\nBarcode: ${item.optString("reviewedBarcode",item.optString("barcode"))}\nCurrent local Shopify state: ${item.optString("shopifyState")}\n${item.optString("shopifyProductId")}")
                     Text(item.optString("description"))
                     val selectedPhotos=payload.optJSONObject("photos")?.optJSONArray(item.optString("groupId")) ?: JSONArray()

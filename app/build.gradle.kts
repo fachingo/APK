@@ -10,8 +10,8 @@ android {
         minSdk = 28
         targetSdk = 36
         ndk { abiFilters += "arm64-v8a" }
-        versionCode = 12
-        versionName = "0.8.2"
+        versionCode = 13
+        versionName = "0.8.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true }
@@ -25,6 +25,7 @@ kotlin { jvmToolchain(21) }
 kapt { arguments { arg("room.schemaLocation", "$projectDir/schemas") } }
 dependencies {
     implementation(project(":core"))
+    implementation("org.apache.commons:commons-text:1.14.0")
     implementation(platform("androidx.compose:compose-bom:2026.09.00"))
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.compose.ui:ui")

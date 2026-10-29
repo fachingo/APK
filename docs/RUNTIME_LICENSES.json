@@ -1640,5 +1640,25 @@
         "url": "https://github.com/tesseract-ocr/tessdata_fast/tree/4.1.0"
       }
     ]
+  },
+  {
+    "component": "org.apache.commons:commons-text:1.14.0",
+    "licenses": [
+      {
+        "name": "Apache License 2.0",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0"
+      }
+    ],
+    "source": "https://commons.apache.org/proper/commons-text/"
+  },
+  {
+    "component": "org.apache.commons:commons-lang3:3.18.0",
+    "licenses": [
+      {
+        "name": "Apache License 2.0",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0"
+      }
+    ],
+    "source": "https://commons.apache.org/proper/commons-lang/"
   }
 ]

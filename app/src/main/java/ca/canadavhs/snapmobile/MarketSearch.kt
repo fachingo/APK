@@ -6,7 +6,7 @@ import org.json.*
 import java.time.OffsetDateTime
 
 internal data class MarketFilters(val query:String="",val currency:String="",val edition:String="",val year:Int?=null,val minCents:Long?=null,val maxCents:Long?=null,val from:String="",val until:String="",val sort:String="RELEVANCE",val history:Boolean=false)
-internal data class MarketGroup(val titleKey:String,val title:String,val currency:String,val edition:String,val year:Int?,val samples:Long,val low:Long,val high:Long,val newest:String,val approximate:Boolean=false)
+internal data class MarketGroup(val titleKey:String,val title:String,val currency:String,val edition:String,val year:Int?,val samples:Long,val low:Long,val high:Long,val newest:String,val approximate:Boolean=false,val matchScore:Int=0)
 internal data class MarketPage(val groups:List<MarketGroup>,val index:String,val approximate:Boolean=false,val correctedQuery:String="")
 internal fun CaptureRepository.marketIndexKind():String=journal.openHelper.writableDatabase.query("SELECT kind FROM market_index_config LIMIT 1").use {check(it.moveToFirst());it.getString(0)}
 internal fun CaptureRepository.ensureMarketSearch():String {
@@ -45,29 +45,33 @@ internal suspend fun CaptureRepository.rebuildMarketSearch(progress:(Long)->Unit
     }} finally {marketBusy.value=false}
 }
 private fun likeMarket(text:String)=text.replace("\\","\\\\").replace("%","\\%").replace("_","\\_")
-internal fun editDistance(a:String,b:String,maximum:Int=2):Int {
-    if(kotlin.math.abs(a.length-b.length)>maximum) return maximum+1
-    var before=IntArray(b.length+1) {it};for(i in a.indices) {val next=IntArray(b.length+1);next[0]=i+1;for(j in b.indices) next[j+1]=minOf(before[j+1]+1,next[j]+1,before[j]+if(a[i]==b[j]) 0 else 1);before=next};return before[b.length]
+internal fun editDistance(a:String,b:String,maximum:Int=2):Int=org.apache.commons.text.similarity.LevenshteinDistance(maximum).apply(a,b).let {if(it<0) maximum+1 else it}
+internal fun marketMatchScore(query:String,title:String):Int {
+    val q=InventoryRules.normalizedTitle(query);val t=InventoryRules.normalizedTitle(title);if(q.isBlank() || t.isBlank()) return 0;if(q==t) return 100
+    val stops=setOf("the","a","an","and","of","in","on");val qs=q.split(' ').filter {it.isNotBlank() && it !in stops}.toSet().ifEmpty {q.split(' ').toSet()};val ts=t.split(' ').filter {it.isNotBlank() && it !in stops}.toSet().ifEmpty {t.split(' ').toSet()}
+    val overlap=2.0*qs.intersect(ts).size/(qs.size+ts.size);val jw=org.apache.commons.text.similarity.JaroWinklerSimilarity().apply(q,t)
+    val years=Regex("(?:18|19|20|21)[0-9]{2}");val qy=years.findAll(q).map {it.value}.toSet();val ty=years.findAll(t).map {it.value}.toSet();val penalty=if(qy.isNotEmpty() && ty.isNotEmpty() && qy!=ty) .25 else 0.0
+    return ((.6*overlap+.4*jw-penalty)*100).toInt().coerceIn(0,99)
 }
 private fun CaptureRepository.correctMarketQuery(query:String):String {
     val db=journal.openHelper.writableDatabase
     return query.split(' ').take(10).joinToString(" ") {word->
-        if(word.length<4) word else {
+        if(word.length<4 || word.all {it.isDigit()}) word else {
             val grams=wordGrams(word).take(20);val options=mutableListOf<String>()
             db.query("SELECT g.term,COUNT(*) score FROM market_grams g JOIN market_lexicon l ON l.term=g.term WHERE g.gram IN (${grams.joinToString(",") {"?"}}) AND l.length BETWEEN ? AND ? GROUP BY g.term ORDER BY score DESC,g.term LIMIT 100",(grams+listOf((word.length-2).toString(),(word.length+2).toString())).toTypedArray()).use {c->while(c.moveToNext()) options+=c.getString(0)}
-            options.map {it to editDistance(word,it)}.filter {it.second<=if(word.length>7) 2 else 1}.minWithOrNull(compareBy<Pair<String,Int>> {it.second}.thenBy {it.first})?.first ?: word
+            options.map {it to editDistance(word,it)}.filter {it.second<=if(word.length>=5) 2 else 1}.minWithOrNull(compareBy<Pair<String,Int>> {it.second}.thenBy {it.first})?.first ?: word
         }
     }
 }
 internal suspend fun CaptureRepository.searchMarket(filters:MarketFilters,offset:Int=0,pageSize:Int=40,allowApproximate:Boolean=true):MarketPage=withContext(Dispatchers.IO) {
     require(offset in 0..1_000_000 && pageSize in 1..100);val kind=mutate {ensureMarketSearch()};val normalized=InventoryRules.normalizedTitle(filters.query).ifBlank {marketRawKey(filters.query)}.take(500)
-    suspend fun search(key:String,approximate:Boolean):List<MarketGroup> {
+    suspend fun search(key:String,approximate:Boolean,broad:Boolean=false):List<MarketGroup> {
         val clauses=mutableListOf<String>();val args=mutableListOf<String>();var source="market_sales"
         if(!filters.history) clauses+="current=1"
         if(key.isNotBlank()) {
             if(key.matches(Regex("[0-9]{8,14}"))) {clauses+="barcode=?";args+=key}
-            else if(kind!="INDEXED") {val tokens=key.split(' ').filter {it.isNotBlank()}.take(15);source="(SELECT id FROM market_fts WHERE market_fts MATCH ?) AS hit CROSS JOIN market_sales AS s ON s.id=hit.id";args+=tokens.joinToString(" ") {it+"*"}}
-            else {key.split(' ').filter {it.isNotBlank()}.take(15).forEach {word->clauses+="id IN (SELECT id FROM market_token_rows WHERE term>=? AND term<?)";args+=word;args+=word+"\uffff"}}
+            else if(kind!="INDEXED") {val tokens=key.split(' ').filter {it.isNotBlank() && (!broad || it !in setOf("the","a","an","and","of","in","on"))}.take(15).ifEmpty {listOf(key)};source="(SELECT id FROM market_fts WHERE market_fts MATCH ?) AS hit CROSS JOIN market_sales AS s ON s.id=hit.id";args+=tokens.joinToString(if(broad) " OR " else " ") {it+"*"}}
+            else {val parts=key.split(' ').filter {it.isNotBlank()}.take(15).map {word->args+=word;args+=word+"\uffff";"id IN (SELECT id FROM market_token_rows WHERE term>=? AND term<?)"};clauses+="("+parts.joinToString(if(broad) " OR " else " AND ")+")"}
         }
         if(filters.currency.isNotBlank()) {clauses+="currency=?";args+=filters.currency}
         if(filters.edition.isNotBlank()) {clauses+="edition LIKE ? ESCAPE '\\'";args+="%${likeMarket(filters.edition)}%"}
@@ -77,13 +81,16 @@ internal suspend fun CaptureRepository.searchMarket(filters:MarketFilters,offset
         val where=if(clauses.isEmpty()) "1" else clauses.joinToString(" AND ")
         val order=when(filters.sort) {"PRICE_LOW"->if(filters.currency.isBlank()) "currency,low ASC" else "low ASC";"PRICE_HIGH"->if(filters.currency.isBlank()) "currency,high DESC" else "high DESC";"NEWEST"->"newest DESC";"SAMPLES"->"samples DESC";else->"CASE WHEN titleKey=? THEN 0 ELSE 1 END,samples DESC,titleKey"}
         if(filters.sort=="RELEVANCE") args+=normalized
-        args+=pageSize.toString();args+=offset.toString()
+        args+=(if(broad) 500 else pageSize).toString();args+=(if(broad) 0 else offset).toString()
         val sql="SELECT titleKey,MIN(title) title,currency,edition,releaseYear,COUNT(*) samples,MIN(totalCents) low,MAX(totalCents) high,MAX(soldAt) newest FROM $source WHERE $where GROUP BY titleKey,currency,edition,releaseYear ORDER BY $order LIMIT ? OFFSET ?"
-        journal.openHelper.writableDatabase.query(sql,args.toTypedArray()).use {c->return buildList {while(c.moveToNext()) add(MarketGroup(c.getString(0),c.getString(1),c.getString(2),c.getString(3),if(c.isNull(4)) null else c.getInt(4),c.getLong(5),c.getLong(6),c.getLong(7),c.getString(8),approximate))}}
+        journal.openHelper.writableDatabase.query(sql,args.toTypedArray()).use {c->return buildList {while(c.moveToNext()) add(MarketGroup(c.getString(0),c.getString(1),c.getString(2),c.getString(3),if(c.isNull(4)) null else c.getInt(4),c.getLong(5),c.getLong(6),c.getLong(7),c.getString(8),approximate,marketMatchScore(filters.query,c.getString(1))))}}
     }
     val exact=search(normalized,false)
     if(exact.isNotEmpty() || normalized.isBlank() || !allowApproximate || offset>0 || normalized.matches(Regex("[0-9]+"))) MarketPage(exact,kind)
-    else {val corrected=correctMarketQuery(normalized);if(corrected==normalized) MarketPage(exact,kind) else MarketPage(search(corrected,true),kind,true,corrected)}
+    else {val corrected=correctMarketQuery(normalized);val correctedHits=if(corrected==normalized) emptyList() else search(corrected,true)
+        if(correctedHits.isNotEmpty()) MarketPage(correctedHits.sortedByDescending {it.matchScore},kind,true,corrected)
+        else {val hits=search(corrected,true,true).filter {it.matchScore>=30}.sortedWith(compareByDescending<MarketGroup> {it.matchScore}.thenByDescending {it.samples}.thenBy {it.titleKey}).take(pageSize);MarketPage(hits,kind,hits.isNotEmpty(),if(corrected!=normalized) corrected else "")}
+    }
 }
 internal suspend fun CaptureRepository.marketListings(group:MarketGroup,offset:Int=0):List<JSONObject> = withContext(Dispatchers.IO) {
     journal.openHelper.writableDatabase.query("SELECT * FROM market_sales WHERE titleKey=? AND currency=? AND edition=? AND releaseYear IS ? ORDER BY current DESC,soldAt DESC,id LIMIT 50 OFFSET ?",arrayOf<Any?>(group.titleKey,group.currency,group.edition,group.year,offset)).use {c->buildList {while(c.moveToNext()) add(cursorObject(c))}}

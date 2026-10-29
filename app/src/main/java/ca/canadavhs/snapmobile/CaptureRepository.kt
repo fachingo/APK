@@ -38,6 +38,7 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, val d
     val originals = File(dataRoot, "originals").apply { mkdirs() }
     val archiveDir = File(dataRoot, "archives").apply { mkdirs() }
     val preferences = context.getSharedPreferences("capture-settings", Context.MODE_PRIVATE)
+    internal var directShopifyFactory:(Context)->DirectShopifyGateway={DirectShopifyGateway(it)}
     fun original(id: String) = File(originals, "$id.jpg")
     fun pendingFile(id: String) = File(originals, "$id.pending")
     private suspend fun event(session: String, group: String?, action: String) = dao.insert(EventRow(sessionId = session, groupId = group, action = action))

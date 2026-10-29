@@ -37,6 +37,7 @@ internal suspend fun CaptureRepository.agentTaskStatus(row:AgentTaskRow):AgentTa
     }
     if(row.kind=="SHOPIFY_DRAFT") {
         val job=journal.shopifyDao().job(refs.getString(0)) ?: return AgentTaskStatus("NEEDS_REVIEW",0,groups.size,"Draft job is missing; review saved IDs before retrying.")
+        if(job.kind=="OWNER_ACTION") {val receipt=ownerReviewForJob(job.id);val result=JSONObject(receipt.resultJson);val state=if(row.state in listOf("SCHEDULE_PENDING","CANCEL_PENDING","CANCELLED","PAUSED_REVIEW")) row.state else if(job.state=="SUCCESS") "COMPLETE" else job.state;return AgentTaskStatus(state,if(job.state=="SUCCESS") 1 else 0,1,job.error.ifBlank {if(job.state=="SUCCESS") "Verified owner-selected Shopify outcome; publication is checked only when explicitly requested." else "Awaiting verified remote outcome."},JSONArray().put(JSONObject().put("jobId",job.id).put("state",job.state).put("outcome",result.optJSONObject("outcome") ?: JSONObject.NULL)))}
         val items=journal.shopifyDao().items(job.id)
         return AgentTaskStatus(if(row.state in listOf("SCHEDULE_PENDING","CANCEL_PENDING","CANCELLED","PAUSED_REVIEW")) row.state else if(job.state=="SUCCESS") "COMPLETE" else job.state,items.count {it.state=="SUCCESS"},items.size,job.error,JSONArray(items.map {r->JSONObject().put("itemId",r.itemId).put("state",r.state).put("step",r.step).put("remote",JSONObject(r.remoteJson)).put("error",r.error)}))
     }

@@ -69,7 +69,7 @@ class ShopifyManagementUiTest {
         compose.onNodeWithText("Listings & saved reviews").assertDoesNotExist()
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Saved reviews"));compose.waitUntil(10000) {runCatching {compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Link existing draft · EXPIRED"))}.isSuccess};compose.onNodeWithText("Link existing draft · EXPIRED").assertExists()
         compose.onNodeWithText("Prepare link review").performScrollTo().performClick();compose.waitUntil(10000) {compose.onAllNodesWithText("Approve once").fetchSemanticsNodes().isNotEmpty()};compose.onNodeWithText("Approve once").performClick()
-        compose.waitUntil(10000) {runBlocking {journal.shopifyDao().active().size==1}}
+        compose.waitUntil(10000) {compose.onAllNodesWithText("Approve once").fetchSemanticsNodes();runBlocking {journal.shopifyDao().active().size==1}}
         assertEquals("LINK_EXISTING",runBlocking {journal.shopifyDao().active().single().kind});assertTrue(calls.all {it in listOf("health","browse","product")})
         compose.onNode(hasScrollToIndexAction()).performScrollToIndex(0)
         compose.onNodeWithText("← Uploads & connection").performClick();compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("LINK_EXISTING · QUEUED"));compose.onNodeWithText("LINK_EXISTING · QUEUED").assertExists()

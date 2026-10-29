@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit
 
 internal fun operationKey(value:String)=UUID.nameUUIDFromBytes(value.toByteArray(Charsets.UTF_8)).toString()
 internal fun shopifyFingerprint(item:InventoryRow,photos:List<PhotoRow>)=sha256((canonicalJson(inventoryJson(item))+photoFingerprint(photos)).toByteArray())
-internal fun shopifyConnectionFingerprint(context:Context,base:String)=sha256((base+"\n"+ShopifyDeviceIdentity(context).deviceId).toByteArray())
+internal fun shopifyConnectionFingerprint(context:Context,base:String)=if(directShopifyEndpoint(base)) directShopify(context).also {check(it.endpoint()==base)}.fingerprint() else sha256((base+"\n"+ShopifyDeviceIdentity(context).deviceId).toByteArray())
 internal fun shopifyTags(item:InventoryRow)=item.tags.split(',').map {it.trim()}.filter {it.isNotEmpty()}.distinct()
 internal fun shopifyDescription(item:InventoryRow)=item.description
 internal fun shopifySnapshot(item:InventoryRow,photos:List<PhotoRow>,barcode:String):JSONObject=inventoryJson(item).apply {
@@ -32,7 +32,7 @@ internal suspend fun CaptureRepository.queueShopify(groups:Set<String>,health:JS
 }
 internal suspend fun CaptureRepository.queueShopifyLocked(groups:Set<String>,health:JSONObject,base:String,location:String,live:Boolean=false,publication:String="",confirmation:String=""):String {
     requireBrokerUrl(base);require(groups.size in 1..100);require(health.getString("currency")=="CAD")
-    check(health.getBoolean("developmentStore")) {"This Android preview requires a development store. Production writes are not enabled."}
+    requireShopifyWriteHealth(health)
     check(health.getJSONArray("locations").let {array->(0 until array.length()).any {array.getJSONObject(it).getString("id")==location && array.getJSONObject(it).optBoolean("isActive")}}) {"Choose an active Shopify location."}
     if(live) {check(confirmation=="SUBMIT") {"Type SUBMIT to approve live publication."};check(health.optBoolean("allowPublish"));check(health.getJSONArray("publications").let {a->(0 until a.length()).any {a.getJSONObject(it).getString("id")==publication}})}
     val job=ShopifyJobRow(kind=if(live) "PUBLISH_LIVE" else "CREATE_DRAFT",shopId=health.getString("shopId"),shop=health.getString("shop"),broker=base,connectionFingerprint=shopifyConnectionFingerprint(context,base),locationId=location,publicationId=publication)
@@ -64,7 +64,7 @@ internal suspend fun CaptureRepository.cancelShopify(id:String) {
     };WorkManager.getInstance(context).cancelUniqueWork("shopify-$id")
 }
 internal suspend fun CaptureRepository.resumeShopify(id:String,base:String,health:JSONObject) {
-    check(health.getBoolean("developmentStore"))
+    requireShopifyWriteHealth(health)
     mutate {val jobs=journal.shopifyDao();val old=jobs.job(id) ?: error("Job missing")
         check(old.shopId==health.getString("shopId") && old.shop==health.getString("shop")) {"Reconnect to the original store."}
         check(jobs.items(id).none {it.state=="NEEDS_REVIEW"}) {"An item or restored review requires fresh approval. Cancel remaining work and prepare a new review."}
@@ -230,8 +230,8 @@ class ShopifyWorker(context:Context,parameters:WorkerParameters):CoroutineWorker
         if(job.state !in listOf("QUEUED","RUNNING","WAITING_REMOTE")) return@withContext Result.success()
         try {
             check(shopifyConnectionFingerprint(applicationContext,job.broker)==job.connectionFingerprint) {"Device connection changed. Pair and resume manually."}
-            val gateway=ShopifyBrokerClient(applicationContext,job.broker);val health=gateway.call(newId(),"health",JSONObject())
-            check(health.getString("shopId")==job.shopId && health.getBoolean("developmentStore") && health.getString("currency")=="CAD") {"Connected store differs from this approved development-store job."}
+            val gateway=shopifyGateway(applicationContext,job.broker);val health=gateway.call(newId(),"health",JSONObject())
+            if(job.kind=="OWNER_ACTION") {check(health.getString("shopId")==job.shopId && health.getString("shop")==job.shop);return@withContext repo.runOwnerJob(job,gateway)};repo.requireShopifyWriteHealth(health);check(health.getString("shopId")==job.shopId && health.getString("shop")==job.shop) {"Connected store differs from this approved job."}
             val admitted=repo.mutate {val current=jobs.job(id);if(current?.state in listOf("QUEUED","RUNNING","WAITING_REMOTE")) {job=current!!.copy(state="RUNNING",error="");jobs.update(job);true} else false}
             if(!admitted) return@withContext Result.success()
             val pipeline=ShopifyPipeline(repo,gateway);val started=System.currentTimeMillis();var wait=false

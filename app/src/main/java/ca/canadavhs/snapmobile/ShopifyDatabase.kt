@@ -15,6 +15,7 @@ data class ShopifyItemJobRow(@PrimaryKey val id:String=newId(),val jobId:String,
     val error:String="",val attempts:Int=0,val createdAt:Long=System.currentTimeMillis(),val updatedAt:Long=createdAt)
 @Dao interface ShopifyDao {
     @Query("SELECT * FROM shopify_reviews WHERE NOT EXISTS(SELECT 1 FROM trash_entries t WHERE (t.kind='INVENTORY' AND instr(shopify_reviews.payloadJson,t.targetId)>0) OR (t.kind='DRAFT' AND instr(shopify_reviews.resultJson,t.targetId)>0)) ORDER BY createdAt DESC LIMIT 100") fun watchReviews():Flow<List<ShopifyReviewRow>>
+    @Query("SELECT * FROM shopify_reviews WHERE kind='OWNER_ACTION' AND state='APPLIED'") suspend fun ownerReviews():List<ShopifyReviewRow>
     @Query("SELECT * FROM shopify_reviews WHERE id=:id") suspend fun review(id:String):ShopifyReviewRow?
     @Insert suspend fun insert(row:ShopifyReviewRow)
     @Update suspend fun update(row:ShopifyReviewRow)

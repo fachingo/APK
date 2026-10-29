@@ -167,11 +167,11 @@ internal fun CaptureRepository.validateSnapshot(snapshot: JSONObject) {
                 "agent_policies" -> {requireUuid(row.getString("conversationId"));require(row.getInt("contextChars") in 8000..64000 && row.getInt("maxRounds") in 1..12 && row.getInt("maxCalls") in 1..48)}
                 "agent_traces" -> {requireUuid(row.getString("conversationId"));require(row.getString("state") in listOf("RUNNING","COMPLETE","ERROR","INTERRUPTED"))}
                 "shopify_reviews" -> {
-                    require(row.getString("kind") in listOf("CREATE_DRAFT","PUBLISH_LIVE","LINK_EXISTING","UPDATE_METADATA"))
+                    require(row.getString("kind") in listOf("CREATE_DRAFT","PUBLISH_LIVE","LINK_EXISTING","UPDATE_METADATA","OWNER_ACTION"))
                     require(row.getString("state") in listOf("PENDING","APPLIED","REJECTED","EXPIRED"));JSONObject(row.getString("payloadJson"));JSONObject(row.getString("resultJson"))
                 }
                 "shopify_jobs" -> {
-                    requireBrokerUrl(row.getString("broker"));require(row.getString("kind") in listOf("CREATE_DRAFT","PUBLISH_LIVE","LINK_EXISTING","UPDATE_METADATA"))
+                    requireBrokerUrl(row.getString("broker"));require(row.getString("kind") in listOf("CREATE_DRAFT","PUBLISH_LIVE","LINK_EXISTING","UPDATE_METADATA","OWNER_ACTION"))
                     require(row.getString("state") in listOf("QUEUED","RUNNING","WAITING_REMOTE","SUCCESS","PARTIAL_REVIEW","PAUSED","PAUSED_RECONNECT","CANCELLED"))
                 }
                 "shopify_job_items" -> {

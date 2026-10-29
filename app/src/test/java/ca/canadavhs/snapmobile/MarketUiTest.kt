@@ -5,6 +5,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.room.Room
+import androidx.lifecycle.ViewModelProvider
 import androidx.work.Configuration
 import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.WorkManagerTestInitHelper
@@ -51,7 +52,7 @@ class MarketUiTest {
         compose.onNodeWithText("Settings").performClick();compose.onNodeWithText("Market database").performScrollTo().performClick()
         compose.waitUntil(10000) {compose.onAllNodesWithText("3 sold observations").fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText("Search title, words or barcode").performTextInput("alien")
-        compose.waitUntil(10000) {compose.onAllNodesWithText("Alien 1979 VHS").fetchSemanticsNodes().isNotEmpty()}
+        compose.waitUntil(10000) {compose.onAllNodesWithText("Alien 1979 VHS").fetchSemanticsNodes().isNotEmpty() && !ViewModelProvider(compose.activity)[MarketModel::class.java].searching}
         compose.onNodeWithText("Alien 1979 VHS").performScrollTo().assertExists()
         val png=File(System.getProperty("snapims.testOutput"),"market-browser.png").apply {parentFile!!.mkdirs()}
         png.outputStream().use {compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}

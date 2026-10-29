@@ -87,8 +87,8 @@ internal class AgentWorkflows(private val repo:CaptureRepository) {
             .put("photoCount",photos.size).put("recognitionPhotoIds",JSONArray(recognitionSourcePhotos(photos.filter {it.state=="READY"}).map {it.id}))
     }
     private suspend fun shopifyHealth():Pair<String,JSONObject> {
-        check(repo.preferences.getBoolean("shopifyPaired",false)) {"Pair Shopify in Settings first."};val base=repo.preferences.getString("shopifyBroker","").orEmpty();requireBrokerUrl(base)
-        return base to ShopifyBrokerClient(repo.context,base).call(newId(),"health",JSONObject())
+        check(repo.preferences.getBoolean("shopifyPaired",false)) {"Pair Shopify in Settings first."};val base=repo.shopifyEndpoint();requireBrokerUrl(base)
+        return base to shopifyGateway(repo.context,base).call(newId(),"health",JSONObject())
     }
     suspend fun applyLocked(approval:AgentApprovalRow,payload:JSONObject,options:AgentDecisionOptions):AgentTaskRow {
         val groups=jsonIds(payload.getJSONArray("group_ids"));val items=payload.getJSONArray("items");val refs=JSONArray();var state="SCHEDULE_PENDING";var kind="";var title="";val result=JSONObject()
