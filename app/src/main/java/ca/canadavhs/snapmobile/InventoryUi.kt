@@ -58,6 +58,8 @@ import coil.compose.AsyncImage
 @Composable fun InventoryScreen(vm: CaptureViewModel, reviewPhotos: () -> Unit,initialGroupId:String?=null) {
     val rows by vm.inventory.collectAsStateWithLifecycle(); val groups by vm.groups.collectAsStateWithLifecycle()
     val photos by vm.photos.collectAsStateWithLifecycle(); val sessions by vm.sessions.collectAsStateWithLifecycle()
+    var production by rememberSaveable {mutableStateOf(false)}
+    if(production) {ProductionBatchScreen(vm,null,onPhotos={production=false});return}
     var search by rememberSaveable { mutableStateOf("") }; var filter by rememberSaveable { mutableStateOf("All") }
     var selected by rememberSaveable { mutableStateOf<String?>(initialGroupId) }
     LaunchedEffect(initialGroupId) {if(initialGroupId!=null) selected=initialGroupId}
@@ -80,7 +82,7 @@ import coil.compose.AsyncImage
         matches && when(filter) { "Ready" -> item.ready && !item.archived; "Needs review" -> !item.ready && !item.archived; "Archived" -> item.archived; else -> !item.archived }
     }
     LazyColumn(Modifier.fillMaxSize().padding(horizontal=20.dp),contentPadding=PaddingValues(vertical=20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        item { PageTitle("Inventory","Every physical copy has its own permanent identity") }
+        item { PageTitle("Inventory","Every physical copy has its own permanent identity");OutlinedButton(onClick={production=true}) {Text("Bulk workflow · all eligible inventory")} }
         item { OutlinedTextField(search,{search=it},modifier=Modifier.fillMaxWidth(),singleLine=true,label={Text("Search title, barcode, SKU or location")},leadingIcon={Icon(Icons.Outlined.Search,null)}) }
         item { Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             listOf("All","Needs review","Ready","Archived").forEach { label -> FilterChip(selected=filter==label,onClick={filter=label},label={Text(label)}) }

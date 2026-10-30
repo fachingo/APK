@@ -157,6 +157,7 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
     AlertDialog(onDismissRequest=dismiss,title={Text("New conversation")},text={Column(Modifier.heightIn(max=550.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)) {
         ProviderPicker(provider) {provider=it;model=null;mode=AgentPermission.CHAT_ONLY}
         Text(if(provider=="CHATGPT") "Uses your authorized ChatGPT plan. Never falls back to API billing." else if(provider=="LOCAL") "Uses a model running on this phone." else "Uses this provider's API key. Provider charges and limits apply.",style=MaterialTheme.typography.bodySmall)
+        if(provider=="OPENAI") Row {TextButton(onClick={ai.action {model=ai.configuredTask(AiTask.CHAT);mode=AgentPermission.CHAT_ONLY}}) {Text("Use saved chat model")};TextButton(onClick={ai.action {model=ai.configuredTask(AiTask.AGENT);mode=if(model?.supportsTools==true) AgentPermission.FULL_AGENT else AgentPermission.CHAT_ONLY}}) {Text("Use saved agent model")}}
         OutlinedButton(enabled=!ai.loading,onClick={ai.discover(provider)}) {Text(if(ai.loading) "Loading…" else "Discover models")}
         OutlinedTextField(query,{query=it},label={Text("Filter model catalog")})
         ai.catalog.filter {it.provider==provider && (it.model.contains(query,true) || it.displayName.contains(query,true))}.take(30).forEach {m ->FilterChip(selected=model?.id==m.id,onClick={model=m;mode=AgentPermission.CHAT_ONLY},label={Text(m.displayName)})}

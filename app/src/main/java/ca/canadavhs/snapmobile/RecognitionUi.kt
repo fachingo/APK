@@ -36,7 +36,8 @@ fun recognitionLabel(mode: String): String = when (mode) {
     var mode by remember { mutableStateOf(repo.recognitionMode()) }
     var keyDialog by remember { mutableStateOf(false) }
     var hasKey by remember { mutableStateOf(SecureApiKeyStore(context).hasKey()) }
-    var model by remember { mutableStateOf(prefs.getString("openaiModel", DEFAULT_OPENAI_MODEL) ?: DEFAULT_OPENAI_MODEL) }
+    var model by remember { mutableStateOf(vm.repo.taskModel(AiTask.RECOGNITION).model) }
+    DisposableEffect(prefs) {val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener {_,key->if(key in setOf("aiTask.RECOGNITION","aiTask.DEFAULT")) model=repo.taskModel(AiTask.RECOGNITION).model};prefs.registerOnSharedPreferenceChangeListener(listener);onDispose {prefs.unregisterOnSharedPreferenceChangeListener(listener)}}
     var models: List<String> by remember { mutableStateOf<List<String>>(prefs.getStringSet("openaiModels", emptySet<String>())?.sorted() ?: emptyList<String>()) }
     var loading by remember { mutableStateOf(false) }; var modelPicker by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -59,7 +60,7 @@ fun recognitionLabel(mode: String): String = when (mode) {
                 TextButton(onClick = { keyDialog = true }) { Text(if (hasKey) "Replace API key" else "Add API key") }
                 if (hasKey) TextButton(onClick = { vm.action { withContext(Dispatchers.IO) { SecureApiKeyStore(context).remove() }; repo.setRecognitionMode("OFF"); hasKey = false; mode = "OFF" } }) { Text("Remove key") }
             }
-            OutlinedTextField(model, { value -> if (value.startsWith("sk-", ignoreCase = true)) { model = ""; vm.message = "Use Add API key for your secret. The model field only accepts model IDs." } else { model = value.take(160); if (validOpenAiModelId(model)) prefs.edit().putString("openaiModel", model).apply() } }, label = { Text("OpenAI model ID") }, singleLine = true,
+            OutlinedTextField(model, { value -> if (value.startsWith("sk-", ignoreCase = true)) { model = ""; vm.message = "Use Add API key for your secret. The model field only accepts model IDs." } else { model = value.take(160); if (validOpenAiModelId(model)) vm.repo.saveTaskModel(AiTask.RECOGNITION,vm.repo.taskModel(AiTask.RECOGNITION).copy(model=model)) } }, label = { Text("OpenAI model ID") }, singleLine = true,
                 supportingText = { Text("Default: gpt-4.1-mini. Requires image input, Responses and structured output.") })
             Row {
                 TextButton(enabled = hasKey && !loading, onClick = {
@@ -81,7 +82,7 @@ fun recognitionLabel(mode: String): String = when (mode) {
     if (modelPicker) AlertDialog(onDismissRequest = { modelPicker = false }, title = { Text("Available model IDs") }, text = {
         Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
             Text("The Models API does not report image capabilities. Choose a vision model; incompatible requests produce a clear error.", style = MaterialTheme.typography.bodySmall)
-            models.forEach { id -> TextButton(onClick = { model = id; prefs.edit().putString("openaiModel", id).apply(); modelPicker = false }) { Text(id) } }
+            models.forEach { id -> TextButton(onClick = { model = id; vm.repo.saveTaskModel(AiTask.RECOGNITION,vm.repo.taskModel(AiTask.RECOGNITION).copy(model=id)); modelPicker = false }) { Text(id) } }
         }
     }, confirmButton = { TextButton(onClick = { modelPicker = false }) { Text("Done") } })
 }

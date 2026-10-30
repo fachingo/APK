@@ -5,18 +5,21 @@ import kotlinx.coroutines.*
 import org.json.*
 import androidx.work.ListenableWorker
 
-internal suspend fun CaptureRepository.prepareShopifyOwnerAction(productId:String,location:String,action:String,publication:String,health:JSONObject,gateway:ShopifyGateway):ShopifyReviewRow {
+internal suspend fun CaptureRepository.shopifyOwnerPayload(productId:String,location:String,action:String,publication:String,health:JSONObject,gateway:ShopifyGateway,publications:Set<String> = if(publication.isBlank()) emptySet() else setOf(publication)):JSONObject {
  require(action in setOf("APPROVE_LOCAL","DRAFT","ACTIVE","ARCHIVED","PUBLISH_LIVE"));check(preferences.getBoolean("shopifyDirect",false)) {"Connect directly to Shopify first."}
  if(action!="APPROVE_LOCAL") requireShopifyWriteHealth(health)
  if(action in listOf("ACTIVE","PUBLISH_LIVE")) check(health.optBoolean("allowPublish")) {"Enable live publication controls before activating or publishing."}
- if(action=="PUBLISH_LIVE") check(health.getJSONArray("publications").let {a->(0 until a.length()).any {a.getJSONObject(it).getString("id")==publication}}) {"Choose the Online Store publication you intend to make live."}
+ if(action=="PUBLISH_LIVE") {val available=health.getJSONArray("publications").let {a->(0 until a.length()).map {a.getJSONObject(it).getString("id")}.toSet()};check(publications.isNotEmpty() && publications.size<=50 && publications.all {it in available}) {"Choose compatible Shopify publications"}}
  require(location.matches(Regex("gid://shopify/Location/[0-9]{1,30}")))
  val before=gateway.call(newId(),"product",JSONObject().put("productId",productId).put("locationId",location));check(!before.optBoolean("missing"));check(before.getString("status") in listOf("DRAFT","ACTIVE","ARCHIVED"))
- return mutate {val payload=JSONObject().put("group_ids",JSONArray()).put("items",JSONArray()).put("health",health).put("broker",shopifyEndpoint()).put("connectionFingerprint",shopifyConnectionFingerprint(context,shopifyEndpoint())).put("location",location).put("publication",publication).put("action",action).put("before",before)
-  ShopifyReviewRow(kind="OWNER_ACTION",payloadJson=payload.toString(),bindingHash=sha256(canonicalJson(payload).toByteArray())).also {journal.shopifyDao().insert(it)}
- }
+ return JSONObject().put("group_ids",JSONArray()).put("items",JSONArray()).put("health",health).put("broker",shopifyEndpoint()).put("connectionFingerprint",shopifyConnectionFingerprint(context,shopifyEndpoint())).put("location",location).put("publication",publication).put("publications",JSONArray(publications.sorted())).put("action",action).put("before",before)
+}
+internal suspend fun CaptureRepository.prepareShopifyOwnerAction(productId:String,location:String,action:String,publication:String,health:JSONObject,gateway:ShopifyGateway,publications:Set<String> = if(publication.isBlank()) emptySet() else setOf(publication)):ShopifyReviewRow {
+ val payload=shopifyOwnerPayload(productId,location,action,publication,health,gateway,publications)
+ return mutate {ShopifyReviewRow(kind="OWNER_ACTION",payloadJson=payload.toString(),bindingHash=sha256(canonicalJson(payload).toByteArray())).also {journal.shopifyDao().insert(it)}}
 }
 internal suspend fun CaptureRepository.decideShopifyOwnerReview(review:ShopifyReviewRow,accept:Boolean,confirmation:String):String {
+ if(JSONObject(review.payloadJson).has("batchReviews")) return decideShopifyOwnerBatch(review,accept,confirmation)
  var jobId=""
  val result=mutate {val dao=journal.shopifyDao();val latest=dao.review(review.id) ?: error("Review missing");check(latest.state=="PENDING");if(!accept) {dao.update(latest.copy(state="REJECTED",completedAt=System.currentTimeMillis()));return@mutate "Review rejected; Shopify unchanged."}
   val p=JSONObject(latest.payloadJson);check(sha256(canonicalJson(p).toByteArray())==latest.bindingHash);check(preferences.getBoolean("shopifyDirect",false) && shopifyEndpoint()==p.getString("broker") && shopifyConnectionFingerprint(context,p.getString("broker"))==p.getString("connectionFingerprint")) {"Connection changed. Prepare a new review."}

@@ -18,6 +18,10 @@ import ca.canadavhs.snapmobile.core.*
 import org.json.*
 
 internal fun shopifyReviewTitle(kind:String)=when(kind) {"LINK_EXISTING"->"Link existing draft";"UPDATE_METADATA"->"Update selected metadata";"PUBLISH_LIVE"->"Publish selected drafts live?";"OWNER_ACTION"->"Review Shopify status change";else->"Approve Shopify drafts?"}
+internal fun shopifyReviewedChannels(payload:JSONObject,health:JSONObject):String {
+ val channels=payload.optJSONArray("publications") ?: JSONArray().put(payload.optString("publication"));val catalog=health.optJSONArray("publications") ?: JSONArray()
+ return (0 until channels.length()).joinToString("\n") {i->val id=channels.getString(i);val channel=(0 until catalog.length()).map {catalog.getJSONObject(it)}.firstOrNull {it.optString("id")==id};"${channel?.optString("name")?.ifBlank {"Selected publication"} ?: "Selected publication"} · $id"}
+}
 @Composable internal fun ShopifyReviewDialog(row:ShopifyReviewRow,model:ShopifyModel,dismiss:()->Unit) {
     val repo=(LocalContext.current.applicationContext as CaptureApplication).repository
     val p=remember(row.id) {JSONObject(row.payloadJson)};val items=p.getJSONArray("items");val health=p.getJSONObject("health")
@@ -31,9 +35,13 @@ internal fun shopifyReviewTitle(kind:String)=when(kind) {"LINK_EXISTING"->"Link 
             Text("Location: ${p.getString("location")}",style=MaterialTheme.typography.bodySmall)
             if(row.state!="PENDING") Text("Review ${row.state.lowercase()}. ${if(row.state=="APPLIED") "Open Shopify jobs for actual server outcomes." else "Prepare a fresh review to continue."}")
             val before=p.optJSONObject("before");val patch=p.optJSONObject("patch") ?: JSONObject()
-            if(row.kind=="OWNER_ACTION") {
+            if(row.kind=="OWNER_ACTION" && p.has("batchReviews")) {
+                Text("Publish ${p.getJSONArray("batchReviews").length()} exact selected products to every selected channel. One SUBMIT authorizes this entire set.")
+                Text(shopifyReviewedChannels(p,health))
+                val snapshots=p.getJSONArray("batchReviews");for(i in 0 until snapshots.length()) {val product=snapshots.getJSONObject(i).getJSONObject("payload").getJSONObject("before");Text("${product.getString("title")} · ${product.getString("id")} · ${product.getString("status")} → ACTIVE + selected channels")}
+            } else if(row.kind=="OWNER_ACTION") {
                 Text(before!!.getString("title"),style=MaterialTheme.typography.titleMedium);Text(before.getString("id"));Text("Current: ${before.getString("status")}")
-                Text(when(p.getString("action")) {"APPROVE_LOCAL"->"Approve locally for review. Shopify remains unchanged.";"PUBLISH_LIVE"->"Set Active and publish to the selected channel: ${p.getString("publication")}. This can make the product live on the website.";"ACTIVE"->"Set Active. This may become visible on channels where the product is already published. Active alone does not guarantee website publication.";"DRAFT"->"Set Draft. This removes the product from customer purchase availability.";else->"Archive this product in Shopify. It will stop being available for purchase; it is not deleted."})
+                Text(when(p.getString("action")) {"APPROVE_LOCAL"->"Approve locally for review. Shopify remains unchanged.";"PUBLISH_LIVE"->"Set Active and publish to all selected channels:\n${shopifyReviewedChannels(p,health)}\nThis can make the product live on the website.";"ACTIVE"->"Set Active. This may become visible on channels where the product is already published. Active alone does not guarantee website publication.";"DRAFT"->"Set Draft. This removes the product from customer purchase availability.";else->"Archive this product in Shopify. It will stop being available for purchase; it is not deleted."})
                 Text("Only this reviewed product and status/channel are changed. A remote change after review stops the job.")
             } else if(before!=null) {
                 Text("${before.getString("title")} · ${before.getString("status")}",style=MaterialTheme.typography.titleMedium)
@@ -76,14 +84,15 @@ internal fun metadataLabel(key:String)=when(key) {"descriptionHtml"->"Descriptio
     val hiddenProducts=trash.filter {it.kind=="PRODUCT"}.map {it.targetId}.toSet()
     val reviews by remember {vm.repo.journal.shopifyDao().watchReviews()}.collectAsStateWithLifecycle(emptyList())
     val isDirect=vm.repo.preferences.getBoolean("shopifyDirect",false)
-    var ownerPublication by rememberSaveable {mutableStateOf("")}
+    var ownerPublications by rememberSaveable {mutableStateOf(listOf<String>())};var publicationStore by rememberSaveable {mutableStateOf("")}
+    LaunchedEffect(model.health) {model.health?.let {h->val all=h.getJSONArray("publications").let {a->(0 until a.length()).map {a.getJSONObject(it).getString("id")}.toSet()};if(publicationStore!=h.getString("shop")) {ownerPublications=vm.repo.savedPublicationDefaults(h).sorted();publicationStore=h.getString("shop")} else ownerPublications=ownerPublications.filter {it in all}}}
     var query by rememberSaveable {mutableStateOf("")};var status by rememberSaveable {mutableStateOf("")};var location by rememberSaveable {mutableStateOf("")}
     var localSearch by rememberSaveable {mutableStateOf("")};var selected by rememberSaveable {mutableStateOf("")}
     var fields by rememberSaveable {mutableStateOf(listOf<String>())};var reviewId by rememberSaveable {mutableStateOf<String?>(null)}
     val selectedItem=inventory.firstOrNull {it.groupId==selected};val detail=model.productDetail
     LazyColumn(Modifier.fillMaxSize().padding(horizontal=20.dp),contentPadding=PaddingValues(vertical=20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item {TextButton(onClick=back) {Text("← Uploads & connection")};PageTitle("Shopify listings","Search, inspect and review exact physical-copy links")}
-        if(!model.paired) item {Text("Pair and test your hosted broker in Shopify connection settings. Local inventory remains available offline.")}
+        if(!model.paired) item {Text("Connect and test your saved Shopify connection in Settings. Local inventory remains available offline.")}
         item {OutlinedTextField(query,{query=it.take(200)},label={Text("Search listing title")},modifier=Modifier.fillMaxWidth(),singleLine=true)}
         item {Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {listOf("" to "All","DRAFT" to "Draft","ACTIVE" to "Active","ARCHIVED" to "Archived").forEach {(value,label)->FilterChip(selected=status==value,onClick={status=value},label={Text(label)})}}}
         item {Button(enabled=model.paired && !model.busy,onClick={model.browse(query,status,"")}) {Text("Search Shopify")}}
@@ -116,8 +125,9 @@ internal fun metadataLabel(key:String)=when(key) {"descriptionHtml"->"Descriptio
                 TextButton(enabled=!model.busy && location.isNotBlank(),onClick={model.prepareOwnerAction(detail.getString("id"),location,"APPROVE_LOCAL","") {reviewId=it}}) {Text("Review local approval")}
                 Row(Modifier.horizontalScroll(rememberScrollState())) {listOf("DRAFT" to "Set Draft","ACTIVE" to "Set Active","ARCHIVED" to "Archive on Shopify").forEach {(action,label)->TextButton(enabled=!model.busy && location.isNotBlank(),onClick={model.prepareOwnerAction(detail.getString("id"),location,action,"") {reviewId=it}}) {Text(label)}}}
                 val publications=model.health?.optJSONArray("publications") ?: JSONArray()
-                for(i in 0 until publications.length()) {val channel=publications.getJSONObject(i);FilterChip(selected=ownerPublication==channel.getString("id"),onClick={ownerPublication=channel.getString("id")},label={Text(channel.getString("name"))})}
-                Button(enabled=!model.busy && location.isNotBlank() && ownerPublication.isNotBlank(),onClick={model.prepareOwnerAction(detail.getString("id"),location,"PUBLISH_LIVE",ownerPublication) {reviewId=it}}) {Text("Review publication to selected channel")}
+                for(i in 0 until publications.length()) {val channel=publications.getJSONObject(i);FilterChip(selected=channel.getString("id") in ownerPublications,onClick={val id=channel.getString("id");ownerPublications=if(id in ownerPublications) ownerPublications-id else ownerPublications+id},label={Text(channel.getString("name"))})}
+                TextButton(enabled=model.health!=null,onClick={vm.repo.savePublicationDefaults(ownerPublications.toSet(),model.health!!)}) {Text("Save default channels")}
+                Button(enabled=!model.busy && location.isNotBlank() && ownerPublications.isNotEmpty(),onClick={model.prepareMultiOwner(detail.getString("id"),location,ownerPublications.toSet()) {reviewId=it}}) {Text("Review publication to selected channels")}
                 Text("Online Store publication plus Active status is required for website availability. Changes always require the exact review and SUBMIT.",style=MaterialTheme.typography.bodySmall)
             }
             item {OutlinedTextField(localSearch,{localSearch=it.take(200)},label={Text("Find local copy by title or Item ID")},modifier=Modifier.fillMaxWidth());Text("Showing up to 30 matching copies. Refine the search to find a specific Item ID.",style=MaterialTheme.typography.bodySmall)}
@@ -134,7 +144,7 @@ internal fun metadataLabel(key:String)=when(key) {"descriptionHtml"->"Descriptio
             }
         }
         item {Text("Saved reviews",style=MaterialTheme.typography.titleLarge)}
-        items(reviews,key={"review-"+it.id}) {row->OutlinedCard(Modifier.fillMaxWidth()) {Column(Modifier.padding(14.dp)) {Text("${shopifyReviewTitle(row.kind)} · ${row.state}");TextButton(onClick={reviewId=row.id}) {Text(if(row.state=="PENDING") "Review saved proposal" else "View review receipt")};if(row.state=="APPLIED") {val result=JSONObject(row.resultJson);Text("Job ${result.optString("jobId")} · ${result.optString("status","QUEUED")}",style=MaterialTheme.typography.bodySmall);result.optJSONObject("outcome")?.let {outcome->Text(if(outcome.optString("state")=="APPROVED_LOCALLY") "Approved locally; Shopify unchanged" else "Verified status ${outcome.optString("status")} · published to selected channel: ${if(outcome.optBoolean("publicationChecked")) outcome.optBoolean("publishedToSelectedChannel").toString() else "not checked by this status operation"}",style=MaterialTheme.typography.bodySmall)}}}}}
+        items(reviews,key={"review-"+it.id}) {row->OutlinedCard(Modifier.fillMaxWidth()) {Column(Modifier.padding(14.dp)) {Text("${shopifyReviewTitle(row.kind)} · ${row.state}");TextButton(onClick={reviewId=row.id}) {Text(if(row.state=="PENDING") "Review saved proposal" else "View review receipt")};if(row.state=="APPLIED") {val result=JSONObject(row.resultJson);val channels=result.optJSONObject("outcome")?.optJSONArray("channelOutcomes") ?: result.optJSONArray("channelOutcomes") ?: JSONArray();for(i in 0 until channels.length()) {val c=channels.getJSONObject(i);Text("${c.optString("name")}: ${if(c.optBoolean("published")) "Verified published" else "Not confirmed"}")};Text("Job ${result.optString("jobId")} · ${result.optString("status","QUEUED")}",style=MaterialTheme.typography.bodySmall);result.optJSONObject("outcome")?.let {outcome->Text(if(outcome.optString("state")=="APPROVED_LOCALLY") "Approved locally; Shopify unchanged" else "Verified status ${outcome.optString("status")} · published to selected channel: ${if(outcome.optBoolean("publicationChecked")) outcome.optBoolean("publishedToSelectedChannel").toString() else "not checked by this status operation"}",style=MaterialTheme.typography.bodySmall)}}}}}
     }
     reviews.firstOrNull {it.id==reviewId}?.let {ShopifyReviewDialog(it,model) {reviewId=null}}
 }

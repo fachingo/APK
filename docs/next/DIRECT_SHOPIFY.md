@@ -1,4 +1,9 @@
-# Direct Shopify — 0.8.3
+# Direct Shopify — v0.8.4
+
+The v0.8.4 [production workflow](PRODUCTION_WORKFLOW.md) adds one-tap selected
+drafts and a single reviewed multi-channel publication batch. Authentication and
+the underlying draft/photo/reconciliation pipeline remain the established direct
+implementation. The older review path below remains optional for ordinary drafts.
 
 SnapIMS connects from the Android phone to Shopify using the existing installed
 Dev Dashboard app. Direct authentication, catalog reads, product writes, photos,
@@ -14,7 +19,8 @@ is created or deployed by this update.
 3. On later launches, use Open saved Shopify connection; credentials and cached
    tokens survive ordinary app restarts and signed APK updates.
 4. Enable **writes to my Shopify store** to permit production write proposals.
-   Every operation still requires its own reviewed approval.
+   Deliberate Create Shopify Drafts authorizes selected draft uploads. Live/status,
+   destructive and selected existing-product changes retain reviewed approval.
 5. Enable **live publication controls** for status activation/publication. Grant
    the required scopes to the existing app, then test the connection again.
 

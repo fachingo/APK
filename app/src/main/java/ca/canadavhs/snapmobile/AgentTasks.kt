@@ -57,7 +57,7 @@ internal suspend fun CaptureRepository.scheduleAgentTask(id:String) {
             when(task.kind) {
                 "SETTINGS_CHANGE"->{val patch=result.getJSONObject("patch");val before=result.getJSONObject("before");val current=AgentApplicationActions.publicSettings(this)
                     patch.keys().forEach {key->check(current.get(key)==before.get(key) || current.get(key)==patch.get(key)) {"Settings changed after review; prepare a fresh proposal."}}
-                    val edit=preferences.edit();patch.keys().forEach {key->when(val value=patch.get(key)) {is Boolean->edit.putBoolean(key,value);is Number->edit.putInt(key,value.toInt());else->edit.putString(key,value.toString())}};check(edit.commit()) {"Could not persist settings."}
+                    val edit=preferences.edit();patch.keys().forEach {key->when(val value=patch.get(key)) {is Boolean->edit.putBoolean(key,value);is Number->edit.putInt(key,value.toInt());else->edit.putString(key,value.toString())}};check(edit.commit()) {"Could not persist settings."};if(patch.has("openaiModel")) saveTaskModel(AiTask.RECOGNITION,taskModel(AiTask.RECOGNITION).copy(model=patch.getString("openaiModel")))
                     if(patch.has("recognitionMode")) setRecognitionMode(patch.getString("recognitionMode"))}
                 "TASK_CONTROL"->{val target=result.getString("targetTaskId");val old=journal.agentTaskDao().get(target) ?: error("Task missing");if(result.getString("operation")=="CANCEL") {if(old.state!="CANCELLED") cancelAgentTask(target)} else if(old.state!="COMPLETE") completeReviewTask(target)}
                 "BATCH_OPERATION"->{if(result.getString("operation")=="FINISH") queueArchives(result.getString("sessionId"))}

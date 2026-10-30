@@ -92,7 +92,7 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         }
         val schema = JSONObject(repo.context.assets.open("openai_recognition_schema.json").bufferedReader().use { it.readText() })
         check(store.bindingId()==row.authBinding && repo.recognitionMode()=="OPENAI" && repo.dao.recognition(row.id)?.state=="RUNNING") {"Recognition authorization changed before sending. Review and retry explicitly."}
-        return OpenAiRecognitionClient().recognize(key, row.model, encoded, schema).put("source_images", provenance).put("requested_model", row.model)
+        return OpenAiRecognitionClient().recognize(key, row.model, encoded, schema, repo.taskModel(AiTask.RECOGNITION).takeIf {it.model==row.model}?.reasoning.orEmpty()).put("source_images", provenance).put("requested_model", row.model)
     }
 
     private suspend fun local(repo: CaptureRepository, row: RecognitionRow, photos: List<PhotoRow>): JSONObject {

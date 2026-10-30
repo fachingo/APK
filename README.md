@@ -1,4 +1,33 @@
-# SnapIMS Next0.8.3 — standalone Shopify and smart market matching
+# SnapIMS Next 0.8.4 — offline bulk pricing and production batches
+
+**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.4-debug.apk)** · [Source ZIP](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.4-source.zip) · [Release notes](docs/next/RELEASE_0.8.4.md)
+
+**Auto Match & Price works entirely offline, with zero AI calls.** Select copies in
+Batches, match against the local sold database, and apply eligible evidence-based
+CAD prices together. Manual-price protection, dated FX, outliers, floors/ceilings,
+rounding, source references and questionable-match review are configurable.
+
+The same persistent selection drives recognition, missing metadata, one-tap Shopify
+drafts and reviewed multi-channel publication. Ordinary Create Shopify Drafts is the
+operator's authorization; there are no per-product approvals or second draft dialog.
+Invalid records are skipped with reasons. Live publication keeps one exact batch
+SUBMIT review and verifies each actual Shopify publication separately.
+
+Settings → AI Models & Tasks provides independent OpenAI task overrides. Optional
+bounded AI assistance remains separate from deterministic matching/pricing. Existing
+free/local/subscription connections and the on-demand agent remain available.
+No broker, hosting, computer, continuous AI monitoring or automatic photo upload is
+required. Direct Shopify authentication and the existing draft/recovery pipeline
+were extended without rebuilding them.
+
+[Workflow, pricing, safeguards and limits](docs/next/PRODUCTION_WORKFLOW.md) ·
+[Direct Shopify setup](docs/next/DIRECT_SHOPIFY.md) · [Executed checks](docs/TEST_RESULTS.md).
+The owner confirmed real-store connection and a real draft on v0.8.3. New v0.8.4
+live-store/physical-device acceptance remains unverified here; cloud tests use local
+SQLite and intercepted HTTP, and no real store product was changed. Install over the
+existing signed app without uninstalling or clearing private data.
+
+# Previous release: SnapIMS Next 0.8.3 — standalone Shopify and smart market matching
 
 **[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.3-debug.apk)** · [Source](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.3-source.zip)
 
@@ -14,8 +43,8 @@ one explicit request approval; it never replaces the local evidence/pricing rule
 
 [Release notes](docs/next/RELEASE_0.8.3.md) · [Direct Shopify setup and exact safeguards](docs/next/DIRECT_SHOPIFY.md) ·
 [Smart matching](docs/next/SMART_MARKET_MATCHING.md) · [Executed checks](docs/TEST_RESULTS.md).
-Real Canada VHS/physical Pixel/API publication acceptance remains UNRUN; host/mock
-tests are not real-store proof. No real store product was changed in this task.
+At the v0.8.3 cloud build, real-store/Pixel acceptance was UNRUN; the owner later
+confirmed connection and a real draft. Host/mock tests are not live-store proof.
 Install over the existing signed app without uninstalling or clearing private data.
 
 # SnapIMS Next 0.8.1

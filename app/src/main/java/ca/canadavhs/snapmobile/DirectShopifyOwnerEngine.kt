@@ -10,6 +10,7 @@ internal suspend fun DirectShopifyGateway.ownerAction(repo:CaptureRepository,id:
  check(endpoint()==job.broker && fingerprint()==job.connectionFingerprint && p.getString("connectionFingerprint")==job.connectionFingerprint)
  val health=healthForWrite();check(health.getString("shopId")==job.shopId);val action=p.getString("action");if(action!="APPROVE_LOCAL") repo.requireShopifyWriteHealth(health)
  if(action in listOf("ACTIVE","PUBLISH_LIVE")) check(health.optBoolean("allowPublish")) {"Live publication controls or scopes are disabled."}
+ if(p.has("localGroupId")) {val item=repo.journal.inventoryDao().items().firstOrNull {it.groupId==p.getString("localGroupId") && !it.archived} ?: error("Selected local copy was deleted or archived; no further publication authorized");check(item.revision==p.getLong("localRevision") && item.shopifyProductId==p.getJSONObject("before").getString("id")) {"Selected local copy changed after approval; review again"}}
  val before=p.getJSONObject("before");val product=before.getString("id");val readArgs=JSONObject().put("productId",product).put("locationId",p.getString("location"));var now=call(newId(),"product",readArgs)
  val stage=entry ?: JSONObject().put("phase","PREPARED");if(stage.optString("phase")=="COMPLETE") return stage.getJSONObject("result")
  if(stage.getString("phase")=="PREPARED") {check(now.getString("reviewVersion")==before.getString("reviewVersion")) {"Shopify changed after review; no status mutation was sent."};stage.put("phase","SENT");persist(stage)}
@@ -21,16 +22,23 @@ internal suspend fun DirectShopifyGateway.ownerAction(repo:CaptureRepository,id:
   val result=graphql("mutation SnapIMSOwnerStatus(${'$'}product:ProductUpdateInput!){productUpdate(product:${'$'}product){product{id status} userErrors{message}}}",JSONObject().put("product",JSONObject().put("id",product).put("status",target))).getJSONObject("productUpdate")
   val errors=result.getJSONArray("userErrors");check(errors.length()==0) {safe(errors.toString())}
  }
- var published=false
- if(action=="PUBLISH_LIVE") {val publication=p.getString("publication");check(health.getJSONArray("publications").let {a->(0 until a.length()).any {a.getJSONObject(it).getString("id")==publication}})
-  val statusArgs=JSONObject().put("creationKey",review.id).put("productId",product).put("publicationId",publication)
-  val query=DirectShopifyOperations.prepare("publication_status",statusArgs)
-  fun checked(data:JSONObject)=data.getJSONObject("product").getBoolean("publishedOnPublication")
-  if(!checked(graphql(query.query,query.variables))) {
-   val op=DirectShopifyOperations.prepare("publish",statusArgs);val result=graphql(op.query,op.variables).getJSONObject(op.field);val errors=result.getJSONArray("userErrors");check(errors.length()==0) {safe(errors.toString())}
+ var published=false;val outcomes=JSONArray()
+ if(action=="PUBLISH_LIVE") {
+  val selected=p.optJSONArray("publications") ?: JSONArray().put(p.getString("publication"));check(selected.length() in 1..50)
+  val available=health.getJSONArray("publications").let {a->(0 until a.length()).associate {a.getJSONObject(it).getString("id") to a.getJSONObject(it).getString("name")}}
+  val missing=JSONArray()
+  suspend fun isPublished(publication:String):Boolean {val op=DirectShopifyOperations.prepare("publication_status",JSONObject().put("creationKey",review.id).put("productId",product).put("publicationId",publication));return graphql(op.query,op.variables).getJSONObject("product").getBoolean("publishedOnPublication")}
+  for(i in 0 until selected.length()) {val publication=selected.getString(i);check(publication in available) {"Selected publication no longer available: $publication"};if(!isPublished(publication)) missing.put(JSONObject().put("publicationId",publication))}
+  var error=""
+  if(missing.length()>0) {
+   val query="mutation SnapIMSPublish(${'$'}id:ID!,${'$'}input:[PublicationInput!]!){publishablePublish(id:${'$'}id,input:${'$'}input){userErrors{field message}}}"
+   val result=graphql(query,JSONObject().put("id",product).put("input",missing)).getJSONObject("publishablePublish");error=safe(result.getJSONArray("userErrors").toString()).takeIf {it!="[]"}.orEmpty()
   }
-  published=checked(graphql(query.query,query.variables));check(published) {"Shopify has not confirmed publication to the selected channel."}
+  for(i in 0 until selected.length()) {val publication=selected.getString(i);val verified=isPublished(publication);outcomes.put(JSONObject().put("publicationId",publication).put("name",available.getValue(publication)).put("published",verified).put("error",if(verified) "" else error.ifBlank {"Not confirmed published"}))}
+  published=(0 until outcomes.length()).all {outcomes.getJSONObject(it).getBoolean("published")}
+  stage.put("channelOutcomes",outcomes);persist(stage)
+  check(published) {"Publication incomplete. "+outcomes.toString()+". Resume the same job to reconcile only unconfirmed channels."}
  }
  now=call(newId(),"product",readArgs);check(now.getString("status")==target && protectedProduct(now,ignored)==protectedProduct(before,ignored)) {"Remote outcome differs from the reviewed transition."}
- val result=JSONObject().put("productId",product).put("status",target).put("verifiedAt",System.currentTimeMillis()).put("publicationChecked",action=="PUBLISH_LIVE").put("publishedToSelectedChannel",if(action=="PUBLISH_LIVE") published else JSONObject.NULL).put("publication",p.optString("publication"));stage.put("phase","COMPLETE").put("result",result);persist(stage);return result
+ val result=JSONObject().put("productId",product).put("status",target).put("verifiedAt",System.currentTimeMillis()).put("publicationChecked",action=="PUBLISH_LIVE").put("publishedToSelectedChannel",if(action=="PUBLISH_LIVE") published else JSONObject.NULL).put("publication",p.optString("publication")).put("channelOutcomes",outcomes);stage.put("phase","COMPLETE").put("result",result);persist(stage);return result
 }

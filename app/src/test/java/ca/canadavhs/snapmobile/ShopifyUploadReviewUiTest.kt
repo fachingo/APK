@@ -45,8 +45,7 @@ class ShopifyUploadReviewUiTest {
         compose.waitUntil(10000) {runCatching {compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Main location"))}.isSuccess}
         compose.onNodeWithText("Main location").performScrollTo().performClick()
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(item.title));compose.onAllNodes(isToggleable()).onFirst().performClick()
-        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("I approve sending the selected listing data and photographs to Shopify."));compose.onAllNodes(isToggleable()).onLast().performClick()
-        compose.onNodeWithText("Review draft upload (1)").performScrollTo().performClick()
+        compose.onNodeWithText("Optional listing review").performScrollTo().performClick()
         compose.waitUntil(10000) {compose.onAllNodesWithText("Approve Shopify drafts?").fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText("Approve once").assertIsDisplayed();compose.onNodeWithText("SKU ${item.itemId}").assertExists()
         File(System.getProperty("snapims.testOutput"),"shopify-native-draft-review.png").apply {parentFile!!.mkdirs()}.outputStream().use {compose.onNode(isDialog()).captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}

@@ -15,7 +15,7 @@ class AiWorkspaceModel(application:Application):AndroidViewModel(application) {
     val repo=(application as CaptureApplication).repository
     private val dao=repo.journal.nextDao()
     private val client=AiClient(application)
-    internal var modelRequest:suspend(ChatConversationRow,List<ChatMessageRow>,JSONArray,suspend(String)->Unit)->AiClient.Result={chat,history,definitions,delta->client.stream(chat,history,definitions,delta)}
+    internal var modelRequest:suspend(ChatConversationRow,List<ChatMessageRow>,JSONArray,suspend(String)->Unit)->AiClient.Result={chat,history,definitions,delta->(if(chat.provider=="OPENAI") AiClient(repo.context,taskOptions=repo.taskModel(if(chat.toolsEnabled) AiTask.AGENT else AiTask.CHAT).takeIf {it.model==chat.model}) else client).stream(chat,history,definitions,delta)}
     private val tools=AgentTools(repo)
     val chats=dao.watchChats().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),emptyList())
     val proofs=dao.watchProofs().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),emptyList())
@@ -32,6 +32,7 @@ class AiWorkspaceModel(application:Application):AndroidViewModel(application) {
     val traces:(String)->Flow<List<AgentTraceRow>> = {repo.journal.agentPolicyDao().watchTraces(it)}
     init {viewModelScope.launch {repo.journal.agentPolicyDao().interruptedTraces().forEach {repo.journal.agentPolicyDao().update(it.copy(state="INTERRUPTED",summary="Application stopped; no tool or model request restarted."))};dao.interruptedMessages().forEach {dao.update(it.copy(status="INTERRUPTED",error="App stopped before completion. Retry manually; no request restarted."))}}}
     fun action(block:suspend()->Unit) {viewModelScope.launch {try {block()} catch(e:CancellationException) {throw e} catch(e:Exception) {error=e.message ?: "Operation failed. Retry manually."}}}
+    internal suspend fun configuredTask(task:AiTask):AiCapabilityRow {val choice=repo.taskModel(task);return dao.capability("OPENAI",choice.model) ?: AiCapabilityRow(stableRowId("OPENAI/${choice.model}"),"OPENAI",choice.model,choice.model).also {dao.save(it)}}
     fun clearError() {error=""}
     fun clearNotice() {notice=""}
     fun discover(providerId:String) {if(loading) return;loading=true;catalog=emptyList();action {try {
@@ -70,7 +71,7 @@ class AiWorkspaceModel(application:Application):AndroidViewModel(application) {
             }
             check(passed) {"Capability probe was inconclusive. Capability stays unverified; review provider/model compatibility."}
             val verified=when(kind) {"TOOLS"->model.copy(supportsTools=true);"IMAGE"->model.copy(supportsImages=true);"FILE"->model.copy(supportsFiles=true);else->model.copy(supportsText=true)}.copy(origin="EXPLICIT_DEVICE_PROBE",checkedAt=System.currentTimeMillis())
-            dao.save(verified);catalog=catalog.map {if(it.id==model.id) verified else it};error="$kind probe completed successfully using ${provider.label}."
+            dao.save(verified);catalog=if(catalog.any {it.id==model.id}) catalog.map {if(it.id==model.id) verified else it} else catalog+verified;error="$kind probe completed successfully using ${provider.label}."
             if(provider.subscription) SiwcConnection.proof(repo,"STREAM_COMPLETED","Explicit $kind capability probe reached response.completed · ${response.responseId.take(100)} · ${model.model.take(100)}")
         } finally {file?.delete()}
     } finally {loading=false}}}

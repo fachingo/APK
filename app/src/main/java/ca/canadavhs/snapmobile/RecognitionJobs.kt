@@ -35,7 +35,7 @@ internal data class RecognitionSettings(val provider:String,val model:String,val
 }
 internal fun CaptureRepository.recognitionSettings():RecognitionSettings {
     val provider=recognitionMode();check(provider!="OFF") {"Choose a recognition mode in Settings first."}
-    val model=when(provider) {"OPENAI"->preferences.getString("openaiModel",DEFAULT_OPENAI_MODEL) ?: DEFAULT_OPENAI_MODEL;"OCR"->"tesseract-5.5.1/eng-fast-4.1.0";else->"zxing-3.5.4/classical-v1"}
+    val model=when(provider) {"OPENAI"->taskModel(AiTask.RECOGNITION).model;"OCR"->"tesseract-5.5.1/eng-fast-4.1.0";else->"zxing-3.5.4/classical-v1"}
     val binding=if(provider=="OPENAI") {require(validOpenAiModelId(model));SecureApiKeyStore(context).bindingId().also {check(it!="MISSING") {"Save your OpenAI API key in Settings first."}}} else "OFFLINE"
     return RecognitionSettings(provider,model,binding)
 }

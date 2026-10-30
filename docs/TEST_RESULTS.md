@@ -1,6 +1,6 @@
-# SnapIMS Next0.8.3 validation
+# SnapIMS Next 0.8.4 executed checks
 
-| Check | Executed result |
+| Host check | Result |
 | --- | --- |
 | AgentApplicationTest | 18 passed |
 | AgentContextTest | 7 passed |
@@ -19,9 +19,11 @@
 | MarketDatasetValidationTest | 1 passed |
 | MarketSmartMatchTest | 5 passed |
 | MarketUiTest | 1 passed |
-| NativeShopifyIntegrationTest | 10 passed |
+| NativeShopifyIntegrationTest | 13 passed |
 | NativeShopifyOwnerUiTest | 1 passed |
 | NextIntegrationTest | 7 passed |
+| ProductionBatchUiTest | 1 passed |
+| ProductionWorkflowTest | 21 passed |
 | RecognitionClientTest | 7 passed |
 | RecognitionStorageTest | 7 passed |
 | ShopifyManagementTest | 15 passed |
@@ -42,68 +44,61 @@
 | LocalRecognitionTest | 6 passed |
 | MarketCsvTest | 2 passed |
 | PricingConformanceTest | 3 passed |
-| Unique native/core host checks | **211 passed,0 failed,0 skipped** in consolidated reports |
-| Unchanged legacy compatibility checks | **21 passed**; no broker application created/deployed |
-| Total unique checks | **232 passed** |
-| Final tests / app and instrumentation APK builds | BUILD SUCCESSFUL |
-| Lint |0 errors,78 warnings; no checks disabled |
-| Update compatibility | VersionCode13 /0.8.3 / retained package and certificate /16KB alignment verified |
-| Local data | Room/snapshot10 unchanged; existing migration/import/export/backup checks pass |
-| Direct auth | Encrypted persistence, cached token reuse/renewal, safe rejected-org errors, disconnect and late-response credential resurrection prevention |
-| Native draft pipeline | Real Kotlin gateway through mocked GraphQL/staging: two photographs, SKU, CAD decimal price, stock, weight, media and ownership verification |
-| Product/file interruption | Lost accepted product and file responses reconcile from durable journal/markers without duplicate product/photo creation |
-| Existing marked product | Exact SKU/ownership claim, selected metadata/tags/price/weight/stock updates; unselected barcode/tax/tracking/shipping/media protected |
-| Concurrent external edit | An external price change stops the selected price update; external price is not overwritten |
-| Native status UI | Separate local approval, Active and Online Store publication reviews; SUBMIT enforced; local inventory reaches verified PUBLISHED |
-| Permissions / rejection / replay | Disabled owner writes and foreign resources send no mutations; rejected/pending/stale reviews cannot write; accepted approval cannot enqueue twice |
-| Agent direct operations | Actual native catalog read, rejected/accepted typed status proposal, native approval handoff and verified1/1 task outcome |
-| Smart local retrieval | SQLite indexed search, transposed OCR spelling, partial tokens, score/year separation and currency/GTIN safety |
-| Independent optional match AI | Explicit consent, separate model, bounded text-only candidates, recorded usage/cost; invented IDs/prices/duplicates rejected; failure makes no fallback/evidence write |
-| Idle behavior | Existing on-demand-only model tests remain green; local database retrieval does not call a model |
-| Market dataset |75,054 supplied USD records plus100,000 synthetic records;175,054 observations retained after restart; repeat import adds0 |
-| Agent against private dataset | Native market/overview reads pass; tested result 9621 chars, bounded below10,000; no provider contacted |
-| Indexed host timing |FTS4 median3ms; physical Pixel performance UNRUN |
-| Private files | Owner CSV, runtime databases, operation journals, credentials, tokens and signing key excluded from public APK/source |
-| Physical Pixel / real Canada VHS / website | **UNRUN**; no real credentials/device bound and no real-store mutation |
-| Real API/provider acceptance | **UNRUN**; mocked transport does not prove current Shopify schema/scopes or actual model quality |
 
-The full regression exercised all test classes and the owner's CSV. Two existing
-checks needed proper asynchronous UI/Room waits after the additional approval/
-disconnect steps. Their assertions remain intact. Final focused runs replace
-those class reports and include native status, financial-field protection, agent
-status tasks and the final UI guards for connection changes/loading match scores.
-The evidence above counts211 unique checks, not overlapping runs. The new native
-protocol tests execute the Kotlin upload/status/ownership code against intercepted
-HTTP responses; the UI test drives the native approval flow and explicitly runs
-its durable jobs. No store credentials or actual product data are used in those
-fixtures. Tests do not establish physical-device/live-store success.
+**236 unique Android/core checks passed, 0 failures, 0 errors, 0 skipped.**
+The full suite passed; final focused reruns verify the final code and replace the
+same class reports, rather than inflating the unique count. Application and
+instrumentation APKs build successfully. Lint: **0 errors / 90 warnings**;
+no lint checks were disabled. Instrumentation APK creation is not physical-device
+execution. Core/main camera, inventory, imports, backup/restore, Trash, agent
+permission/approval/idle behavior and native Shopify regressions remain covered.
 
-Lint ran after compilation/tests. WorkManager host teardown can emit CloseGuard
-warnings; the consolidated JUnit evidence has zero failures/errors/skips. The
-market-browser host screenshot was visually inspected after waiting for actual
-query completion; scores are labelled as heuristics and AI is OFF by default.
+| Acceptance area | Executed evidence |
+| --- | --- |
+| Partial selection | Native HTTP pipeline creates seven unique drafts with seven uploaded photographs from a 50-copy local batch; unselected records stay unchanged |
+| Fast draft submission | 50 copies queued by one operator action; no per-item reviews or second approval; invalid/published copies skipped |
+| Selection UI | Seven checkboxes, navigation away/back, exact seven-item draft queue, no approval dialog; channel override survives connection refresh and is saved with drafts |
+| Offline mixed batch | 100 selected synthetic copies against the same 175,054-record SQLite library; 50 high-confidence prices applied, questionable copies remain unpriced; **0 model requests** |
+| Financial validation | Median/average/trimmed mean, IQR exclusions, dated explicit FX, shipping policy, floors/ceilings, rounding and protected manual prices; stale inventory/source evidence cannot apply |
+| Compatible identity | Separate editions, remakes/years, sequels, bundles, formats and sealed/graded conditions protected; exact UPC only corroborates compatible minor OCR errors |
+| Hybrid search | Exact and approximate candidates coexist; prefix/token/spelling/trigram/Jaro-Winkler paths retain complete group counts; fallback, barcode, filters and pagination exercised |
+| Independent AI tasks | Persisted separate overrides, model capability rejection, explicit AI consent/budget limits, selected request models, bounded candidates, actual usage when returned, no automatic pricing/fallback/retry |
+| Native channels | One SUBMIT binds product/channel snapshots; multiple publication inputs; per-channel verified receipts; partial retry sends only missing destination; rejection sends no changes |
+| Recovery / integrity | Existing lost product/file-response reconciliation; saved workflow results, interrupted-AI pause, delete cancellation, migration/legacy import and non-secret preference round trip |
+| Large data | 100,000 synthetic plus 75,054 supplied source rows; 175,054 retained after restart; source CSV unchanged, repeat import adds zero |
+| Cost / data bounds | Native agent reads the real local library with no provider requests; tested compact result 9816 characters; optional AI sends no whole database/photos |
+| Host performance | Fuzzy median 26 ms; 100-copy mixed matching/application 4244 ms; physical Pixel timing UNRUN |
+| Update compatibility | Same package/certificate, version code 14 / 0.8.4, additive Room/snapshot 11, 16KB native alignment verified |
+| Public artifact privacy | Owner CSV, live databases, runtime operation journals, credentials, tokens and retained signing key excluded |
 
-No new database tables or destructive migrations were required. Existing string-
-kind review/job fields admit the new owner action, while snapshots preserve their
-payloads and pause restored external work. Device-private encrypted operation
-journals are deliberately outside backup/export roots. Restore/reconnect may
-require fresh ownership/status review; ambiguous writes are never blindly created
-again. Independent devices/desktop publishers do not share a global SKU lock.
+The benchmark FX rate is synthetic test configuration, not a fetched quote.
+A similarity/confidence category is not evidence of an observed current market price.
+Actual source references and amounts remain in the immutable local evidence library;
+results use compact IDs/hashes and load sold records in local pages.
 
-Read [direct operations and exact limits](next/DIRECT_SHOPIFY.md) and
-[matching and independent AI](next/SMART_MARKET_MATCHING.md). Credential entry and
-owner-write/live permission switches remain human phone actions. No continuous
-model monitoring, automatic image transmission or broker deployment was added.
-The existing desktop repositories were not modified by this update.
+The owner reported working Canada VHS connection and a real draft on v0.8.3.
+**New v0.8.4 physical Pixel/live Shopify/provider/website acceptance: UNRUN here.**
+The new native tests execute real Kotlin gateway/pipeline code through intercepted
+HTTP; they cannot establish live schema/scopes, actual model quality, physical camera
+behavior or real website availability. No real store product was changed. No broker
+app was created or deployed, and no new broker dependency was introduced.
 
-Evidence: /workspace/.setup/v083-validated-junit, v083-full-validation.log,
-v083-final-focused-validation.log, v083-final-ui-validation.log,
-v083-market-benchmark.json, v083-broker-regression.log, v083-final-lint.log,
-v083-signing.txt and v083-alignment.txt. Host screenshot:
-app/build/fixture-output/market-browser.png.
+Initial regression found and corrected a generic-format search regression, the
+mobile-import snapshot version, and tests needing updated selectors/async UI waits.
+The final full run has no failures. The final focused run additionally covers compact
+paged evidence, per-batch channel preservation and public task-setting integration.
+The unchanged legacy Python broker was not modified or deployed in this cycle.
 
-APK SHA256: `78dcf44b180d56d5c2b7730e21b883dd881c061314a5eb8af55169b6c3b0c5ff`
+Read [release notes](next/RELEASE_0.8.4.md),
+[workflow contract and limits](next/PRODUCTION_WORKFLOW.md), and
+[direct Shopify setup](next/DIRECT_SHOPIFY.md).
 
-Signing certificate SHA256:
-`b262fd08c7a58f338027260d47a94a33e5c939d72752034dddb2f4f6bf73faae`.
-Install over the existing official app; do not uninstall or clear private data.
+Evidence: `/workspace/.setup/v084-validated-junit`, `v084-final-full-validation.log`,
+`v084-final-focused.log`, `v084-market-benchmark.json`, `v084-final-lint.log`,
+`v084-signing.txt`, `v084-alignment.txt`, `v084-badging.txt`.
+The host `production-batch-selection.png` screenshot was visually inspected.
+
+APK SHA256: `75e7a9a553ede0b21f50cee424d2a7d4c62f4e14474ec3cff0af16d68bd7d562`
+
+Signing certificate SHA256: `b262fd08c7a58f338027260d47a94a33e5c939d72752034dddb2f4f6bf73faae`.
+Install over the existing official app without uninstalling or clearing private data.

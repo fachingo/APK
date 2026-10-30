@@ -24,7 +24,7 @@ class HttpsOpenAiTransport(private val client: OkHttpClient = defaultClient()) :
     override suspend fun execute(apiKey: String, path: String, payload: JSONObject?): OpenAiHttpResult {
         require(path == "models" || path == "responses")
         val builder = Request.Builder().url("https://api.openai.com/v1/$path").header("Authorization", "Bearer $apiKey")
-            .header("Content-Type", "application/json").header("User-Agent", "SnapIMS-Mobile/0.1.1")
+            .header("Content-Type", "application/json").header("User-Agent", "SnapIMS-Mobile/0.8.4")
         if (payload != null) builder.post(payload.toString().toRequestBody("application/json".toMediaType()))
         val call = client.newCall(builder.build())
         return suspendCancellableCoroutine { continuation ->
@@ -91,8 +91,8 @@ class OpenAiRecognitionClient(private val transport: OpenAiTransport = HttpsOpen
             .put("input", JSONArray().put(JSONObject().put("role", "user").put("content", content)))
             .put("text", JSONObject().put("format", JSONObject().put("type", "json_schema").put("name", "vhs_recognition").put("strict", true).put("schema", schema)))
     }
-    suspend fun recognize(apiKey: String, model: String, images: List<String>, schema: JSONObject): JSONObject =
-        parse(body(transport.execute(apiKey, "responses", request(model, images, schema))))
+    suspend fun recognize(apiKey: String, model: String, images: List<String>, schema: JSONObject, reasoning:String=""): JSONObject =
+        parse(body(transport.execute(apiKey, "responses", request(model, images, schema).apply {if(reasoning.isNotBlank()) put("reasoning",JSONObject().put("effort",reasoning))})))
 
     fun parse(response: JSONObject): JSONObject {
         check(response.optString("status") == "completed") { "OpenAI recognition was incomplete. No suggestion was applied; retry manually or choose another model." }

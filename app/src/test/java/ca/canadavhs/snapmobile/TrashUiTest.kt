@@ -62,6 +62,7 @@ class TrashPhotoUiTest:TrashUiFixture() {
     @Test fun finishedPhotoHasDirectDeleteAndTrashRecovery() {
         runBlocking {val group=repo.dao.group(physicalId);repo.dao.update(repo.dao.session(group.sessionId).copy(finished=true))}
         compose.onNodeWithText("Batches").performClick()
+        compose.onNodeWithText("← Photographs & capture history").performScrollTo().performClick()
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Delete photo"))
         compose.onNodeWithText("Delete photo").performClick()
         compose.waitUntil(10000) {runBlocking {repo.dao.photos(physicalId).single().deleted}}

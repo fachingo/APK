@@ -36,7 +36,7 @@ class MarketDatasetValidationTest {
             report.put("syntheticPreviewMs",(System.nanoTime()-started)/1_000_000)
             started=System.nanoTime();assertEquals(100_000L,repo.commitMarket(preview) {done,total->if(done%10000==0L) log("Synthetic import $done / $total")}.added);assertEquals(100_000L,count());report.put("syntheticImportMs",(System.nanoTime()-started)/1_000_000)
             started=System.nanoTime();assertEquals(0L,repo.commitMarket(preview).added);report.put("repeatImportMs",(System.nanoTime()-started)/1_000_000)
-            val times=mutableListOf<Long>();repeat(12) {iteration->val query="Fixture Movie "+((iteration*71)%1000).toString().padStart(4,'0');val time=System.nanoTime();val result=repo.searchMarket(MarketFilters(query=query,currency="USD"));assertEquals(1,result.groups.size);assertEquals(100L,result.groups.single().samples);times+=(System.nanoTime()-time)/1_000_000}
+            val times=mutableListOf<Long>();repeat(12) {iteration->val query="Fixture Movie "+((iteration*71)%1000).toString().padStart(4,'0');val time=System.nanoTime();val result=repo.searchMarket(MarketFilters(query=query,currency="USD"));assertEquals(100L,result.groups.first {it.titleKey==InventoryRules.normalizedTitle(query)}.samples);assertTrue(result.groups.size>1);times+=(System.nanoTime()-time)/1_000_000}
             val barcode=repo.searchMarket(MarketFilters(query="036000291452"));assertEquals(40,barcode.groups.size)
             report.put("syntheticRecords",100000).put("queryTimesMs",JSONArray(times)).put("medianQueryMs",times.sorted()[times.size/2]).put("index",repo.marketIndexKind()).put("physicalPixelBenchmark","UNRUN")
             preview.file.delete();fixture.delete()
@@ -50,6 +50,14 @@ class MarketDatasetValidationTest {
                 report.put("ownerCsvRows",p.rows).put("ownerCsvSha256",before).put("ownerCsvImportMs",(System.nanoTime()-started)/1_000_000).put("ownerCsvSourceUnchanged",true).put("ownerCsvRepeatedAdded",0)
                 assertTrue(repo.searchMarket(MarketFilters(query="Disney",currency="USD")).groups.isNotEmpty());p.file.delete()
             } else report.put("ownerCsvValidation","Not requested in this run; no owner data bundled")
+            // One hundred selected physical-copy records, against the same 175k library, with zero model requests.
+            val session=repo.start("Offline bulk pricing benchmark","A1");val first=repo.current();val selected=linkedSetOf<String>()
+            for(i in 0 until 100) {val group=if(i==0) first else GroupRow(sessionId=session.id,number=i+1,location="A1").also {repo.dao.insert(it)};val item=repo.ensureInventoryItem(group);val title=when {i<50->"Fixture Movie "+i.toString().padStart(4,'0');i<75->"Fxiture Movie "+(i-50).toString().padStart(4,'0');else->"Unfindable Qxzzy title "+i};repo.saveInventory(item.copy(title=title,condition="Good"),item.revision);selected+=item.groupId}
+            val pricingStart=System.nanoTime();val pricingJob=repo.queueProduction(selected,"MATCH_PRICE",AutoPriceRules(minimum=10,ageDays=36500,usdCad="1.35",rateDate=java.time.LocalDate.now().toString()).json());var providerCalls=0
+            repo.runProduction(pricingJob) {_,_,_,_,_->providerCalls++;error("Deterministic bulk pricing must never dispatch a model request")}
+            val outcomes=journal.productionDao().items(pricingJob);assertEquals(100,outcomes.size);assertEquals(50,outcomes.count {it.state=="HIGH_CONFIDENCE"});assertTrue(outcomes.filter {it.groupId in selected.drop(50)}.none {it.state=="HIGH_CONFIDENCE"});assertEquals(0,providerCalls)
+            val applied=repo.applyProductionPrices(outcomes.filter {it.state=="HIGH_CONFIDENCE"}.map {it.id}.toSet());assertEquals(50,applied.first);assertTrue(applied.second.isEmpty());assertEquals(50,journal.inventoryDao().items().count {it.priceSource.startsWith("MARKET_AUTO_")});assertEquals(expected,count())
+            report.put("offlineBulkSelected",100).put("offlineBulkHighConfidence",50).put("offlineBulkApplied",50).put("offlineBulkProviderRequests",providerCalls).put("offlineBulkMs",(System.nanoTime()-pricingStart)/1_000_000).put("bulkFxRate","1.35 synthetic test configuration, not a fetched quote")
             // Exercise the exact agent gateway against the imported native SQLite library.
             val agentChat=ChatConversationRow(title="Private dataset agent validation",provider="LOCAL",model="fixture",authMode="API_KEY",toolsEnabled=true)
             journal.nextDao().insert(agentChat);val agent=AgentTools(repo)
@@ -59,7 +67,7 @@ class MarketDatasetValidationTest {
             assertEquals(expected,agent.execute(agentChat,"app_overview",JSONObject()).getLong("soldObservations"));report.put("agentNativeLibraryRead","PASS").put("agentNoProviderRequests",true)
             journal.openHelper.writableDatabase.query("PRAGMA quick_check").use {assertTrue(it.moveToFirst());assertEquals("ok",it.getString(0))}
             journal.close();journal=Room.databaseBuilder(app,CaptureJournal::class.java,name).allowMainThreadQueries().build();repo=repository();app.repository=repo
-            assertEquals(expected,count());assertEquals(1,repo.searchMarket(MarketFilters(query="Fixture Movie 0042",currency="USD")).groups.size)
+            assertEquals(expected,count());assertTrue(repo.searchMarket(MarketFilters(query="Fixture Movie 0042",currency="USD")).groups.any {it.titleKey=="fixture 0042"})
             report.put("totalCurrentRowsAfterRestart",expected).put("restartPreserved",true);output.writeText(report.toString(2));log("Market validation complete: $expected current observations; host median ${times.sorted()[times.size/2]}ms. Physical Pixel performance UNRUN.")
         } finally {journal.close()}
     }

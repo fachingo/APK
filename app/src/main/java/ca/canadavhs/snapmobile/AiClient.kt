@@ -27,7 +27,7 @@ internal fun reportedUsdCost(provider:String,usage:JSONObject?):String? {
     if(usage==null || (provider!="OPENROUTER" && !usage.optString("cost_currency").equals("USD",true))) return null
     return usage.optString("cost").takeIf {it.length<=64 && it.toBigDecimalOrNull()?.signum()?.let {n->n>=0}==true}
 }
-internal class AiClient(private val context:Context,private val http:OkHttpClient=OkHttpClient.Builder().connectTimeout(20,TimeUnit.SECONDS).readTimeout(90,TimeUnit.SECONDS).followRedirects(false).build(),private val credentials:(suspend(AiProvider)->String)?=null) {
+internal class AiClient(private val context:Context,private val http:OkHttpClient=OkHttpClient.Builder().connectTimeout(20,TimeUnit.SECONDS).readTimeout(90,TimeUnit.SECONDS).followRedirects(false).retryOnConnectionFailure(false).build(),private val taskOptions:TaskModelChoice?=null,private val outputSchema:JSONObject?=null,private val credentials:(suspend(AiProvider)->String)?=null) {
     private suspend fun bearer(provider:AiProvider):String=credentials?.invoke(provider) ?: if(provider.subscription) SiwcConnection.token(context) else if(provider.id=="LOCAL") "local-no-key" else providerKey(context,provider.id).read() ?: error("Save this provider's API key first. ChatGPT plan access is a separate connection.")
     private fun failure(code:Int,subscription:Boolean):AiRequestException=AiRequestException(code,when(code) {
         401 -> "Credentials expired or were rejected. Reconnect the selected provider."
@@ -82,6 +82,8 @@ internal class AiClient(private val context:Context,private val http:OkHttpClien
         }
         return JSONObject().put("model",chat.model).put("store",false).put("stream",true).put("input",input).apply {
             if(chat.instructions.isNotBlank()) put("instructions",chat.instructions)
+            if(chat.provider=="OPENAI" && taskOptions!=null) {require(chat.model==taskOptions.model);put("max_output_tokens",taskOptions.maxOutput);if(taskOptions.reasoning.isNotBlank()) put("reasoning",JSONObject().put("effort",taskOptions.reasoning))}
+            if(chat.provider=="OPENAI" && outputSchema!=null) put("text",JSONObject().put("format",JSONObject().put("type","json_schema").put("name","snapims_task_result").put("strict",true).put("schema",outputSchema)))
             if(tools.length()>0) put("tools",tools)
         }
     }

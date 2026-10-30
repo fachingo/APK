@@ -1,3 +1,19 @@
+# v0.8.4 additions
+
+The existing on-demand agent reads allowlisted production job/item and verified
+Shopify channel-state records through the same compact, paginated read gateway.
+Public settings now report actual independent task-model choices, automatic-pricing
+rules and saved publication IDs without exposing credential slots or owner-write
+controls. The legacy reviewed recognition-model setting targets its central task
+override. Saved Chat/Agent model shortcuts are available when starting a new OpenAI
+conversation; existing conversations retain their models and permission boundaries.
+
+The operator batch dashboard has its own explicit one-tap draft authorization.
+AI proposals still require human review and cannot use that operator shortcut to
+bypass approvals. Offline pricing jobs do not call a model. Optional AI batch helpers
+have separate exact-selection budget authorization; no continuous monitor was added.
+See [production workflow](../next/PRODUCTION_WORKFLOW.md).
+
 # SnapIMS Next 0.8.3 application agent
 
 This extends the 0.7.0 workspace and native services. It does not replace inventory,

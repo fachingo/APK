@@ -50,7 +50,9 @@ internal class DirectShopifyEngine(private val context:Context,private val gatew
   requireUuid(id)
   if(kind=="owner_action") {
    val repo=(context.applicationContext as CaptureApplication).repository;val state=load();val ops=state.getJSONObject("operations");val hash=sha256(canonicalJson(a).toByteArray());val stored=ops.optJSONObject(id);if(stored!=null) check(stored.getString("hash")==hash)
-   return@withLock gateway.ownerAction(repo,id,a,stored) {entry->entry.put("hash",hash);ops.put(id,entry);save(state)}
+   return@withLock gateway.ownerAction(repo,id,a,stored) {entry->entry.put("hash",hash);ops.put(id,entry);save(state)
+    if(entry.has("channelOutcomes")) {val review=repo.journal.shopifyDao().review(a.getString("reviewId"));if(review!=null) repo.mutate {val latest=repo.journal.shopifyDao().review(review.id)!!;repo.journal.shopifyDao().update(latest.copy(resultJson=JSONObject(latest.resultJson).put("channelOutcomes",entry.getJSONArray("channelOutcomes")).toString()));val product=JSONObject(latest.payloadJson).getJSONObject("before").getString("id");val channels=entry.getJSONArray("channelOutcomes");for(i in 0 until channels.length()) {val c=channels.getJSONObject(i);val publication=c.getString("publicationId");repo.journal.productionDao().save(ShopifyChannelStateRow(stableRowId("$product/$publication"),product,publication,c.getString("name"),c.getBoolean("published"),System.currentTimeMillis(),c.optString("error")))}}}
+   }
   }
   if(kind=="recover_file") {
    require(a.keys().asSequence().toSet()==setOf("pendingOperationId","creationKey","filename","alt"));val state=load();val old=state.getJSONObject("operations").optJSONObject(requireUuid(a.getString("pendingOperationId"))) ?: uncertain("The file operation journal is missing; inspect Shopify before retrying.")

@@ -13,7 +13,7 @@ import java.io.FileOutputStream
 import java.util.zip.ZipFile
 import ca.canadavhs.snapmobile.core.sha256
 
-internal val snapshotTables = listOf("sessions","groups","photos","archives","events","recognition","inventory_batches","inventory","inventory_audit","transfer_jobs","pricing_evidence_native","chat_conversations","chat_messages","ai_capabilities","agent_approvals","listing_plans","siwc_proofs","shopify_jobs","shopify_job_items","market_imports","price_decisions","market_searches","agent_tasks","shopify_reviews","agent_policies","agent_traces","trash_entries")
+internal val snapshotTables = listOf("sessions","groups","photos","archives","events","recognition","inventory_batches","inventory","inventory_audit","transfer_jobs","pricing_evidence_native","chat_conversations","chat_messages","ai_capabilities","agent_approvals","listing_plans","siwc_proofs","shopify_jobs","shopify_job_items","market_imports","price_decisions","market_searches","agent_tasks","shopify_reviews","agent_policies","agent_traces","trash_entries","production_jobs","production_items","shopify_channel_states")
 internal val snapshotPrimaryKeys = mapOf("inventory_batches" to "sessionId", "inventory" to "groupId", "agent_policies" to "conversationId")
 internal const val MAX_SNAPSHOT_BYTES = 32 * 1024 * 1024
 internal const val MAX_PACKAGE_FILES = 100_000
@@ -71,8 +71,8 @@ internal suspend fun CaptureRepository.buildSnapshot(): JSONObject = mutate {
     require(files.size <= MAX_PACKAGE_FILES) { "Export separate batches: backup exceeds the package file limit." }
     val manifestFiles = JSONArray()
     // Hashing is performed after the consistent metadata snapshot, outside camera's lock.
-    JSONObject().put("format","snapims.inventory.snapshot").put("version",1).put("schema",10)
-        .put("tables",tables).put("files",manifestFiles).put("file_paths",JSONArray(files.keys.toList()))
+    JSONObject().put("format","snapims.inventory.snapshot").put("version",1).put("schema",11)
+        .put("workflowSettings",exportWorkflowPreferences()).put("tables",tables).put("files",manifestFiles).put("file_paths",JSONArray(files.keys.toList()))
 }
 internal suspend fun CaptureRepository.hashSnapshotFiles(snapshot: JSONObject): JSONObject = withContext(Dispatchers.IO) {
     val paths = snapshot.getJSONArray("file_paths"); snapshot.remove("file_paths")
@@ -90,15 +90,16 @@ internal suspend fun CaptureRepository.hashSnapshotFiles(snapshot: JSONObject): 
     snapshot
 }
 internal fun CaptureRepository.validateSnapshot(snapshot: JSONObject) {
-    require(snapshot.getString("format") == "snapims.inventory.snapshot" && snapshot.getInt("version") == 1 && snapshot.getInt("schema") in 3..10) { "Unsupported inventory snapshot version." }
+    require(snapshot.getString("format") == "snapims.inventory.snapshot" && snapshot.getInt("version") == 1 && snapshot.getInt("schema") in 3..11) { "Unsupported inventory snapshot version." }
+    snapshot.optJSONObject("workflowSettings")?.let {validateWorkflowPreferences(it)}
     val tables = snapshot.getJSONObject("tables")
-    if(snapshot.getInt("schema")<10) {
-        val count=when(snapshot.getInt("schema")) {3->10;4->17;5->19;6->22;7->23;8->24;else->26}
+    if(snapshot.getInt("schema")<11) {
+        val count=when(snapshot.getInt("schema")) {3->10;4->17;5->19;6->22;7->23;8->24;9->26;else->27}
         require(tables.keys().asSequence().toSet()==snapshotTables.take(count).toSet()) {"Incomplete legacy inventory snapshot."}
         snapshotTables.drop(count).forEach {tables.put(it,JSONArray())}
         if(snapshot.getInt("schema")<7) {val recognition=tables.getJSONArray("recognition");for(i in 0 until recognition.length()) recognition.getJSONObject(i).put("authBinding","").put("approvalId","")}
         if(snapshot.getInt("schema")<9) {val messages=tables.getJSONArray("chat_messages");for(i in 0 until messages.length()) messages.getJSONObject(i).put("usageJson","{}")}
-        snapshot.put("schema",10)
+        snapshot.put("schema",11)
     }
     require(tables.keys().asSequence().toSet() == snapshotTables.toSet()) { "Incomplete inventory snapshot." }
     val files = snapshot.getJSONArray("files"); require(files.length() <= MAX_PACKAGE_FILES)
@@ -152,6 +153,9 @@ internal fun CaptureRepository.validateSnapshot(snapshot: JSONObject) {
                     val file = indexed["archives/${row.getString("filename")}"] ?: error("Backup is missing a completed archive.")
                     require(file.getLong("bytes") == row.getLong("bytes") && file.getString("sha256") == row.getString("sha256"))
                 }
+                "shopify_channel_states" -> {require(row.getInt("published") in 0..1);require(row.getString("productId").matches(Regex("gid://shopify/Product/[0-9]{1,30}")));require(row.getString("publicationId").matches(Regex("gid://shopify/Publication/[0-9]{1,30}")))}
+                "production_jobs" -> {require(row.getString("kind") in listOf("MATCH_PRICE","METADATA","AI_MATCH","AI_METADATA","AI_EDITION"));require(row.getString("state") in listOf("QUEUED","RUNNING","COMPLETE","CANCELLED","PAUSED_REVIEW"));JSONObject(row.getString("optionsJson"))}
+                "production_items" -> {requireUuid(row.getString("jobId"));requireUuid(row.getString("groupId"));require(row.getLong("revision")>=0);JSONObject(row.getString("resultJson"));require(row.getString("state") in listOf("QUEUED","RUNNING","HIGH_CONFIDENCE","NEEDS_REVIEW","NO_RELIABLE_MATCH","APPLIED","COMPLETE","ERROR","UNCERTAIN","SKIPPED","CANCELLED"))}
                 "agent_tasks" -> {
                     requireUuid(row.getString("approvalId"));requireUuid(row.getString("conversationId"));JSONArray(row.getString("groupIdsJson")).let {if(it.length()>0) jsonIds(it)};val jobs=JSONArray(row.getString("jobIdsJson"));require(jobs.length()<=50);for(j in 0 until jobs.length()) requireUuid(jobs.getString(j));JSONObject(row.getString("resultJson"))
                     require(row.getString("state") in listOf("SCHEDULE_PENDING","SCHEDULED","CANCEL_PENDING","CANCELLED","PAUSED_REVIEW","COMPLETE","OPEN"))
@@ -241,7 +245,8 @@ internal suspend fun CaptureRepository.stageSnapshot(zip: File, stage: File): JS
         snapshot
     }
 }
-internal suspend fun CaptureRepository.mergeSnapshot(snapshot: JSONObject, stage: File): Int = mutate {
+internal suspend fun CaptureRepository.mergeSnapshot(snapshot: JSONObject, stage: File): Int {
+ val count=mutate {
     check(dao.pending().isEmpty()) { "Wait for captures before restoring inventory." }
     validateSnapshot(snapshot)
     val db = journal.openHelper.writableDatabase
@@ -257,6 +262,7 @@ internal suspend fun CaptureRepository.mergeSnapshot(snapshot: JSONObject, stage
         val rows = tables.getJSONArray(table)
         for(i in 0 until rows.length()) {
             val row = JSONObject(rows.getJSONObject(i).toString())
+            if(table=="production_jobs" && row.getString("state") !in listOf("COMPLETE","CANCELLED")) row.put("state","PAUSED_REVIEW").put("error","Restored job requires fresh authorization; no request restarted.")
             if(table=="agent_traces" && row.getString("state")=="RUNNING") row.put("state","INTERRUPTED").put("summary","Restored trace; no tool or model request restarted.")
             if(table=="shopify_reviews" && row.getString("state")=="PENDING") row.put("state","EXPIRED").put("resultJson","{\"error\":\"Restored review requires fresh verification\"}")
             if(table=="agent_tasks" && row.getString("state") !in listOf("COMPLETE","CANCELLED")) row.put("state","PAUSED_REVIEW").put("error","Restored task requires fresh review; no external action restarted.")
@@ -316,6 +322,9 @@ internal suspend fun CaptureRepository.mergeSnapshot(snapshot: JSONObject, stage
     for((table,columns,values) in inserts) db.execSQL("INSERT INTO $table (${columns.joinToString(",")}) VALUES (${columns.joinToString(",") { "?" }})",values.toTypedArray())
     db.query("PRAGMA foreign_key_check").use { cursor -> check(!cursor.moveToFirst()) { "Restore contains broken record references." } }
     inserts.count { it.first == "inventory" }
+ }
+ snapshot.optJSONObject("workflowSettings")?.let {restoreWorkflowPreferences(it)}
+ return count
 }
 
 internal fun redactShopifyCheckpoint(value:String):String = JSONObject(value).apply {

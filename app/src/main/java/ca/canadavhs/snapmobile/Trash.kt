@@ -58,6 +58,9 @@ internal suspend fun CaptureRepository.trashLocal(kind:String,target:String) {
         if(kind=="BATCH") groups.forEach {group->if(journal.inventoryDao().item(group)!=null && journal.trashDao().target("INVENTORY",group)==null) save("INVENTORY",group,root.id)}
         if(kind in listOf("INVENTORY","BATCH")) groups.forEach {group->
             dao.photos(group).filter {!it.deleted}.forEach {if(journal.trashDao().target("PHOTO",it.id)==null) save("PHOTO",it.id,root.id)}
+            val item=journal.inventoryDao().item(group)
+            if(item!=null && item.shopifyProductId.isNotBlank()) journal.shopifyDao().ownerReviews().filter {JSONObject(it.payloadJson).optJSONObject("before")?.optString("id")==item.shopifyProductId}.forEach {review->val jobId=JSONObject(review.resultJson).optString("jobId");journal.shopifyDao().job(jobId)?.takeIf {it.state!="SUCCESS"}?.let {journal.shopifyDao().update(it.copy(state="CANCELLED",error="Selected local inventory moved to Trash; no further publication authorized"))}}
+            journal.openHelper.writableDatabase.execSQL("UPDATE production_items SET state='CANCELLED',error='Inventory moved to Trash; no further work authorized' WHERE groupId=? AND state IN ('QUEUED','RUNNING')",arrayOf(group))
             dao.recognitions(group).filter {it.state=="QUEUED"}.forEach {dao.update(it.copy(state="CANCELLED",error="Moved to local Trash; no retry.",completedAt=System.currentTimeMillis()))}
             journal.shopifyDao().unfinishedForGroup(group).forEach {journal.shopifyDao().update(it.copy(state="CANCELLED",error="Local inventory moved to Trash; remote product retained."))}
         }
@@ -94,7 +97,7 @@ internal fun trashVisibility(table:String):String=when(table) {
     "sessions"->"id NOT IN (SELECT targetId FROM trash_entries WHERE kind='BATCH')"
     "photos"->"id NOT IN (SELECT targetId FROM trash_entries WHERE kind='PHOTO')"
     "groups"->"id NOT IN (SELECT targetId FROM trash_entries WHERE kind='INVENTORY') AND sessionId NOT IN (SELECT targetId FROM trash_entries WHERE kind='BATCH')"
-    "recognition","listing_plans","price_decisions","inventory_audit"->"groupId NOT IN (SELECT targetId FROM trash_entries WHERE kind='INVENTORY')"
+    "recognition","listing_plans","price_decisions","inventory_audit","production_items"->"groupId NOT IN (SELECT targetId FROM trash_entries WHERE kind='INVENTORY')"
     "archives"->"sessionId NOT IN (SELECT targetId FROM trash_entries WHERE kind='BATCH')"
     "shopify_jobs"->"id NOT IN (SELECT targetId FROM trash_entries WHERE kind='DRAFT')"
     "shopify_job_items"->"id NOT IN (SELECT targetId FROM trash_entries WHERE kind='DRAFT_ITEM') AND jobId NOT IN (SELECT targetId FROM trash_entries WHERE kind='DRAFT') AND groupId NOT IN (SELECT targetId FROM trash_entries WHERE kind='INVENTORY')"

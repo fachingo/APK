@@ -1,3 +1,11 @@
+# Matching update in v0.8.4
+
+[Auto Match & Price and hybrid retrieval](PRODUCTION_WORKFLOW.md) extend the
+implementation below. Approximate candidates are now retrieved alongside exact
+hits; a distinct-title index bounds reranking before complete sold-group aggregation.
+Bulk matching/pricing is deterministic and offline by default, with no AI dependency.
+The original manual matching and independent-provider helper remain available.
+
 # Offline market matching and optional independent AI ranking
 
 SQLite full-text indexing (FTS5, FTS4 fallback), indexed token prefixes, a trigram

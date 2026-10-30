@@ -325,8 +325,10 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
 }
 @Composable fun BatchesScreen(vm: CaptureViewModel, sessions: List<SessionRow>, groups: List<GroupRow>, photos: List<PhotoRow>, archives: List<ArchiveRow>, onStart: () -> Unit,initialSessionId:String?=null,initialPhotoId:String?=null) {
     var selected by remember { mutableStateOf<String?>(initialSessionId) }
+    var production by rememberSaveable {mutableStateOf(initialPhotoId==null)}
     LaunchedEffect(initialSessionId) {if(initialSessionId!=null) selected=initialSessionId}
     val session = sessions.firstOrNull { it.id == selected } ?: sessions.firstOrNull()
+    if(production && session!=null) {ProductionBatchScreen(vm,session,onPhotos={production=false},onBatch={selected=it});return}
     val recognitionRows by vm.recognition.collectAsStateWithLifecycle()
     var recognitionGroup by remember { mutableStateOf<GroupRow?>(null) }
     var batchRecognitionDialog by remember { mutableStateOf(false) }
@@ -335,7 +337,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
     var inspected by remember { mutableStateOf<PhotoRow?>(null) }
     LaunchedEffect(initialPhotoId,photos) {if(initialPhotoId!=null) inspected=photos.firstOrNull {it.id==initialPhotoId}}
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(vertical = 20.dp)) {
-        item { PageTitle("Your batches", "Every photograph stays yours") }
+        item { PageTitle("Your batches", "Every photograph stays yours");if(session!=null) Button(onClick={production=true}) {Text("Open production workflow")} }
         item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { sessions.forEach { s -> FilterChip(selected = s.id == session?.id, onClick = { selected = s.id }, label = { Text(s.name) }) }; if (sessions.none { !it.finished }) AssistChip(onClick = onStart, label = { Text("New batch") }) } }
         if (session == null) item { EmptyState("Start with one tape", "Create a batch in Capture. Your photos and unfinished product are restored when you return.") }
         if (session != null) {
@@ -424,6 +426,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
         item { PreferenceSwitch("Optional shutter tone", prefs.getBoolean("tone", false)) { prefs.edit().putBoolean("tone", it).apply() } }
         item { Text("RECOGNITION", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
         item { PreferenceSwitch("Offline barcode scanning", prefs.getBoolean("barcode", true)) { prefs.edit().putBoolean("barcode", it).apply() } }
+        item { AiTaskModelsSettings(vm) }
         item { RecognitionSettings(vm) }
         item {BusinessDefaultsSettings(vm)}
         item { Text("ARCHIVES & RETENTION", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
@@ -432,7 +435,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
         item { Text("Choose an export destination each time using Save to Files. Existing capture ZIPs remain unchanged; make inventory and photo corrections in Inventory. Removing a photo keeps its source file. Deleted records can be recovered in Trash for seven days. Historical exports remain unchanged. No automatic cloud backup. Uninstalling Android apps removes private files: save and verify all ZIPs before uninstalling or clearing storage.", style = MaterialTheme.typography.bodySmall) }
         item { PreferenceSwitch("Light appearance", light) { prefs.edit().putBoolean("light", it).apply(); appearance(it) } }
         item { TextButton(onClick = { showLicenses = true }) { Text("Third-party notices & licenses") } }
-        item { Text("SnapIMS Next 0.3.0 · standalone inventory & AI preview", style = MaterialTheme.typography.bodySmall) }
+        item { Text("SnapIMS Next 0.8.4 · production batch workflows", style = MaterialTheme.typography.bodySmall) }
     }
     if (showLicenses) NoticesDialog(context) { showLicenses = false }
 
