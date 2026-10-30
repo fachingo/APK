@@ -52,7 +52,7 @@ class MarketUiTest {
         compose.onNodeWithText("Settings").performClick();compose.onNodeWithText("Market database").performScrollTo().performClick()
         compose.waitUntil(10000) {compose.onAllNodesWithText("3 sold observations").fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText("Search title, words or barcode").performTextInput("alien")
-        compose.waitUntil(10000) {compose.onAllNodesWithText("Alien 1979 VHS").fetchSemanticsNodes().isNotEmpty() && !ViewModelProvider(compose.activity)[MarketModel::class.java].searching}
+        compose.waitUntil(10000) {!ViewModelProvider(compose.activity)[MarketModel::class.java].searching && runCatching {compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Alien 1979 VHS"))}.isSuccess}
         compose.onNodeWithText("Alien 1979 VHS").performScrollTo().assertExists()
         val png=File(System.getProperty("snapims.testOutput"),"market-browser.png").apply {parentFile!!.mkdirs()}
         png.outputStream().use {compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
@@ -60,7 +60,10 @@ class MarketUiTest {
         compose.onNodeWithText("Eligible sold-price distribution · includes shipping").assertExists()
         compose.onNodeWithText("Open source listing · requires internet").assertExists()
         compose.onNodeWithText("Close").performClick()
-        compose.onNodeWithText("Operator price history").performScrollTo().performClick()
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Operator price history"))
+        compose.onNodeWithText("Operator price history").performClick()
+        compose.onNodeWithText("Operator price history").assertIsSelected()
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Your decisions are asking prices, not completed market sales."))
         compose.onNodeWithText("Your decisions are asking prices, not completed market sales.").assertExists()
         assertEquals(0,runBlocking {journal.marketDao().decisionsForItem(physicalId).size})
     }

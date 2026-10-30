@@ -5,6 +5,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.room.Room
+import androidx.lifecycle.ViewModelProvider
 import androidx.work.*
 import androidx.work.testing.*
 import ca.canadavhs.snapmobile.core.*
@@ -33,17 +34,22 @@ class ProductionBatchUiTest {
  }
  private val compose=createAndroidComposeRule<MainActivity>()
  @get:Rule val rule:RuleChain=RuleChain.outerRule(seed).around(compose)
- private fun show(text:String) {compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(text))}
+ private fun show(text:String) {
+  val sheet=text in setOf("Refresh saved Shopify connection","Point of Sale")
+  if(sheet && compose.onAllNodesWithContentDescription("Close actions").fetchSemanticsNodes().isEmpty()) compose.onAllNodesWithText("More Actions").onFirst().performClick()
+  if(!sheet && compose.onAllNodesWithContentDescription("Close actions").fetchSemanticsNodes().isNotEmpty()) compose.onNodeWithContentDescription("Close actions").performClick()
+  if(!text.startsWith("Create Drafts") && !text.startsWith("7 selected")) compose.onAllNodes(hasScrollToIndexAction()).onLast().performScrollToNode(hasText(text))
+ }
  @Test fun sevenCheckboxesPersistAndDraftActionQueuesExactlySelectionWithoutDialog() {
-  compose.onNodeWithText("Batches").performClick();compose.waitUntil(10000) {compose.onAllNodesWithTag("production-batch").fetchSemanticsNodes().isNotEmpty()}
-  items.take(7).forEach {compose.onNodeWithTag("production-batch").performScrollToNode(hasTestTag("select-${it.groupId}"));compose.onNodeWithTag("select-${it.groupId}").performClick()}
+  compose.openUtility("Batches");compose.waitUntil(10000) {compose.onAllNodesWithTag("production-batch").fetchSemanticsNodes().isNotEmpty()}
+  items.take(7).forEach {compose.onNodeWithTag("production-batch").performScrollToNode(hasTestTag("select-${it.groupId}"));compose.onNodeWithTag("select-${it.groupId}").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) {click->click()}}
   show("7 selected of 50");compose.onNodeWithText("7 selected of 50").assertExists()
   show("← Photographs & capture history");compose.onNodeWithText("← Photographs & capture history").performClick();show("Open production workflow");compose.onNodeWithText("Open production workflow").performClick();show("7 selected of 50");compose.onNodeWithText("7 selected of 50").assertExists()
-  show("Refresh saved Shopify connection");compose.onNodeWithText("Refresh saved Shopify connection").performClick();compose.waitUntil(10000) {runCatching {show("Create Shopify Drafts (7)");compose.onNodeWithText("Create Shopify Drafts (7)").assertIsEnabled()}.isSuccess}
+  show("Refresh saved Shopify connection");compose.onNodeWithText("Refresh saved Shopify connection").performClick();compose.waitUntil(10000) {compose.onAllNodesWithContentDescription("Close actions").fetchSemanticsNodes();ViewModelProvider(compose.activity)[ProductionModel::class.java].let {!it.busy && it.health!=null}}
   show("Point of Sale");compose.onNodeWithText("Point of Sale").assertIsNotSelected().performClick()
-  show("Refresh saved Shopify connection");compose.onNodeWithText("Refresh saved Shopify connection").performClick();compose.waitUntil(10000) {runCatching {show("Create Shopify Drafts (7)");compose.onNodeWithText("Create Shopify Drafts (7)").assertIsEnabled()}.isSuccess}
-  show("Point of Sale");compose.onNodeWithText("Point of Sale").assertIsSelected();show("Create Shopify Drafts (7)")
-  compose.onNodeWithText("Create Shopify Drafts (7)").performScrollTo().assertIsDisplayed().performClick();compose.waitUntil(10000) {compose.onAllNodesWithText("Create Shopify Drafts (7)").fetchSemanticsNodes();runBlocking {repo.journal.shopifyDao().active().size==1}}
+  show("Refresh saved Shopify connection");compose.onNodeWithText("Refresh saved Shopify connection").performClick();compose.waitUntil(10000) {compose.onAllNodesWithContentDescription("Close actions").fetchSemanticsNodes();ViewModelProvider(compose.activity)[ProductionModel::class.java].let {!it.busy && it.health!=null}}
+  show("Point of Sale");compose.onNodeWithText("Point of Sale").assertIsSelected();show("Create Drafts (7)")
+  compose.onNodeWithText("Create Drafts (7)").assertIsDisplayed().performClick();compose.waitUntil(10000) {compose.onAllNodesWithText("Create Drafts (7)").fetchSemanticsNodes();runBlocking {repo.journal.shopifyDao().active().size==1}}
   val job=runBlocking {repo.journal.shopifyDao().active().single()};assertEquals(items.take(7).map {it.groupId}.toSet(),runBlocking {repo.journal.shopifyDao().items(job.id).map {it.groupId}.toSet()});assertEquals(0,server.mutations);assertTrue(items.take(7).all {repo.preferences.getStringSet("draftChannels.${it.groupId}",emptySet())!!.contains("gid://shopify/Publication/2")});assertTrue(runBlocking {repo.journal.shopifyDao().watchReviews().first().isEmpty()});compose.onAllNodes(isDialog()).assertCountEquals(0)
   show("7 selected of 50");File(System.getProperty("snapims.testOutput"),"production-batch-selection.png").apply {parentFile!!.mkdirs()}.outputStream().use {compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
  }

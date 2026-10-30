@@ -46,12 +46,16 @@ class ShopifyManagementUiTest {
             }}
             override suspend fun upload(target:JSONObject,file:File) {error("No upload in read/review test")}
         }}}
-        compose.onNodeWithText("Settings").performClick();compose.onNodeWithText("Shopify").performScrollTo().performClick();compose.onNodeWithText("Listings & saved reviews").performClick()
-        compose.onNodeWithText("Search listing title").performTextInput("Remote")
+        compose.onNodeWithText("Settings").performClick();compose.onAllNodesWithText("Shopify").onLast().performClick();compose.onNodeWithText("Connection & jobs").performClick();compose.onNodeWithText("Listings & saved reviews").performClick()
+        compose.onNodeWithText("Search title or SKU").performTextInput("Remote")
         compose.onNodeWithText("Search Shopify").performClick()
-        compose.waitUntil(10000) {compose.onAllNodesWithText("Main location").fetchSemanticsNodes().isNotEmpty()}
+        compose.waitUntil(10000) {ViewModelProvider(compose.activity)[ShopifyModel::class.java].health!=null}
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Listing location & connection details"))
+        compose.onNodeWithContentDescription("Expand Listing location & connection details").performClick()
+        try {compose.waitUntil(10000) {runCatching {compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Main location"))}.isSuccess}} catch(e:Throwable) {println(compose.onRoot().printToString(12));throw e}
         compose.onNodeWithText("Main location").performScrollTo().performClick();compose.onNodeWithText("Inspect listing").performScrollTo().performClick()
-        compose.waitUntil(10000) {compose.onAllNodesWithText("Listing details").fetchSemanticsNodes().isNotEmpty()}
+        compose.waitUntil(10000) {ViewModelProvider(compose.activity)[ShopifyModel::class.java].productDetail!=null}
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Listing details"))
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(SemanticsMatcher.expectValue(SemanticsProperties.Role,Role.RadioButton))
         compose.onNode(SemanticsMatcher.expectValue(SemanticsProperties.Role,Role.RadioButton)).performClick()
         compose.onNodeWithText("Prepare link review").performScrollTo().performClick()

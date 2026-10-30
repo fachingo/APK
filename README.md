@@ -1,3 +1,15 @@
+# SnapIMS Next 0.9.0 — native operator workspace
+
+**[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.9.0-debug.apk)** · [Source ZIP](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.9.0-source.zip) · [Release notes](docs/next/RELEASE_0.9.0.md)
+
+Five primary destinations, an actionable Dashboard, a persistent selected-item batch toolbar, catalog-first Shopify, grouped settings and a cohesive light/dark Material 3 design. Recognition, pricing, metadata, drafts and reviewed publication use the same saved selection. Product edits and route/list state survive normal recreation.
+
+**Auto Match & Price stays fully offline and deterministic.** Existing capture, recognition, sold evidence, advanced pricing, AI permissions/costs, direct Shopify, photographs, backups, Trash and recovery remain available through their established services. Optional AI stays on demand. No broker or hosting is required.
+
+[Feature parity](docs/design/v0.9.0/FEATURE_PARITY.md) · [Actual screenshots](docs/design/v0.9.0/SCREENSHOTS.md) · [Before/after workflows](docs/design/v0.9.0/WORKFLOW_COMPARISON.md) · [Executed checks](docs/TEST_RESULTS.md).
+
+Install over the existing signed app; do not uninstall or clear data. Physical Pixel/live-store acceptance for this release is unrun here; native tests use local Room data and intercepted HTTP. No real store products were changed.
+
 # SnapIMS Next 0.8.4 — offline bulk pricing and production batches
 
 **[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.4-debug.apk)** · [Source ZIP](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.8.4-source.zip) · [Release notes](docs/next/RELEASE_0.8.4.md)

@@ -49,7 +49,7 @@ abstract class TrashUiFixture {
 
 class TrashUiTest:TrashUiFixture() {
     @Test fun batchDeleteDisappearsAndSettingsTrashRecoversWithoutReopeningCapture() {
-        compose.onNodeWithText("Batches").performClick();compose.onNodeWithText("Delete batch · move to Trash").performScrollTo().performClick();compose.waitForIdle()
+        compose.openUtility("Batches");compose.onAllNodesWithText("More Actions").onFirst().performClick();compose.onAllNodes(hasScrollToIndexAction()).onLast().performScrollToNode(hasText("Delete batch · move to Trash"));compose.onNodeWithText("Delete batch · move to Trash").performClick();compose.waitForIdle()
         compose.waitUntil(10000) {runBlocking {repo.dao.active()==null}}
         compose.onNodeWithText("Settings").performClick();compose.onNodeWithText("Trash · recover deleted records").performScrollTo().performClick()
         compose.waitUntil(10000) {compose.onAllNodesWithText("Recover").fetchSemanticsNodes().isNotEmpty()};compose.onNodeWithText("Recover").performClick();compose.waitForIdle()
@@ -61,7 +61,7 @@ class TrashUiTest:TrashUiFixture() {
 class TrashPhotoUiTest:TrashUiFixture() {
     @Test fun finishedPhotoHasDirectDeleteAndTrashRecovery() {
         runBlocking {val group=repo.dao.group(physicalId);repo.dao.update(repo.dao.session(group.sessionId).copy(finished=true))}
-        compose.onNodeWithText("Batches").performClick()
+        compose.openUtility("Batches")
         compose.onNodeWithText("← Photographs & capture history").performScrollTo().performClick()
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Delete photo"))
         compose.onNodeWithText("Delete photo").performClick()
@@ -81,7 +81,7 @@ class TrashDraftUiTest:TrashUiFixture() {
             val job=ShopifyJobRow(kind="CREATE_DRAFT",shopId="fixture",shop="fixture.myshopify.com",broker="https://broker.example.invalid",connectionFingerprint="fixture",locationId="fixture",state="SUCCESS");journal.shopifyDao().insert(job)
             val entry=ShopifyItemJobRow(jobId=job.id,groupId=item.groupId,itemId=item.itemId,expectedRevision=item.revision,inputFingerprint="fixture",snapshotJson=inventoryJson(item).toString(),creationKey=ca.canadavhs.snapmobile.core.newId(),state="SUCCESS",remoteJson="{\"productId\":\"gid://shopify/Product/7\"}");journal.shopifyDao().insert(entry);job to entry
         }
-        compose.onNodeWithText("Settings").performClick();compose.onNodeWithText("Shopify").performScrollTo().performClick()
+        compose.onNodeWithText("Settings").performClick();compose.onAllNodesWithText("Shopify").onLast().performClick();compose.onNodeWithText("Connection & jobs").performClick()
         val label="Delete local draft · ${pair.second.itemId}"
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(label));compose.onNodeWithText(label).performClick()
         compose.waitUntil(10000) {runBlocking {journal.trashDao().target("DRAFT_ITEM",pair.second.id)!=null}}

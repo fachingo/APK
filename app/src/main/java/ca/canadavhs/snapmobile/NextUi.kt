@@ -54,7 +54,7 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
         item {OutlinedTextField(search,{search=it.take(200)},label={Text("Find inventory title")},modifier=Modifier.fillMaxWidth())}
         items(rows.filter {!it.archived && it.title.contains(search,true)},key={it.groupId}) {item ->
             val matches=evidence.filter {it.titleKey==InventoryRules.normalizedTitle(item.title)}
-            Surface(shape=RoundedCornerShape(20.dp),tonalElevation=2.dp) {Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+            Surface(shape=RoundedCornerShape(12.dp),tonalElevation=2.dp) {Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
                 Text(item.title.ifBlank {"Untitled item"},fontWeight=FontWeight.Bold);Text(item.itemId,style=MaterialTheme.typography.bodySmall)
                 Text("${item.priceCents?.let {money(it)} ?: "Unpriced"} · ${item.priceSource}")
                 TextButton(onClick={selected=if(selected==item.groupId) null else item.groupId}) {Text("Review ${matches.size} collections")}
@@ -103,10 +103,11 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
             connections ->ConnectionsPanel(ai) {connections=false}
             chat!=null ->ChatPanel(ai,chat,onNavigate=onNavigate,onBack={selected=null},onExport={save.launch("snapims-chat-${chat.id}.json")},onDelete={ai.delete(chat.id);selected=null})
             else ->LazyColumn(Modifier.fillMaxSize().padding(horizontal=24.dp),contentPadding=PaddingValues(vertical=24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                item {TextButton(onClick=back) {Text("← Back")};PageTitle("AI workspace","Private local history · explicit provider billing")}
+                item {TextButton(onClick=back) {Text("← Back")};PageTitle("AI workspace","Your on-demand SnapIMS assistant")}
+                item {Text("Ask about inventory, inspect local evidence or propose a reviewed workflow. No AI requests run while idle.",style=MaterialTheme.typography.bodyMedium);AiTaskModelsSettings(vm)}
                 item {Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {Button(onClick={newChat=true}) {Text("New chat")};OutlinedButton(onClick={connections=true}) {Text("Connections")};TextButton(onClick=onTasks) {Text("Tasks")}}}
                 item {OutlinedTextField(search,{search=it.take(200)},label={Text("Search chats and messages")},modifier=Modifier.fillMaxWidth())}
-                items(chats.filter {search.isBlank() || it.title.contains(search,true) || it.id in historyMatches},key={it.id}) {c ->Surface(onClick={selected=c.id},shape=RoundedCornerShape(20.dp),tonalElevation=2.dp) {Column(Modifier.fillMaxWidth().padding(18.dp)) {Text(c.title,fontWeight=FontWeight.Bold);Text("${c.provider} · ${c.model}",style=MaterialTheme.typography.bodySmall);Text(if(c.id in active) "Streaming…" else if(c.authMode=="CHATGPT_PLAN") "ChatGPT plan · no API-key fallback" else "API connection · provider rates apply",style=MaterialTheme.typography.bodySmall)}}}
+                items(chats.filter {search.isBlank() || it.title.contains(search,true) || it.id in historyMatches},key={it.id}) {c ->Surface(onClick={selected=c.id},shape=RoundedCornerShape(12.dp),tonalElevation=2.dp) {Column(Modifier.fillMaxWidth().padding(18.dp)) {Text(c.title,fontWeight=FontWeight.Bold);Text("${c.provider} · ${c.model}",style=MaterialTheme.typography.bodySmall);Text(if(c.id in active) "Streaming…" else if(c.authMode=="CHATGPT_PLAN") "ChatGPT plan · no API-key fallback" else "API connection · provider rates apply",style=MaterialTheme.typography.bodySmall)}}}
                 if(chats.isEmpty()) item {EmptyState("A workspace for your collection","Connect a provider, discover its models, then start a conversation. Tools are optional and changes require review.")}
             }
         }
@@ -153,7 +154,7 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
     Box {OutlinedButton(onClick={expanded=true}) {Text(AiProvider.get(selected).label)};DropdownMenu(expanded,{expanded=false}) {AiProvider.all.forEach {p ->DropdownMenuItem(text={Text(p.label)},onClick={change(p.id);expanded=false})}}}
 }
 @Composable private fun NewChatDialog(ai:AiWorkspaceModel,dismiss:()->Unit,created:(String)->Unit) {
-    var provider by remember {mutableStateOf("OPENAI")};var model by remember {mutableStateOf<AiCapabilityRow?>(null)};var query by remember {mutableStateOf("")};var instructions by remember {mutableStateOf("")};var mode by remember {mutableStateOf(AgentPermission.CHAT_ONLY)}
+    var provider by remember {mutableStateOf("OPENAI")};var model by remember {mutableStateOf<AiCapabilityRow?>(null)};var query by rememberSaveable {mutableStateOf("")};var instructions by rememberSaveable {mutableStateOf("")};var mode by remember {mutableStateOf(AgentPermission.CHAT_ONLY)}
     AlertDialog(onDismissRequest=dismiss,title={Text("New conversation")},text={Column(Modifier.heightIn(max=550.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)) {
         ProviderPicker(provider) {provider=it;model=null;mode=AgentPermission.CHAT_ONLY}
         Text(if(provider=="CHATGPT") "Uses your authorized ChatGPT plan. Never falls back to API billing." else if(provider=="LOCAL") "Uses a model running on this phone." else "Uses this provider's API key. Provider charges and limits apply.",style=MaterialTheme.typography.bodySmall)
@@ -181,12 +182,12 @@ private fun money(cents:Long)="CAD ${java.math.BigDecimal.valueOf(cents,2).toPla
     var budgetMenu by remember {mutableStateOf(false)}
     val traces by remember(chat.id) {ai.traces(chat.id)}.collectAsStateWithLifecycle(emptyList())
     var showActivity by rememberSaveable(chat.id) {mutableStateOf(false)}
-    var text by rememberSaveable(chat.id) {mutableStateOf("")};var attachments by remember(chat.id) {mutableStateOf<List<JSONObject>>(emptyList())};var reviewId by rememberSaveable(chat.id) {mutableStateOf<String?>(null)};var delete by remember {mutableStateOf(false)}
+    var text by rememberSaveable(chat.id) {mutableStateOf("")};var attachments by rememberSaveable(chat.id,stateSaver=androidx.compose.runtime.saveable.Saver<List<JSONObject>,String>(save={JSONArray(it).toString()},restore={raw->val a=JSONArray(raw);(0 until a.length()).map {a.getJSONObject(it)}})) {mutableStateOf<List<JSONObject>>(emptyList())};var reviewId by rememberSaveable(chat.id) {mutableStateOf<String?>(null)};var delete by remember {mutableStateOf(false)}
     val picker=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {uri->if(uri!=null) ai.action {check(attachments.size<4);attachments=attachments+ai.attach(uri)}}
     val list=rememberLazyListState();LaunchedEffect(rows.size,rows.lastOrNull()?.body?.length) {if(rows.isNotEmpty() && list.firstVisibleItemIndex>=rows.size-4) list.animateScrollToItem(rows.lastIndex)}
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(8.dp)) {TextButton(onClick=onBack) {Text("← Chats")};TextButton(onClick=onExport) {Text("Export")};TextButton(enabled=chat.id !in active,onClick={delete=true}) {Text("Delete")}}
-        Text(chat.title,Modifier.padding(horizontal=20.dp),style=MaterialTheme.typography.titleLarge);Text("${chat.provider} · ${chat.model} · ${chat.authMode}",Modifier.padding(horizontal=20.dp),style=MaterialTheme.typography.bodySmall)
+        Text(chat.title,Modifier.padding(horizontal=20.dp),style=MaterialTheme.typography.titleLarge);Text("${AiProvider.get(chat.provider).label} · ${chat.model}",Modifier.padding(horizontal=20.dp),style=MaterialTheme.typography.bodySmall)
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal=12.dp)) {
             AgentPermissionPicker(AgentPermission.of(chat),true) {ai.setPermission(chat.id,it)}
             TextButton(onClick={showActivity=!showActivity}) {Text("Tools · ${traces.count {it.state=="RUNNING"}} running")}

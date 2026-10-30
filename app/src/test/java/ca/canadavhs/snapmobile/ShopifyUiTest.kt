@@ -46,7 +46,7 @@ class ShopifyUiTest {
     private val compose=createAndroidComposeRule<MainActivity>()
     @get:Rule val rule:RuleChain=RuleChain.outerRule(seed).around(compose)
     @Test fun shopifyPreviewShowsActualInventoryAndRequiresPairingWithoutNetworkRequests() {
-        compose.onNodeWithText("Settings").performClick();compose.onNodeWithText("Shopify").performScrollTo().performClick()
+        compose.onNodeWithText("Settings").performClick();compose.onAllNodesWithText("Shopify").onLast().performClick();compose.onNodeWithText("Connection & jobs").performClick()
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Optional legacy connection"));compose.onNodeWithText("Optional legacy connection").performClick();compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Hosted broker HTTPS origin"));compose.onNodeWithText("Hosted broker HTTPS origin").assertExists();compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Pair this device"));compose.onNodeWithText("Pair this device").assertIsNotEnabled();compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Test connection"));compose.onNodeWithText("Test connection").assertIsNotEnabled()
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Existing phone tape"));compose.onNodeWithText("Existing phone tape").assertExists()
         assertTrue(runBlocking {journal.shopifyDao().active().isEmpty()})

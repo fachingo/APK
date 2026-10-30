@@ -1,0 +1,4629 @@
+[
+  {
+    "file": "MainActivity.kt",
+    "line": 138,
+    "component": "MobileApp",
+    "labels": [
+      "Save verified capture ZIPs to Files or share them. Your inventory remains usable on this phone. Open Settings \u2192 Backup & import for protected backups and inventory packages."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 142,
+    "component": "MobileApp",
+    "labels": [
+      "${a.state.lowercase().replaceFirstChar { it.uppercase() }} \u00b7 ${"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 143,
+    "component": "MobileApp",
+    "labels": [
+      "Above archive target \u00b7 whole products kept together"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 145,
+    "component": "MobileApp",
+    "labels": [
+      "Share",
+      "Save to Files",
+      "SHA-256 ${a.sha256.take(16)}\u2026"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 146,
+    "component": "MobileApp",
+    "labels": [
+      "Retry archive"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 174,
+    "component": "MobileApp",
+    "labels": [
+      "Recovering your capture journal\u2026"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 179,
+    "component": "MobileApp",
+    "labels": [
+      "Finish this batch?",
+      "The open product will be finalized, including incomplete front/back sets. Archives will be verified in the background. Originals stay on this device. Inventory details and photo corrections remain available in Inventory.",
+      "Finish batch",
+      "Keep capturing"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 186,
+    "component": "StartBatchDialog",
+    "labels": [
+      "A new capture session",
+      "One tape at a time. Capture, then Next.",
+      "Batch name",
+      "Location \u00b7 optional",
+      "A1\u2013J10 or Q1",
+      "Start capturing",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 208,
+    "component": "CaptureScreen",
+    "labels": [
+      "SNAPIMS"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 230,
+    "component": "CaptureScreen",
+    "labels": [
+      "Your tapes, in focus",
+      "Allow camera access to begin. Photos stay on this device.",
+      "Allow camera"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 255,
+    "component": "CaptureScreen",
+    "labels": [
+      "Front/back incomplete \u00b7 Next is still available"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 256,
+    "component": "CaptureScreen",
+    "labels": [
+      "${info?.optString("
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 260,
+    "component": "CaptureScreen",
+    "labels": [
+      "%.1f\u00d7"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 263,
+    "component": "CaptureScreen",
+    "labels": [
+      "1\u00d7"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 268,
+    "component": "CaptureScreen",
+    "labels": [
+      "Capturing\u2026"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 272,
+    "component": "CaptureScreen",
+    "labels": [
+      "${photoSize.label} \u25be"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 279,
+    "component": "CaptureScreen",
+    "labels": [
+      "Start a batch"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 283,
+    "component": "CaptureScreen",
+    "labels": [
+      "Rare"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 284,
+    "component": "CaptureScreen",
+    "labels": [
+      "Review"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 287,
+    "component": "CaptureScreen",
+    "labels": [
+      "${"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 297,
+    "component": "CaptureScreen",
+    "labels": [
+      "CAPTURE"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 298,
+    "component": "CaptureScreen",
+    "labels": [
+      "Retake last"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 302,
+    "component": "CaptureScreen",
+    "labels": [
+      "NEXT"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 309,
+    "component": "CaptureScreen",
+    "labels": [
+      "Capture location",
+      "A1\u2013J10, Q1, or leave blank. Applies to this and following products.",
+      "Save"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 318,
+    "component": "BarcodeDialog",
+    "labels": [
+      "Product barcode"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 319,
+    "component": "BarcodeDialog",
+    "labels": [
+      "${info.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 321,
+    "component": "BarcodeDialog",
+    "labels": [
+      "${c.getString("
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 322,
+    "component": "BarcodeDialog",
+    "labels": [
+      "UPC / EAN \u00b7 blank for no barcode"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 323,
+    "component": "BarcodeDialog",
+    "labels": [
+      "Rescan back photo"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 324,
+    "component": "BarcodeDialog",
+    "labels": [
+      "Confirm",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 340,
+    "component": "BatchesScreen",
+    "labels": [
+      "Open production workflow"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 341,
+    "component": "BatchesScreen",
+    "labels": [
+      "New batch"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 344,
+    "component": "BatchesScreen",
+    "labels": [
+      "Finalize part"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 345,
+    "component": "BatchesScreen",
+    "labels": [
+      "Delete batch \u00b7 move to Trash"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 346,
+    "component": "BatchesScreen",
+    "labels": [
+      "Recognize completed products"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 351,
+    "component": "BatchesScreen",
+    "labels": [
+      "Product %03d",
+      "${group.location.ifEmpty { "
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 353,
+    "component": "BatchesScreen",
+    "labels": [
+      "Flags & notes"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 354,
+    "component": "BatchesScreen",
+    "labels": [
+      "Recognize"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 357,
+    "component": "BatchesScreen",
+    "labels": [
+      "${recognitionLabel(recognition.provider)} \u00b7 ${recognition.state}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 362,
+    "component": "BatchesScreen",
+    "labels": [
+      "${barcode.optString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 368,
+    "component": "BatchesScreen",
+    "labels": [
+      "Recover file"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 372,
+    "component": "BatchesScreen",
+    "labels": [
+      "Delete photo"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 375,
+    "component": "BatchesScreen",
+    "labels": [
+      "Restore last removed photo"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 388,
+    "component": "BatchesScreen",
+    "labels": [
+      "Recognize ${eligible.size} products?"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 392,
+    "component": "BatchesScreen",
+    "labels": [
+      "Run recognition",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 397,
+    "component": "BatchesScreen",
+    "labels": [
+      "${p.role} \u00b7 photo ${p.position + 1}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 399,
+    "component": "BatchesScreen",
+    "labels": [
+      "${p.capturedAt}\\n${"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 401,
+    "component": "BatchesScreen",
+    "labels": [
+      "Move to previous product"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 402,
+    "component": "BatchesScreen",
+    "labels": [
+      "Move to next product"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 404,
+    "component": "BatchesScreen",
+    "labels": [
+      "Delete photo \u00b7 move to Trash"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 405,
+    "component": "BatchesScreen",
+    "labels": [
+      "Done"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 416,
+    "component": "SettingsScreen",
+    "labels": [
+      "Backup & import",
+      "Transfers"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 417,
+    "component": "SettingsScreen",
+    "labels": [
+      "Tasks",
+      "AI workspace",
+      "Sold pricing",
+      "Shopify",
+      "Market database"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 418,
+    "component": "SettingsScreen",
+    "labels": [
+      "Trash \u00b7 recover deleted records"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 419,
+    "component": "SettingsScreen",
+    "labels": [
+      "CAMERA"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 422,
+    "component": "SettingsScreen",
+    "labels": [
+      "Fast capture uses zero shutter lag where supported, with a low-latency fallback and JPEG 95%. Turn it off for JPEG 100% and quality priority. Flash, HDR and low light can add delay. Pinch the preview or use the zoom slider."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 427,
+    "component": "SettingsScreen",
+    "labels": [
+      "RECOGNITION"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 432,
+    "component": "SettingsScreen",
+    "labels": [
+      "ARCHIVES & RETENTION"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 433,
+    "component": "SettingsScreen",
+    "labels": [
+      "Archive target \u00b7 MB",
+      "1\u201310,000 MB \u00b7 whole products only; oversized products stay together"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 434,
+    "component": "SettingsScreen",
+    "labels": [
+      "Default location",
+      "A1\u2013J10 or Q1, optional"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 435,
+    "component": "SettingsScreen",
+    "labels": [
+      "Choose an export destination each time using Save to Files. Existing capture ZIPs remain unchanged; make inventory and photo corrections in Inventory. Removing a photo keeps its source file. Deleted records can be recovered in Trash for seven days. Historical exports remain unchanged. No automatic cloud backup. Uninstalling Android apps removes private files: save and verify all ZIPs before uninstalling or clearing storage."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 437,
+    "component": "SettingsScreen",
+    "labels": [
+      "Third-party notices & licenses"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 438,
+    "component": "SettingsScreen",
+    "labels": [
+      "SnapIMS Next 0.8.4 \u00b7 production batch workflows"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 451,
+    "component": "NotesDialog",
+    "labels": [
+      "Flags & notes"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 452,
+    "component": "NotesDialog",
+    "labels": [
+      "Rare",
+      "Review"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 456,
+    "component": "NotesDialog",
+    "labels": [
+      "Capture notes"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 457,
+    "component": "NotesDialog",
+    "labels": [
+      "Save",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 465,
+    "component": "NoticesDialog",
+    "labels": [
+      "Third-party notices"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 467,
+    "component": "NoticesDialog",
+    "labels": [
+      "$filename \u00b7 page ${page + 1}/$pages"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 470,
+    "component": "NoticesDialog",
+    "labels": [
+      "Previous"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 471,
+    "component": "NoticesDialog",
+    "labels": [
+      "Next"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MainActivity.kt",
+    "line": 472,
+    "component": "NoticesDialog",
+    "labels": [
+      "Done"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 30,
+    "component": "InventoryHome",
+    "labels": [
+      "CANADA VHS"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 31,
+    "component": "InventoryHome",
+    "labels": [
+      "Your collection,\\nin your hands."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 32,
+    "component": "InventoryHome",
+    "labels": [
+      "Inventory stays on this phone, even offline."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 43,
+    "component": "InventoryHome",
+    "labels": [
+      "Open inventory"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 44,
+    "component": "InventoryHome",
+    "labels": [
+      "Review batches"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 47,
+    "component": "InventoryHome",
+    "labels": [
+      "Protect your collection"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 48,
+    "component": "InventoryHome",
+    "labels": [
+      "Create a passphrase-protected backup with original photographs."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 49,
+    "component": "InventoryHome",
+    "labels": [
+      "Backup & import \u2192"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 51,
+    "component": "InventoryHome",
+    "labels": [
+      "${sessions.count { it.finished }} finished batches \u00b7 ${"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 52,
+    "component": "InventoryHome",
+    "labels": [
+      "${job.kind.lowercase().replaceFirstChar { it.uppercase() }} needs attention: ${job.error}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 85,
+    "component": "InventoryScreen",
+    "labels": [
+      "Bulk workflow \u00b7 all eligible inventory"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 86,
+    "component": "InventoryScreen",
+    "labels": [
+      "Search title, barcode, SKU or location"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 99,
+    "component": "InventoryScreen",
+    "labels": [
+      "${item.condition} \u00b7 ${item.location.ifBlank { "
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 100,
+    "component": "InventoryScreen",
+    "labels": [
+      "${list.size} photos \u00b7 ${sessions.firstOrNull { it.id==group?.sessionId }?.name ?: item.batchId}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 103,
+    "component": "InventoryScreen",
+    "labels": [
+      "$${InventoryRules.priceText(item.priceCents)}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 130,
+    "component": "InventoryEditor",
+    "labels": [
+      "Tape details"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 136,
+    "component": "InventoryEditor",
+    "labels": [
+      "Save changes"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 139,
+    "component": "InventoryEditor",
+    "labels": [
+      "SKU = Item ID \u00b7 permanent physical-copy identity"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 143,
+    "component": "InventoryEditor",
+    "labels": [
+      "Manage original photos, retakes & grouping"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 147,
+    "component": "InventoryEditor",
+    "labels": [
+      "Release year"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 148,
+    "component": "InventoryEditor",
+    "labels": [
+      "Location"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 152,
+    "component": "InventoryEditor",
+    "labels": [
+      "Capture notes: ${draft.captureNote}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 154,
+    "component": "InventoryEditor",
+    "labels": [
+      "${duplicates.size} other copies share this title or barcode. They keep separate Item IDs and condition records."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 156,
+    "component": "InventoryEditor",
+    "labels": [
+      "Price \u00b7 CAD"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 157,
+    "component": "InventoryEditor",
+    "labels": [
+      "Discount \u00b7 %"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 159,
+    "component": "InventoryEditor",
+    "labels": [
+      "Search market & approved prices"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 160,
+    "component": "InventoryEditor",
+    "labels": [
+      "Source: ${draft.priceSource.lowercase().replace('_',' ')}. Entering a price records a manual decision."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 162,
+    "component": "InventoryEditor",
+    "labels": [
+      "Quantity"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 163,
+    "component": "InventoryEditor",
+    "labels": [
+      "Weight \u00b7 grams"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 166,
+    "component": "InventoryEditor",
+    "labels": [
+      "Rare"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 167,
+    "component": "InventoryEditor",
+    "labels": [
+      "Review"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 170,
+    "component": "InventoryEditor",
+    "labels": [
+      "Ready for listing",
+      "Saved only after validation. Creates no Shopify product."
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 172,
+    "component": "InventoryEditor",
+    "labels": [
+      "\u2022 $it"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 174,
+    "component": "InventoryEditor",
+    "labels": [
+      "Recognize / review suggestions"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 176,
+    "component": "InventoryEditor",
+    "labels": [
+      "Confirmed suggestion: ${suggestion.acceptedTitle}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 177,
+    "component": "InventoryEditor",
+    "labels": [
+      "Use confirmed title in inventory"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 187,
+    "component": "InventoryEditor",
+    "labels": [
+      "Shopify: ${item.shopifyState}\\nProduct: ${item.shopifyProductId.ifBlank { "
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 188,
+    "component": "InventoryEditor",
+    "labels": [
+      "Created ${item.createdAt}\\nUpdated ${item.updatedAt}\\nRevision ${item.revision}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 190,
+    "component": "InventoryEditor",
+    "labels": [
+      "${if(showHistory) "
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 191,
+    "component": "InventoryEditor",
+    "labels": [
+      "${audit.occurredAt.take(19)} \u00b7 ${audit.action}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 192,
+    "component": "InventoryEditor",
+    "labels": [
+      "Delete record \u00b7 move to Trash"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 195,
+    "component": "InventoryEditor",
+    "labels": [
+      "${if(item.archived) "
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 196,
+    "component": "InventoryEditor",
+    "labels": [
+      "Confirm",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryUi.kt",
+    "line": 209,
+    "component": "ChoiceField",
+    "labels": [
+      "$value \u25be"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryPhotoUi.kt",
+    "line": 32,
+    "component": "InventoryPhotoManager",
+    "labels": [
+      "Original photographs"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryPhotoUi.kt",
+    "line": 34,
+    "component": "InventoryPhotoManager",
+    "labels": [
+      "Corrections update this inventory record. Previously exported ZIPs stay unchanged. Removed photos can be restored; original files are retained."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryPhotoUi.kt",
+    "line": 35,
+    "component": "InventoryPhotoManager",
+    "labels": [
+      "Add photographs"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryPhotoUi.kt",
+    "line": 39,
+    "component": "InventoryPhotoManager",
+    "labels": [
+      "${photo.role} \u00b7 ${if(photo.deleted) "
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryPhotoUi.kt",
+    "line": 41,
+    "component": "InventoryPhotoManager",
+    "labels": [
+      "Restore photo"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryPhotoUi.kt",
+    "line": 44,
+    "component": "InventoryPhotoManager",
+    "labels": [
+      "Move earlier"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryPhotoUi.kt",
+    "line": 45,
+    "component": "InventoryPhotoManager",
+    "labels": [
+      "Move later"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryPhotoUi.kt",
+    "line": 46,
+    "component": "InventoryPhotoManager",
+    "labels": [
+      "Retake"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryPhotoUi.kt",
+    "line": 49,
+    "component": "InventoryPhotoManager",
+    "labels": [
+      "Change role"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryPhotoUi.kt",
+    "line": 50,
+    "component": "InventoryPhotoManager",
+    "labels": [
+      "Delete photo"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryPhotoUi.kt",
+    "line": 52,
+    "component": "InventoryPhotoManager",
+    "labels": [
+      "Move to another item"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryPhotoUi.kt",
+    "line": 54,
+    "component": "InventoryPhotoManager",
+    "labels": [
+      "${target.itemId.takeLast(12)} \u00b7 ${target.title.ifBlank { "
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryPhotoUi.kt",
+    "line": 58,
+    "component": "InventoryPhotoManager",
+    "labels": [
+      "Recover retained file"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryPhotoUi.kt",
+    "line": 83,
+    "component": "InventoryItemCamera",
+    "labels": [
+      "Allow Camera access in Capture first."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "InventoryPhotoUi.kt",
+    "line": 87,
+    "component": "InventoryItemCamera",
+    "labels": [
+      "${resolution.label} \u25be"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "InventoryPhotoUi.kt",
+    "line": 91,
+    "component": "InventoryItemCamera",
+    "labels": [
+      "%.1f\u00d7"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 113,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "\u2190 Back",
+      "Market database",
+      "Your offline pricing library"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 114,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "$count sold observations",
+      "${imports.size} recent imports \u00b7 schema 1 \u00b7 ${model.page.index}",
+      "Last import ${it.observedAt.take(19)}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 115,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Search title, words or barcode",
+      "Save"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 116,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Local matching: SQLite full-text/prefix indexes, trigram spelling candidates and Apache Commons Text similarity. Match scores are heuristics, not probabilities or approved prices."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 117,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Optional AI match ranking \u00b7 separate model \u00b7 only when I request it"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 118,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Match AI model \u00b7 independent from photo recognition",
+      "Configure this provider's key in AI workspace Connections. No photos are sent for matching.",
+      "Review AI ranking request"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 122,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Historical sold evidence",
+      "Operator price history",
+      "Filters & tools"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 124,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Currency \u00b7 blank = all",
+      "Evidence edition"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 125,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Year / title year"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 126,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Min \u00b7 sale + shipping",
+      "Max \u00b7 sale + shipping"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 127,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Sold from YYYY-MM-DD",
+      "Sold through YYYY-MM-DD"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 128,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Include superseded source observations",
+      "Source revisions are preserved. Recommendations use only eligible current records and keep currencies separate."
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 129,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Import CSV / SQLite",
+      "Export sold evidence",
+      "Verify integrity",
+      "Rebuild search"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 130,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Show prior approved asking-price hints (never sold evidence)",
+      "Warn about evidence older than days"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 132,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Bring your market history",
+      "Import your Harvester CSV, supported SQLite export or SnapIMS market archive. Existing records stay searchable without a network connection.",
+      "Import market records"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 133,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 136,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "${it.itemId} \u00b7 current CAD ${InventoryRules.priceText(it.priceCents)} \u00b7 ${it.edition.ifBlank {",
+      "Recommend \u00b7 CAD",
+      "USD evidence",
+      "Only conservative compatible sold matches support a recommendation. Approximate results and asking prices are labeled separately."
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 137,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Prior approved asking price",
+      "${marketMoneyText(hint.priceCents,hint.currency)} \u00b7 ${hint.createdAt.take(10)}",
+      "Operator decision, not a completed market sale.",
+      "Review reuse"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 138,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Exact, likely and possible results are retrieved together. Approximate titles are suggestions, not confirmed sold-price evidence."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 140,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Your decisions are asking prices, not completed market sales."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 141,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "${marketMoneyText(record.priceCents,record.currency)} \u00b7 ${record.recordType}",
+      "${record.itemId} \u00b7 ${record.method}\\n${record.createdAt.take(19)}",
+      "${JSONArray(record.evidenceJson).length()} evidence references"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 142,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "More price decisions"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 144,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "${group.samples} source sales \u00b7 ${marketMoneyText(group.low,group.currency)} \u2013 ${marketMoneyText(group.high,group.currency)}",
+      "${group.oldest.take(10)} \u2013 ${group.newest.take(10)}${if(group.edition.isNotBlank()) ",
+      "AI estimate ${(match.confidence*100).toInt()}% \u00b7 ${match.reason}",
+      "${when(group.matchTier) {",
+      "Review title from this match"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 145,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Load more"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 146,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "No matching records. Try fewer words, another currency, or a barcode."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 149,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Approve one AI match request",
+      "Send the current title and up to 20 compact candidate identities to ${model.matchProvider} / ${model.matchModel}. No photos or full database upload. This provider may charge API fees; there is no automatic fallback.",
+      "I authorize this one provider request and any applicable API charges.",
+      "Send ranking request",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 150,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Review matched title",
+      "Current: ${item.title}\\nCandidate: ${group.title}\\n${group.currency} \u00b7 ${group.samples} source sales",
+      "Confirmed inventory title \u00b7 edit listing clutter out",
+      "Also use candidate edition '${group.edition}' and year ${group.year ?: ",
+      "This changes local metadata and clears readiness. It does not apply a price or publish anything.",
+      "Save reviewed title",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 151,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Import preview",
+      "${preview.filename}\\n${preview.rows} source rows \u00b7 ${preview.distinctRows} distinct observations\\n${preview.format}",
+      "Existing evidence will be retained. Changed observations become preserved revisions.",
+      "Approve import",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 152,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Choose inventory item",
+      "${item.title.ifBlank {",
+      "Close"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 154,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "${group.samples} observations in ${group.currency}. Amounts include shipping. Grouping uses the complete normalized listing identity; no inferred film/edition merge."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 156,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "${marketMoneyText(row.getLong(",
+      "Sale ${row.getString(",
+      "${row.getString(",
+      "Barcode: ${row.getString(",
+      "Collected: ${row.getString(",
+      "Conflicting observation \u00b7 excluded from statistics",
+      "Open source listing \u00b7 requires internet"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 157,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "More source listings"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 158,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Close"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 159,
+    "component": "MarketDatabaseScreen",
+    "labels": [
+      "Reuse an approved asking price?",
+      "This replaces ${target.title}'s current price with a prior operator asking price. It does not use sold-market statistics.",
+      "Approve replacing an existing manual price",
+      "Approve asking price",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 166,
+    "component": "MarketPriceApproval",
+    "labels": [
+      "Review evidence-based price"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 168,
+    "component": "MarketPriceApproval",
+    "labels": [
+      "${value.stats.count} compatible sold records\\n${value.oldest.take(10)} to ${value.newest.take(10)}\\nOldest ${marketEvidenceOldestAge(value.oldest)} days \u00b7 newest ${marketEvidenceOldestAge(value.newest)} days",
+      "Median ${marketMoneyText(value.stats.medianCents,value.currency)}\\nAverage ${marketMoneyText(value.stats.averageCents,value.currency)}\\nRange ${marketMoneyText(value.stats.lowestCents,value.currency)} \u2013 ${marketMoneyText(value.stats.highestCents,value.currency)}\\nIncludes original shipping charges."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 170,
+    "component": "MarketPriceApproval",
+    "labels": [
+      "Evidence is ${value.currency}, inventory is CAD. Enter your explicit CAD per ${value.currency} rate; SnapIMS has not fetched an exchange rate.",
+      "CAD per ${value.currency}",
+      "Rate effective date YYYY-MM-DD"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 171,
+    "component": "MarketPriceApproval",
+    "labels": [
+      "Optional adjusted price \u00b7 CAD",
+      "Approve replacing a manual price",
+      "Approve reuse if evidence is older than my configured age"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 172,
+    "component": "MarketPriceApproval",
+    "labels": [
+      "Saves an operator-approved asking price and exact evidence references. It does not create a sold-market record or publish to Shopify."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 173,
+    "component": "MarketPriceApproval",
+    "labels": [
+      "Approve price",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 179,
+    "component": "MarketDistribution",
+    "labels": [
+      "Eligible sold-price distribution \u00b7 includes shipping"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "MarketUi.kt",
+    "line": 180,
+    "component": "MarketDistribution",
+    "labels": [
+      "${marketMoneyText(bin.startCents,currency)}\u2013${marketMoneyText(bin.endCents,currency)} \u00b7 ${bin.count} sales"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 73,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "\u2190 Photographs & capture history"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 74,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Delete batch \u00b7 move to Trash"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 76,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "${if(label=="
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 77,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "$name verified $count"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 78,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "${selected.size} selected of ${records.size}"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 80,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Recognize selected"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 81,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Review recognized titles"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 82,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Auto Match & Price"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 83,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Pricing rules"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 84,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Apply ${selectedResults.size} eligible prices"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 85,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Generate missing metadata \u00b7 offline"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 86,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Offline matching and pricing use zero AI calls. Approximate candidates and insufficient evidence stay in review. Applying eligible prices is one batch action."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 87,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Optional OpenAI assistance",
+      "Review ${content.size} missing descriptions"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 88,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Shopify",
+      "Refresh saved Shopify connection"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 91,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Intended sales channels \u00b7 drafts remain unpublished"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 92,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Save selected channels as defaults"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 93,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Create Shopify Drafts (${selected.size})"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 94,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Review batch publication",
+      "Create Drafts is your authorization to upload selected listing data and photos. Valid selected copies are submitted directly; invalid copies are skipped with reasons. Published products are never updated by this action."
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 100,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Skipped / needs attention",
+      "${records.firstOrNull {it.groupId==id}?.itemId ?: id}: $reason"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 101,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Find selected batch items",
+      "Showing ${shown.size}; actions use the ${selected.size} checked copies even when a filter hides them."
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 103,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "${item.shopifyState} \u00b7 CAD ${InventoryRules.priceText(item.priceCents)}",
+      "${result.state} \u00b7 ${price?.optInt("
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 104,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Open item",
+      "Evidence & explanation"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 105,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Review optional AI result \u00b7 ${r.state}"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 106,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "${o.optString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 108,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Workflow jobs"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 109,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "${job.kind} \u00b7 ${job.state}",
+      "View saved workflow results",
+      "Cancel remaining workflow"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 110,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Shopify ${job.kind} \u00b7 ${job.state}",
+      "${it.itemId}: ${it.error}",
+      "Reconcile / resume existing job"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 112,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Review batch descriptions",
+      "${inventory.firstOrNull {it.groupId==r.groupId}?.itemId ?: r.groupId} \u2192 ${data.optString(",
+      "Apply reviewed missing descriptions",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 113,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Saved workflow history",
+      "${inventory.firstOrNull {it.groupId==r.groupId}?.itemId ?: r.groupId} \u00b7 ${r.state} \u00b7 ${value.optString(",
+      "Done"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 116,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Recognize ${selected.size} selected copies",
+      "Mode: ${recognitionLabel(vm.repo.recognitionMode())}. ${if(vm.repo.recognitionMode()==",
+      "Start selected recognition",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 117,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Review selected recognized titles",
+      "${records.firstOrNull {it.groupId==r.groupId}?.itemId ?: r.groupId}: ${r.title.ifBlank {",
+      "Apply the shown suggestions only where the existing title is blank. Existing operator titles, unknown suggestions and changed photos are protected.",
+      "Apply reviewed titles",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 119,
+    "component": "ProductionBatchScreen",
+    "labels": [
+      "Saved evidence / result",
+      "${data.optString(",
+      "Done"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 124,
+    "component": "AutoPriceRulesDialog",
+    "labels": [
+      "Offline Auto Match & Price rules",
+      "Prices use strictly compatible current SOLD records. Approximate identities are routed to review, never assumed confirmed. No model requests."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 126,
+    "component": "AutoPriceRulesDialog",
+    "labels": [
+      "Minimum compatible sales",
+      "Maximum historical evidence age \u00b7 days"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 127,
+    "component": "AutoPriceRulesDialog",
+    "labels": [
+      "Optional CAD price floor",
+      "Optional CAD price ceiling"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 128,
+    "component": "AutoPriceRulesDialog",
+    "labels": [
+      "Adjustment \u00b7 basis points (100 = 1%)",
+      "Round to CAD cents \u00b7 1 = cent, 100 = dollar"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 129,
+    "component": "AutoPriceRulesDialog",
+    "labels": [
+      "USD \u2192 CAD rate \u00b7 blank excludes USD",
+      "Rate effective date YYYY-MM-DD"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 130,
+    "component": "AutoPriceRulesDialog",
+    "labels": [
+      "Protect manual/operator prices",
+      "Automatically apply high-confidence prices within explicitly started jobs",
+      "TRIMMED_MEAN removes 10% from each tail when at least 10 sales remain. IQR excludes totals outside 1.5\u00d7 interquartile range when at least 4 sales exist. Unknown source condition is disclosed; no condition premium or FX rate is invented."
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 131,
+    "component": "AutoPriceRulesDialog",
+    "labels": [
+      "Save pricing rules",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 137,
+    "component": "ProductionAiBudget",
+    "labels": [
+      "Authorize optional AI batch",
+      "${task.label} \u00b7 ${choice.model}. One consent covers this exact selection, up to the chosen request count and estimated budget. Pricing runs independently offline. Candidate-only text is used; no photographs are transmitted by these helpers.",
+      "Maximum model requests",
+      "Estimated USD budget ceiling",
+      "Conservative configured-tariff reservation: ${maximum?.toPlainString() ?: ",
+      "Start authorized AI job",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 145,
+    "component": "ProductionEvidenceContent",
+    "labels": [
+      "Sold evidence ${offset+1}\u2013${minOf(offset+50,evidence.length())} of ${evidence.length()}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 146,
+    "component": "ProductionEvidenceContent",
+    "labels": [
+      "${sale.title} \u00b7 ${sale.soldAt.take(10)}\\n${sale.currency} ${sale.soldDecimal} + shipping ${sale.shippingDecimal}${if(!sale.current) ",
+      "Open sold source \u00b7 ${sale.sourceItemId}"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ProductionUi.kt",
+    "line": 147,
+    "component": "ProductionEvidenceContent",
+    "labels": [
+      "Previous evidence",
+      "Next evidence"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 80,
+    "component": "ShopifyScreen",
+    "labels": [
+      "\u2190 Back",
+      "Shopify",
+      "Drafts and durable jobs",
+      "Listings & saved reviews"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 81,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Choose Direct Shopify Connection for your owner-operated phone, or an optional hosted broker. Inventory stays on this phone. "
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 82,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Direct Shopify Connection",
+      "Store domain \u00b7 myshopify.com",
+      "Shopify Client ID",
+      "Shopify Client Secret",
+      "Save credentials & connect directly",
+      "Clear direct credentials",
+      "Open saved Shopify connection",
+      "Test saved direct connection"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 83,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Enable writes to my Shopify store \u00b7 deliberate draft submission authorizes uploads"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 84,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Enable live publication controls \u00b7 separate SUBMIT approval required"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 85,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Credentials stay encrypted on this phone. Approved jobs connect directly to Shopify. No broker or computer is required."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 86,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Optional legacy connection"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 88,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Hosted broker HTTPS origin"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 89,
+    "component": "ShopifyScreen",
+    "labels": [
+      "One-use pairing code from broker owner",
+      "Pair this device"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 90,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Authorize in browser",
+      "Test connection"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 91,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Revoke device",
+      "Forget locally"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 93,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Test connection"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 99,
+    "component": "ShopifyScreen",
+    "labels": [
+      "${health.getString(",
+      "Scopes: ${health.getJSONArray("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 101,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Inventory location"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 103,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Sales channel for separately approved publication"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 105,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Select inventory",
+      "New uploads default to DRAFT. Existing linked products are protected. One item represents one physical copy with stock 1."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 106,
+    "component": "ShopifyScreen",
+    "labels": [
+      "CAD ${InventoryRules.priceText(item.priceCents?.let {InventoryRules.discounted(it,item.discountBasisPoints)})} \u00b7 ${item.weightGrams} g \u00b7 stock ${item.quantity}",
+      "${if(item.ready) "
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 107,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Create Shopify Drafts authorizes sending selected listing data and photos. Invalid records are skipped with reasons.",
+      "Create Shopify Drafts (${selected.size})",
+      "Optional listing review"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 108,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Review live publication"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 109,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Publishing jobs",
+      "A paused or failed job can leave a remote draft. Retrying reconciles saved identities. Android work completion alone does not prove Shopify completion."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 110,
+    "component": "ShopifyScreen",
+    "labels": [
+      "${job.kind} \u00b7 ${job.state}",
+      "${job.shop}\\n${job.id}",
+      "Delete local job"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 111,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Delete local draft \u00b7 ${entry.itemId}",
+      "${entry.itemId}: ${entry.state} \u00b7 ${entry.step}"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyUi.kt",
+    "line": 112,
+    "component": "ShopifyScreen",
+    "labels": [
+      "Pause",
+      "Reconcile / resume",
+      "Cancel remaining"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 34,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "${health.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 35,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "Location: ${p.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 36,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "Review ${row.state.lowercase()}. ${if(row.state=="
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 39,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "Publish ${p.getJSONArray("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 41,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "${product.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 43,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "Current: ${before.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 45,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "Only this reviewed product and status/channel are changed. A remote change after review stops the job."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 47,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "${before.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 51,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "Remote SKU: ${variant.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 52,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "${before.getJSONObject("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 53,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "Shopify: ${before.optString(key)}",
+      "Phone \u2192 ${patch.getString(key)}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 56,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "Publication: ${p.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 58,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "SKU ${item.itemId}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 59,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "CAD ${InventoryRules.priceText(item.priceCents?.let {InventoryRules.discounted(it,item.discountBasisPoints)})} \u00b7 ${item.weightGrams} g \u00b7 stock ${item.quantity}",
+      "${item.vendor} \u00b7 ${item.productType}",
+      "Tags: ${item.tags}",
+      "Barcode: ${items.getJSONObject(i).optString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 62,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "${photos.length()} original-linked photographs in reviewed order"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 65,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "One-use approval \u00b7 local revision/photo binding \u00b7 changes after review require another review."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 66,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "SUBMIT"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 71,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "Reject"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 72,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "Close"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 73,
+    "component": "ShopifyReviewDialog",
+    "labels": [
+      "Approve once"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 94,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "\u2190 Uploads & connection"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 95,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Connect and test your saved Shopify connection in Settings. Local inventory remains available offline."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 96,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Search listing title"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 98,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Search Shopify"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 102,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "${h.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 103,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Inventory location for inspection"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 106,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "${model.catalogQuery.ifBlank {",
+      "Results are a read snapshot. Preparing a review fetches the listing again."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 110,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "${product.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 111,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Approved locally \u00b7 publishing still requires a separate review"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 113,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Delete draft from app"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 114,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Inspect listing"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 116,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Next 20 listings"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 119,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Listing details",
+      "${detail.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 120,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Refresh this listing",
+      "SKU ${v.getString("
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 121,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "${detail.getJSONObject("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 124,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Workflow: Draft \u2192 Approved locally \u2192 Active \u2192 Live on selected channel"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 125,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Review local approval"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 129,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Save default channels"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 130,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Review publication to selected channels"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 131,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Online Store publication plus Active status is required for website availability. Changes always require the exact review and SUBMIT."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 133,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Find local copy by title or Item ID",
+      "Showing up to 30 matching copies. Refine the search to find a specific Item ID."
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 134,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "${item.title.ifBlank {"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 136,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Selected: ${selectedItem.itemId}",
+      "Linking requires this exact SKU and both existing SnapIMS identity markers. No marker is added to an unrelated product."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 137,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Prepare link review"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 138,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Refresh the Shopify connection before selecting update fields."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 140,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Select metadata fields to update"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 141,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Shopify: ${detail.optString(key)}\\nPhone: $value"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 142,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Prepare metadata review"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 146,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "Saved reviews"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "ShopifyManagementUi.kt",
+    "line": 147,
+    "component": "ShopifyListingsScreen",
+    "labels": [
+      "${shopifyReviewTitle(row.kind)} \u00b7 ${row.state}",
+      "${c.optString(",
+      "Job ${result.optString("
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 45,
+    "component": "PricingScreen",
+    "labels": [
+      "\u2190 Back"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 46,
+    "component": "PricingScreen",
+    "labels": [
+      "Search Market database"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 47,
+    "component": "PricingScreen",
+    "labels": [
+      "Allow reviewed reuse after online cache expiry"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 48,
+    "component": "PricingScreen",
+    "labels": [
+      "Import a consistent SQLite export from the desktop pricing module. Valid CAD evidence stays available offline; older evidence requires reviewed historical reuse. Prices include sold price and shipping; no AI-generated prices."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 49,
+    "component": "PricingScreen",
+    "labels": [
+      "Import pricing SQLite",
+      "${evidence.size} collections \u00b7 ${evidence.count {it.fresh()}} fresh"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 53,
+    "component": "PricingScreen",
+    "labels": [
+      "Review a batch of prices"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 54,
+    "component": "PricingScreen",
+    "labels": [
+      "Find inventory title"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 59,
+    "component": "PricingScreen",
+    "labels": [
+      "${item.priceCents?.let {money(it)} ?: "
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 60,
+    "component": "PricingScreen",
+    "labels": [
+      "Review ${matches.size} collections"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 62,
+    "component": "PricingScreen",
+    "labels": [
+      "No sold evidence for this exact title. Set a manual price in Inventory."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 64,
+    "component": "PricingScreen",
+    "labels": [
+      "${e.status} \u00b7 ${if(e.fresh()) "
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 65,
+    "component": "PricingScreen",
+    "labels": [
+      "Collected ${e.collectedAt}\\nExpires ${e.expiresAt}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 66,
+    "component": "PricingScreen",
+    "labels": [
+      "${it.count} valid matches \u00b7 average ${money(it.averageCents)} \u00b7 median ${money(it.medianCents)}\\nRange ${money(it.lowestCents)}\u2013${money(it.highestCents)}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 67,
+    "component": "PricingScreen",
+    "labels": [
+      "${c.title}\\n${c.sold} + ${c.shipping} shipping \u00b7 ${c.soldDate}\\n${c.url}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 68,
+    "component": "PricingScreen",
+    "labels": [
+      "Choose and review price"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 76,
+    "component": "PricingScreen",
+    "labels": [
+      "Apply reviewed sold price?"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 77,
+    "component": "PricingScreen",
+    "labels": [
+      "${item.title}\\n${item.itemId}\\n${stats.count} valid comparisons. This clears listing readiness."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 78,
+    "component": "PricingScreen",
+    "labels": [
+      "Median ${money(stats.medianCents)}",
+      "Average ${money(stats.averageCents)}"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 79,
+    "component": "PricingScreen",
+    "labels": [
+      "Replace my manual price"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 80,
+    "component": "PricingScreen",
+    "labels": [
+      "Apply",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 82,
+    "component": "PricingScreen",
+    "labels": [
+      "Review batch prices"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 83,
+    "component": "PricingScreen",
+    "labels": [
+      "Up to 200 exact-title CAD matches (older records require historical reuse enabled). Manual prices are excluded. Every selected change clears readiness; changed records stop the entire batch."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 84,
+    "component": "PricingScreen",
+    "labels": [
+      "Median",
+      "Average"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 85,
+    "component": "PricingScreen",
+    "labels": [
+      "No eligible fresh matches. Import evidence or review manual prices individually."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 86,
+    "component": "PricingScreen",
+    "labels": [
+      "${item.itemId} \u00b7 ${money(if(method=="
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 87,
+    "component": "PricingScreen",
+    "labels": [
+      "Apply ${selectedBulk.size}",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 100,
+    "component": "AiWorkspaceScreen",
+    "labels": [
+      "Dismiss"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 101,
+    "component": "AiWorkspaceScreen",
+    "labels": [
+      "Dismiss"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 106,
+    "component": "AiWorkspaceScreen",
+    "labels": [
+      "\u2190 Back"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 107,
+    "component": "AiWorkspaceScreen",
+    "labels": [
+      "New chat",
+      "Connections",
+      "Tasks"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 108,
+    "component": "AiWorkspaceScreen",
+    "labels": [
+      "Search chats and messages"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 109,
+    "component": "AiWorkspaceScreen",
+    "labels": [
+      "${c.provider} \u00b7 ${c.model}"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 126,
+    "component": "ConnectionsPanel",
+    "labels": [
+      "\u2190 Conversations"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 130,
+    "component": "ConnectionsPanel",
+    "labels": [
+      "Experimental official SIWC preview. Eligible Plus/Pro accounts only. Native Pixel compatibility is unverified until sign-in, discovery and streaming all pass on the device. Uses the system browser and an HTTP listener bound to 127.0.0.1; no mandatory home server."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 132,
+    "component": "ConnectionsPanel",
+    "labels": [
+      "Continue with ChatGPT"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 133,
+    "component": "ConnectionsPanel",
+    "labels": [
+      "Cancel sign-in"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 135,
+    "component": "ConnectionsPanel",
+    "labels": [
+      "Usage totals and remaining plan allowance are not supplied by this preview contract. A plan-limit error stops the request. API-key mode is never selected automatically."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 136,
+    "component": "ConnectionsPanel",
+    "labels": [
+      "Check connection & discover models"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 137,
+    "component": "ConnectionsPanel",
+    "labels": [
+      "Disconnect locally",
+      "Forget account"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 138,
+    "component": "ConnectionsPanel",
+    "labels": [
+      "Device proof log",
+      "Physical acceptance requires LISTENER \u2192 SIGNED_IN \u2192 MODELS_DISCOVERED \u2192 STREAM_COMPLETED on a Pixel. Host tests do not establish this."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 139,
+    "component": "ConnectionsPanel",
+    "labels": [
+      "${p.stage} \u00b7 ${if(p.physicalPixel) "
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 140,
+    "component": "ConnectionsPanel",
+    "labels": [
+      "Optional on-device OpenAI-compatible server at http://127.0.0.1:8080/v1. Start a compatible local-model Android app first. SnapIMS does not download or run a model itself. No off-device server is required for inventory."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 142,
+    "component": "ConnectionsPanel",
+    "labels": [
+      "Provider API key"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 143,
+    "component": "ConnectionsPanel",
+    "labels": [
+      "Save securely",
+      "Remove key"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 144,
+    "component": "ConnectionsPanel",
+    "labels": [
+      "Keys are encrypted with Android Keystore and excluded from backup/export. Free tiers and :free models remain subject to provider limits. SnapIMS does not silently choose another provider."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 146,
+    "component": "ConnectionsPanel",
+    "labels": [
+      "Discover models"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 148,
+    "component": "ConnectionsPanel",
+    "labels": [
+      "${model.displayName}\\n${model.model}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 157,
+    "component": "NewChatDialog",
+    "labels": [
+      "New conversation"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 160,
+    "component": "NewChatDialog",
+    "labels": [
+      "Use saved chat model",
+      "Use saved agent model"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 162,
+    "component": "NewChatDialog",
+    "labels": [
+      "Filter model catalog"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 164,
+    "component": "NewChatDialog",
+    "labels": [
+      "${m.model}\\nTools: ${m.supportsTools ?: "
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 168,
+    "component": "NewChatDialog",
+    "labels": [
+      "Optional capability tests send synthetic content using this connection. Plan usage or API charges apply. A successful test enables that capability; no inventory is sent."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 169,
+    "component": "NewChatDialog",
+    "labels": [
+      "Test $kind"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 172,
+    "component": "NewChatDialog",
+    "labels": [
+      "Conversation instructions \u00b7 optional"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 175,
+    "component": "NewChatDialog",
+    "labels": [
+      "Create",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 188,
+    "component": "ChatPanel",
+    "labels": [
+      "\u2190 Chats",
+      "Export",
+      "Delete"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 189,
+    "component": "ChatPanel",
+    "labels": [
+      "${chat.provider} \u00b7 ${chat.model} \u00b7 ${chat.authMode}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 192,
+    "component": "ChatPanel",
+    "labels": [
+      "Tools \u00b7 ${traces.count {it.state=="
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 193,
+    "component": "ChatPanel",
+    "labels": [
+      "Budget: ${if(policy.contextChars==12000) ",
+      "Economy \u00b7 smaller context, 4 rounds",
+      "Standard \u00b7 8 rounds"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 197,
+    "component": "ChatPanel",
+    "labels": [
+      "${t.tool} \u00b7 ${t.state}",
+      "${t.durationMs} ms \u00b7 ${t.resultChars} characters\\n${t.summary}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 199,
+    "component": "ChatPanel",
+    "labels": [
+      "${m.role.uppercase()} \u00b7 ${m.status}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 201,
+    "component": "ChatPanel",
+    "labels": [
+      "${JSONArray(m.attachmentsJson).length()} attachments \u00b7 included in backup"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 202,
+    "component": "ChatPanel",
+    "labels": [
+      "${JSONArray(m.toolCallsJson).length()} local tool requests"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 204,
+    "component": "ChatPanel",
+    "labels": [
+      "Tokens ${m.inputTokens ?: "
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 205,
+    "component": "ChatPanel",
+    "labels": [
+      "Cached input tokens: ${JSONObject(m.usageJson).getLong("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 207,
+    "component": "ChatPanel",
+    "labels": [
+      "${approvalTitle(p.action)} \u00b7 ${p.state}",
+      "Review proposed change",
+      "Open approved task"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 209,
+    "component": "ChatPanel",
+    "labels": [
+      "${a.getString("
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 210,
+    "component": "ChatPanel",
+    "labels": [
+      "These attachments leave the device only when you press Send."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 211,
+    "component": "ChatPanel",
+    "labels": [
+      "Message"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 213,
+    "component": "ChatPanel",
+    "labels": [
+      "Attach"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 214,
+    "component": "ChatPanel",
+    "labels": [
+      "Stop"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 215,
+    "component": "ChatPanel",
+    "labels": [
+      "Send"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 219,
+    "component": "ChatPanel",
+    "labels": [
+      "Delete this local conversation?",
+      "Its messages and approvals will be deleted. Approved tasks remain in Tasks. Original inventory and photographs are retained. Export the conversation first if needed.",
+      "Delete",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 228,
+    "component": "BusinessDefaultsSettings",
+    "labels": [
+      "INVENTORY DEFAULTS"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 229,
+    "component": "BusinessDefaultsSettings",
+    "labels": [
+      "Applied to new physical copies. Existing records keep their reviewed values."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 230,
+    "component": "BusinessDefaultsSettings",
+    "labels": [
+      "Default vendor"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 231,
+    "component": "BusinessDefaultsSettings",
+    "labels": [
+      "Default product type"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 232,
+    "component": "BusinessDefaultsSettings",
+    "labels": [
+      "Default shipping weight \u00b7 grams"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 249,
+    "component": "AgentResult",
+    "labels": [
+      "Attach compressed inventory photo"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 250,
+    "component": "AgentResult",
+    "labels": [
+      "Open $screen"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 255,
+    "component": "AgentResult",
+    "labels": [
+      "${entries.length()} returned${if(json.has("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 257,
+    "component": "AgentResult",
+    "labels": [
+      "Open copy"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "NextUi.kt",
+    "line": 259,
+    "component": "AgentResult",
+    "labels": [
+      "$k: ${json.get(k).toString().take(300)}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AiTaskModels.kt",
+    "line": 45,
+    "component": "parse",
+    "labels": [
+      "7"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AiTaskModels.kt",
+    "line": 59,
+    "component": "AiTaskModelsSettings",
+    "labels": [
+      "AI Models & Tasks"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "AiTaskModels.kt",
+    "line": 61,
+    "component": "AiTaskModelsSettings",
+    "labels": [
+      "AI Models & Tasks",
+      "OpenAI API models only here. Offline matching/pricing never uses a model. Existing free/local/chat connections remain available in AI workspace."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AiTaskModels.kt",
+    "line": 63,
+    "component": "AiTaskModelsSettings",
+    "labels": [
+      "OpenAI model ID"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "AiTaskModels.kt",
+    "line": 64,
+    "component": "AiTaskModelsSettings",
+    "labels": [
+      "Discover OpenAI models"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "AiTaskModels.kt",
+    "line": 67,
+    "component": "AiTaskModelsSettings",
+    "labels": [
+      "Maximum output tokens for authorized task requests"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "AiTaskModels.kt",
+    "line": 68,
+    "component": "AiTaskModelsSettings",
+    "labels": [
+      "Verified input USD / million tokens \u00b7 optional"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "AiTaskModels.kt",
+    "line": 69,
+    "component": "AiTaskModelsSettings",
+    "labels": [
+      "Verified output USD / million tokens \u00b7 optional"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "AiTaskModels.kt",
+    "line": 70,
+    "component": "AiTaskModelsSettings",
+    "labels": [
+      "Enter current verified prices for batch budget estimates. Prices are operator configuration, not a fetched tariff. Unknown costs remain unknown. Agent tool support can be tested separately in AI workspace Connections."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AiTaskModels.kt",
+    "line": 71,
+    "component": "AiTaskModelsSettings",
+    "labels": [
+      "Save model",
+      "Use default"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "AiTaskModels.kt",
+    "line": 72,
+    "component": "AiTaskModelsSettings",
+    "labels": [
+      "Review compatibility test",
+      "Done"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "AiTaskModels.kt",
+    "line": 74,
+    "component": "AiTaskModelsSettings",
+    "labels": [
+      "Authorize one OpenAI compatibility request?",
+      "${choice.model} \u00b7 synthetic ${if(selected?.images==true) ",
+      "Run test",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 44,
+    "component": "RecognitionSettings",
+    "labels": [
+      "Recognition"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 56,
+    "component": "RecognitionSettings",
+    "labels": [
+      "Recognition runs from Batches after capture; switching modes cancels unfinished jobs from the previous mode."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 61,
+    "component": "RecognitionSettings",
+    "labels": [
+      "Remove key"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 63,
+    "component": "RecognitionSettings",
+    "labels": [
+      "OpenAI model ID"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 64,
+    "component": "RecognitionSettings",
+    "labels": [
+      "Default: gpt-4.1-mini. Requires image input, Responses and structured output."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 77,
+    "component": "RecognitionSettings",
+    "labels": [
+      "Choose model"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 82,
+    "component": "RecognitionSettings",
+    "labels": [
+      "Available model IDs"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 84,
+    "component": "RecognitionSettings",
+    "labels": [
+      "The Models API does not report image capabilities. Choose a vision model; incompatible requests produce a clear error."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 87,
+    "component": "RecognitionSettings",
+    "labels": [
+      "Done"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 93,
+    "component": "SecureKeyDialog",
+    "labels": [
+      "OpenAI API key"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 94,
+    "component": "SecureKeyDialog",
+    "labels": [
+      "Stored encrypted on this device. It is never included in exports or source code. Enter an API key, not a ChatGPT password."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 95,
+    "component": "SecureKeyDialog",
+    "labels": [
+      "Paste API key"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 99,
+    "component": "SecureKeyDialog",
+    "labels": [
+      "Save securely",
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 110,
+    "component": "RecognitionDialog",
+    "labels": [
+      "Product %03d \u00b7 recognition"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 112,
+    "component": "RecognitionDialog",
+    "labels": [
+      "Mode: ${recognitionLabel(repo.recognitionMode())}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 113,
+    "component": "RecognitionDialog",
+    "labels": [
+      "Run sends up to 3 downsized photos to OpenAI; API charges apply."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 115,
+    "component": "RecognitionDialog",
+    "labels": [
+      "${latest.state} \u00b7 ${latest.model}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 116,
+    "component": "RecognitionDialog",
+    "labels": [
+      "Waits for an internet connection. Capture still works offline."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 117,
+    "component": "RecognitionDialog",
+    "labels": [
+      "Photos changed since this result. Run recognition again before confirming."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 123,
+    "component": "RecognitionDialog",
+    "labels": [
+      "Barcode candidates \u00b7 verify before use"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 133,
+    "component": "RecognitionDialog",
+    "labels": [
+      "\u2022 ${warnings.optString(j)}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 137,
+    "component": "RecognitionDialog",
+    "labels": [
+      "Visible text \u00b7 tap a line to edit it as the title"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 140,
+    "component": "RecognitionDialog",
+    "labels": [
+      "API tokens: ${usage.optLong("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 142,
+    "component": "RecognitionDialog",
+    "labels": [
+      "Verified printed title"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 145,
+    "component": "RecognitionDialog",
+    "labels": [
+      "Confirmed: ${latest.acceptedTitle}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 155,
+    "component": "RecognitionDialog",
+    "labels": [
+      "Share results JSON"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 156,
+    "component": "RecognitionDialog",
+    "labels": [
+      "Run recognition when you are ready. Camera capture never waits for it."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 157,
+    "component": "RecognitionDialog",
+    "labels": [
+      "Existing ZIP archives stay unchanged. Newly available results can be shared separately."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "RecognitionUi.kt",
+    "line": 161,
+    "component": "RecognitionDialog",
+    "labels": [
+      "Done"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "CameraSettingsUi.kt",
+    "line": 13,
+    "component": "ResolutionSettings",
+    "labels": [
+      "Photo resolution"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "CameraSettingsUi.kt",
+    "line": 15,
+    "component": "ResolutionSettings",
+    "labels": [
+      "${selected.label} \u25be"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "CameraSettingsUi.kt",
+    "line": 22,
+    "component": "ResolutionSettings",
+    "labels": [
+      "3 MP is the new default. Smaller sizes save faster but retain less tiny text and barcode detail. The camera selects the closest supported size, shown in the preview. Originals retain their camera JPEG and EXIF."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 75,
+    "component": "share",
+    "labels": [
+      "\u2190 Settings"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 76,
+    "component": "share",
+    "labels": [
+      "A protected backup includes inventory, audit history, capture sessions, original photos and archive records. API keys are excluded. Keep the passphrase somewhere safe; it cannot be recovered."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 77,
+    "component": "share",
+    "labels": [
+      "Create protected backup"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 78,
+    "component": "share",
+    "labels": [
+      "Restore protected backup"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 81,
+    "component": "share",
+    "labels": [
+      "Passphrase \u00b7 12+ characters"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 82,
+    "component": "share",
+    "labels": [
+      "Repeat passphrase"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 83,
+    "component": "share",
+    "labels": [
+      "Restore merges new records. Different existing records/IDs are rejected; your current database and originals are never replaced."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 97,
+    "component": "share",
+    "labels": [
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 99,
+    "component": "share",
+    "labels": [
+      "Portable exports"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 100,
+    "component": "share",
+    "labels": [
+      "Portable ZIPs include photos and inventory without encryption for interchange. CSV uses SnapIMS Item IDs and column names. Use protected backup for confidential storage."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 102,
+    "component": "share",
+    "labels": [
+      "Photo ZIP"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 103,
+    "component": "share",
+    "labels": [
+      "Inventory CSV"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 105,
+    "component": "share",
+    "labels": [
+      "Import inventory / capture ZIP"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 106,
+    "component": "share",
+    "labels": [
+      "Supports native SnapIMS capture ZIPs, this app's portable inventory packages, and identity-preserving desktop exports from the included read-only export utility."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 107,
+    "component": "share",
+    "labels": [
+      "Working on this phone. Keep the app open until completion.",
+      "Cancel current transfer"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 108,
+    "component": "share",
+    "labels": [
+      "Recent operations"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 110,
+    "component": "share",
+    "labels": [
+      "${job.kind.lowercase().replaceFirstChar { it.uppercase() }} \u00b7 ${job.state.lowercase().replace('_',' ')}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 111,
+    "component": "share",
+    "labels": [
+      "${job.completed} / ${job.total}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "BackupUi.kt",
+    "line": 116,
+    "component": "share",
+    "labels": [
+      "Save to Files",
+      "Share"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "TrashUi.kt",
+    "line": 17,
+    "component": "TrashScreen",
+    "labels": [
+      "\u2190 Settings"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "TrashUi.kt",
+    "line": 18,
+    "component": "TrashScreen",
+    "labels": [
+      "Deletion only affects SnapIMS. Shopify products stay unchanged. Recovery does not restart uploads or recognition. Batches recover as finished batches."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "TrashUi.kt",
+    "line": 20,
+    "component": "TrashScreen",
+    "labels": [
+      "Trash is empty"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "TrashUi.kt",
+    "line": 21,
+    "component": "TrashScreen",
+    "labels": [
+      "${entry.kind.lowercase()} \u00b7 recover until ${Instant.ofEpochMilli(entry.expiresAt)}",
+      "Recover"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 39,
+    "component": "run",
+    "labels": [
+      "\u2190 Back"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 40,
+    "component": "run",
+    "labels": [
+      "New inventory review task",
+      "AI proposals are reviewed in their conversation. Recognition needs printed-title confirmation. Shopify completion requires verified server results."
+    ],
+    "interactive": true
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 46,
+    "component": "run",
+    "labels": [
+      "${status?.state ?: row.state} \u00b7 ${status?.done ?: 0}/${status?.total ?: JSONArray(row.groupIdsJson).length()}"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 50,
+    "component": "run",
+    "labels": [
+      "Review ${item?.title?.ifBlank {"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 52,
+    "component": "run",
+    "labels": [
+      "${job.optString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 54,
+    "component": "run",
+    "labels": [
+      "${o.optString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 56,
+    "component": "run",
+    "labels": [
+      "${p.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 57,
+    "component": "run",
+    "labels": [
+      "Open batch"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 58,
+    "component": "run",
+    "labels": [
+      "Open Shopify jobs & server verification"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 59,
+    "component": "run",
+    "labels": [
+      "Retry scheduling existing jobs"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 60,
+    "component": "run",
+    "labels": [
+      "Mark reviewed task complete"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 61,
+    "component": "run",
+    "labels": [
+      "Restored task is paused. Review inventory and request a fresh proposal; external requests will not restart automatically."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 62,
+    "component": "run",
+    "labels": [
+      "Cancel remaining work"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 69,
+    "component": "run",
+    "labels": [
+      "Select physical copies"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 70,
+    "component": "run",
+    "labels": [
+      "${selected.size}/50 selected \u00b7 offline review only"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 71,
+    "component": "run",
+    "labels": [
+      "Search title or SKU"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 72,
+    "component": "run",
+    "labels": [
+      "${item.title.ifBlank {"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 75,
+    "component": "run",
+    "labels": [
+      "Cancel"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 76,
+    "component": "run",
+    "labels": [
+      "Create review task"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "TasksUi.kt",
+    "line": 82,
+    "component": "run",
+    "labels": [
+      "Cancel remaining work?",
+      "Completed recognition results, prices, photographs and Shopify drafts remain available. An already-sent provider request can still consume usage. This does not delete remote products.",
+      "Cancel remaining work",
+      "Keep task"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 62,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "${config.getString(",
+      "Results remain suggestions. Confirm each printed title before applying it to inventory."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 63,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Store: ${health?.optString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 64,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Requested status/channel action: ${payload.optString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 65,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Target Shopify product: ${remote.optString(",
+      "Selected operation: ${if(row.action=="
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 67,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "${payload.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 68,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "${payload.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 70,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Sold evidence is in $currency. Enter your own CAD conversion rate; no exchange rate is fetched."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 71,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "CAD per 1 $currency"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 72,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Rate date \u00b7 YYYY-MM-DD"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 76,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "SKU ${item.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 79,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Quantity ${item.optInt("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 84,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Current base: CAD ${InventoryRules.priceText(item.getLong("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 90,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "$selectedMethod: $currency ${InventoryRules.priceText(cents)} \u00b7 ${r.getInt("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 91,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Sales: ${r.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 93,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "New base: ${cad?.let {"
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 94,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Existing discount: ${BigDecimal(item.optInt("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 99,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "SKU ${l.optString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 100,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Quantity ${l.optInt("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 102,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Tags: "
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 103,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Upload ${photos.length()} photographs: "
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 105,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "SKU ${payload.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 106,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Current base: CAD ${InventoryRules.priceText(payload.getLong("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 107,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "${e.getInt("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 109,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Confirmed title \u2192 ${payload.getString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 110,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Saved sold evidence \u00b7 ${payload.optString("
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 112,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Optional adjusted base price \u00b7 CAD",
+      "Leave empty to use the displayed recommendation."
+    ],
+    "interactive": true
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 118,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Type SUBMIT for live publication"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 119,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Approval applies once to this exact selection. Completed external operations remain recorded in Tasks."
+    ],
+    "interactive": false
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 124,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Reject"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 125,
+    "component": "AgentApprovalDialog",
+    "labels": [
+      "Close"
+    ],
+    "interactive": true
+  },
+  {
+    "file": "AgentApprovalDialog.kt",
+    "line": 139,
+    "component": "ReviewPatch",
+    "labels": [
+      "Before: ${if(before.has(key)) before.get(key) else ",
+      "After: ${patch.get(key)}"
+    ],
+    "interactive": false
+  }
+]

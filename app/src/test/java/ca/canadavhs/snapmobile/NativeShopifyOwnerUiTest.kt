@@ -39,9 +39,11 @@ class NativeShopifyOwnerUiTest {
   assertEquals("QUEUED",job.state);runBlocking {repo.runOwnerJob(job,gateway)};return runBlocking {repo.journal.shopifyDao().job(job.id)!!}}
  @Test fun localApprovalActiveAndOnlineStorePublicationRequireSeparateExactReviews() {
   compose.onNodeWithText("Settings").performClick()
-  scroll("Shopify")
+  compose.onAllNodesWithText("Shopify").onLast().performClick();compose.onNodeWithText("Connection & jobs").performClick()
   scroll("Listings & saved reviews")
   scroll("Search Shopify")
+  compose.waitUntil(10000) {ViewModelProvider(compose.activity)[ShopifyModel::class.java].health!=null}
+  scroll("Listing location & connection details")
   compose.waitUntil(10000) {runCatching {compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Main"))}.isSuccess}
   scroll("Main")
   scroll("Inspect listing")
@@ -51,7 +53,7 @@ class NativeShopifyOwnerUiTest {
   waitJob()
   assertEquals("SUCCESS",runApprovedJob().state)
   assertEquals(0,server.mutations)
-  scroll("Set Active");waitReview()
+  scroll("Activate");waitReview()
   compose.onNodeWithText("Approve once").assertIsNotEnabled()
   compose.onNodeWithText("SUBMIT").performTextInput("SUBMIT")
   compose.onNodeWithText("Approve once").performClick()
@@ -60,7 +62,7 @@ class NativeShopifyOwnerUiTest {
   assertEquals("ACTIVE",server.status)
   assertFalse(server.published)
   compose.onNodeWithText("Online Store").performScrollTo().assertIsSelected()
-  scroll("Review publication to selected channels");waitReview()
+  scroll("Publish to selected channels");waitReview()
   compose.onNodeWithText("Approve once").assertIsNotEnabled()
   compose.onNodeWithText("SUBMIT").performTextInput("SUBMIT")
   compose.onNodeWithText("Approve once").performClick()

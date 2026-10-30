@@ -34,10 +34,11 @@ import org.json.*
     fun run(block:suspend()->Unit) {if(working) return;working=true;error="";scope.launch {try {block()} catch(e:CancellationException) {throw e} catch(e:Exception) {error=e.message ?: "Task action failed."} finally {working=false}}}
     LaunchedEffect(rows,items,photos,recognition,shopifyJobs,shopifyItems,archives) {try {statuses=withContext(Dispatchers.IO) {rows.associate {it.id to vm.repo.agentTaskStatus(it)}}} catch(e:CancellationException) {throw e} catch(e:Exception) {error=e.message ?: "Task status needs review."}}
     val listState=rememberLazyListState()
-    LaunchedEffect(initialTaskId,rows) {val index=rows.indexOfFirst {it.id==initialTaskId};if(index>=0) listState.scrollToItem(index+2)}
+    LaunchedEffect(initialTaskId,rows) {val index=rows.indexOfFirst {it.id==initialTaskId};if(index>=0) listState.scrollToItem(index+3+(if(error.isNotBlank()) 1 else 0))}
     LazyColumn(state=listState,modifier=Modifier.fillMaxSize().padding(horizontal=20.dp),contentPadding=PaddingValues(vertical=20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item {TextButton(onClick=back) {Text("← Back")};PageTitle("Tasks","Real job progress · inventory stays on this device")}
         item {Button(onClick={create=true;selected=emptyList()},enabled=!working) {Text("New inventory review task")};Text("AI proposals are reviewed in their conversation. Recognition needs printed-title confirmation. Shopify completion requires verified server results.",style=MaterialTheme.typography.bodySmall)}
+        item {OperatorJobs(vm,batch,shopify)}
         if(error.isNotBlank()) item {Text(error,color=MaterialTheme.colorScheme.error)}
         if(rows.isEmpty()) item {EmptyState("No tasks yet","Select copies for an offline review task, or approve a recognition, pricing or Shopify proposal in the AI workspace.")}
         items(rows,key={it.id}) {row->val status=statuses[row.id]

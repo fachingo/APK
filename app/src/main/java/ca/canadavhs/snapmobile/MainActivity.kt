@@ -23,6 +23,8 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
@@ -50,7 +52,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.LocalDate
 
-private val Lime = Color(0xFFC4EC7B)
+private val Lime = Color(0xFF9BD4C5)
 class MainActivity : ComponentActivity() {
     var volumeShutter: (() -> Unit)? = null
     override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); enableEdgeToEdge(); setContent { MobileApp(this) } }
@@ -68,9 +70,15 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
     val photos by vm.photos.collectAsStateWithLifecycle(); val archives by vm.archives.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val wide = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
-    val destinations = listOf("Home" to Icons.Outlined.Home, "Capture" to Icons.Outlined.CameraAlt, "Inventory" to Icons.Outlined.Inventory2, "Batches" to Icons.Outlined.PhotoLibrary, "Settings" to Icons.Outlined.Tune)
-    val destinationRoutes = listOf(4,0,5,1,3)
+    val destinations = listOf("Dashboard" to Icons.Outlined.Dashboard, "Capture" to Icons.Outlined.CameraAlt, "Inventory" to Icons.Outlined.Inventory2, "Market" to Icons.Outlined.QueryStats, "Shopify" to Icons.Outlined.Storefront)
+    val destinationRoutes = listOf(4,0,1,10,9)
     var screen by rememberSaveable { mutableIntStateOf(4) }
+    var routeHistory by rememberSaveable {mutableStateOf(listOf<Int>())}
+    fun navigate(target:Int) {if(target!=screen) {routeHistory=(routeHistory+screen).takeLast(24);screen=target}}
+    fun goBack() {if(routeHistory.isNotEmpty()) {screen=routeHistory.last();routeHistory=routeHistory.dropLast(1)} else screen=4}
+    BackHandler(screen!=4 || routeHistory.isNotEmpty()) {goBack()}
+    val screenStates=rememberSaveableStateHolder()
+    var menu by rememberSaveable {mutableStateOf(false)}
     var marketTarget by rememberSaveable {mutableStateOf<String?>(null)}
     var taskTarget by rememberSaveable {mutableStateOf<String?>(null)}
     var batchTarget by rememberSaveable {mutableStateOf<String?>(null)}
@@ -82,13 +90,13 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
         vm.repo.preferences.registerOnSharedPreferenceChangeListener(listener)
         onDispose {vm.repo.preferences.unregisterOnSharedPreferenceChangeListener(listener)}
     }
-    var startDialog by remember { mutableStateOf(false) }
-    var finishDialog by remember { mutableStateOf(false) }
+    var startDialog by rememberSaveable { mutableStateOf(false) }
+    var finishDialog by rememberSaveable { mutableStateOf(false) }
     val active = sessions.firstOrNull { !it.finished }
     val current = groups.firstOrNull { it.sessionId == active?.id && !it.closed }
     val currentPhotos = photos.filter { it.groupId == current?.id && !it.deleted }.sortedBy { it.position }
     val engine = remember { CameraEngine(context) }
-    val colors = if (light) lightColorScheme(primary = Color(0xFF47651E), background = Color(0xFFF5F6F2), surface = Color.White) else darkColorScheme(primary = Lime, background = Color(0xFF101416), surface = Color(0xFF1A2023), surfaceVariant = Color(0xFF283034))
+    val colors = operatorColors(light)
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(vm.message) { if (vm.message.isNotEmpty()) { snackbar.showSnackbar(vm.message, duration = SnackbarDuration.Long); vm.message = "" } }
     val view = LocalView.current
@@ -103,7 +111,8 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
             context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "application/zip"; putExtra(Intent.EXTRA_STREAM, uri); clipData = android.content.ClipData.newRawUri("SnapIMS archive", uri); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }, "Share SnapIMS archive"))
         }
     }
-    var saveArchive by remember { mutableStateOf<ArchiveRow?>(null) }
+    var saveArchiveId by rememberSaveable {mutableStateOf<String?>(null)}
+    val saveArchive=archives.firstOrNull {it.id==saveArchiveId}
     val save = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         val archive = saveArchive
         if (uri != null && archive != null) vm.action {
@@ -117,22 +126,28 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
             }; vm.message = "Export saved and checksum verified. Originals retained."
         }
     }
-    MaterialTheme(colorScheme = colors, typography = Typography()) {
-        Scaffold(snackbarHost = { SnackbarHost(snackbar) }, bottomBar = {
+    MaterialTheme(colorScheme = colors, typography = OperatorTypography, shapes=Shapes(small=RoundedCornerShape(8.dp),medium=RoundedCornerShape(12.dp),large=RoundedCornerShape(16.dp))) {
+        Scaffold(topBar={if(screen!=0) Surface(tonalElevation=1.dp) {Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal=12.dp),verticalAlignment=Alignment.CenterVertically) {
+            if(screen in listOf(2,3)) IconButton(onClick={goBack()}) {Icon(Icons.Outlined.ArrowBack,"Back")}
+            Text("SnapIMS",style=MaterialTheme.typography.titleMedium,modifier=Modifier.weight(1f))
+            IconButton(enabled=!vm.busy && !vm.maintenance,onClick={navigate(7)}) {Icon(Icons.Outlined.AutoAwesome,"AI workspace")}
+            TextButton(enabled=!vm.busy && !vm.maintenance,onClick={navigate(3)}) {Text("Settings")}
+            Box {IconButton(enabled=!vm.busy && !vm.maintenance,onClick={menu=true}) {Icon(Icons.Outlined.MoreVert,"More navigation")};DropdownMenu(menu,{menu=false}) {listOf(4 to "Dashboard",1 to "Batches",5 to "All inventory",7 to "AI workspace",11 to "Tasks",6 to "Backup & import",12 to "Trash",2 to "Transfers",8 to "Sold pricing",3 to "Settings").forEach {(route,label)->DropdownMenuItem(text={Text(label)},onClick={menu=false;navigate(route)})}}}
+        }}},snackbarHost = { SnackbarHost(snackbar) }, bottomBar = {
             if (!wide) NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
                 destinations.forEachIndexed { i, entry ->
-                    NavigationBarItem(selected = screen == destinationRoutes[i] || (destinationRoutes[i] == 3 && screen in listOf(2,6,7,8,9,10,11)), onClick = { if (!vm.busy && !vm.maintenance) run {inventoryTarget=null;screen = destinationRoutes[i]} }, enabled = !vm.busy && !vm.maintenance, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first) })
+                    NavigationBarItem(selected = screen == destinationRoutes[i] || (destinationRoutes[i]==1 && screen==5), onClick = { if (!vm.busy && !vm.maintenance) run {inventoryTarget=null;navigate(destinationRoutes[i])} }, enabled = !vm.busy && !vm.maintenance, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first,maxLines=1,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis) })
                 }
             }
         }) { padding ->
             Row(Modifier.fillMaxSize().padding(padding)) {
                 if (wide) NavigationRail {
-                    destinations.forEachIndexed { i, entry -> NavigationRailItem(selected = screen == destinationRoutes[i] || (destinationRoutes[i] == 3 && screen in listOf(2,6,7,8,9,10,11)), enabled = !vm.busy && !vm.maintenance, onClick = { if (!vm.busy && !vm.maintenance) run {inventoryTarget=null;screen = destinationRoutes[i]} }, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first, fontSize = 10.sp) }) }
+                    destinations.forEachIndexed { i, entry -> NavigationRailItem(selected = screen == destinationRoutes[i] || (destinationRoutes[i]==1 && screen==5), enabled = !vm.busy && !vm.maintenance, onClick = { if (!vm.busy && !vm.maintenance) run {inventoryTarget=null;navigate(destinationRoutes[i])} }, icon = { Icon(entry.second, entry.first) }, label = { Text(entry.first,fontSize=10.sp,maxLines=1,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis) }) }
                 }
                 Box(Modifier.weight(1f).fillMaxHeight()) {
-                when (screen) {
-                    0 -> CaptureScreen(vm, engine, active, current, currentPhotos, onStart = { startDialog = true }, onFinish = { if (!vm.pendingCapture) finishDialog = true }, onReview = { if (!vm.busy) screen = 1 })
-                    1 -> BatchesScreen(vm, sessions, groups, photos, archives, onStart = { startDialog = true },initialSessionId=batchTarget,initialPhotoId=photoTarget)
+                screenStates.SaveableStateProvider(screen) { when (screen) {
+                    0 -> CaptureScreen(vm, engine, active, current, currentPhotos, onStart = { startDialog = true }, onFinish = { if (!vm.pendingCapture) finishDialog = true }, onReview = { if (!vm.busy) navigate(1) },onSettings={navigate(3)})
+                    1 -> BatchesScreen(vm, sessions, groups, photos, archives, onStart = { startDialog = true },initialSessionId=batchTarget,initialPhotoId=photoTarget,onInventory={navigate(5)})
                     2 -> Column(Modifier.fillMaxSize().padding(24.dp)) {
                         PageTitle("Transfers", "Portable archives · originals stay on this device")
                         Text("Save verified capture ZIPs to Files or share them. Your inventory remains usable on this phone. Open Settings → Backup & import for protected backups and inventory packages.", style = MaterialTheme.typography.bodyMedium)
@@ -142,34 +157,35 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
                                 Text(a.filename, fontWeight = FontWeight.SemiBold); Text("${a.state.lowercase().replaceFirstChar { it.uppercase() }} · ${"%.1f".format(a.bytes / 1_000_000.0)} MB")
                                 if (a.bytes > a.targetBytes) Text("Above archive target · whole products kept together", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
                                 if (a.error.isNotEmpty()) Text(a.error, color = MaterialTheme.colorScheme.error)
-                                if (a.state == "READY") { Row { TextButton(onClick = { share(a) }) { Text("Share") }; TextButton(onClick = { saveArchive = a; save.launch(a.filename) }) { Text("Save to Files") } }; Text("SHA-256 ${a.sha256.take(16)}…", fontSize = 11.sp) }
+                                if (a.state == "READY") { Row { TextButton(onClick = { share(a) }) { Text("Share") }; TextButton(onClick = { saveArchiveId = a.id; save.launch(a.filename) }) { Text("Save to Files") } }; Text("SHA-256 ${a.sha256.take(16)}…", fontSize = 11.sp) }
                                 else if (a.state == "ERROR") TextButton(onClick = { vm.repo.enqueueArchive(a.id) }) { Text("Retry archive") }
                             } }
                         }; if (archives.isEmpty()) item { EmptyState("No archives yet", "Next closes a product. Finish Batch or Finalize Part packages complete groups.") } }
                     }
-                    3 -> SettingsScreen(vm, light, onBackups = { screen = 6 }, onExports = { screen = 2 }, onWorkspace={screen=7},onPricing={screen=8},onListings={screen=9},onMarket={screen=10},onTasks={screen=11},onTrash={screen=12}) { light = it }
-                    4 -> InventoryHome(vm, capture = { screen = 0 }, inventory = { screen = 5 }, batches = { screen = 1 }, backups = { screen = 6 })
-                    5 -> InventoryScreen(vm, reviewPhotos = { screen = 1 },initialGroupId=inventoryTarget)
-                    6 -> BackupScreen(vm) { screen = 3 }
-                    7 -> AiWorkspaceScreen(vm,back={screen=3},onTasks={screen=11},onNavigate={route,id->
+                    3 -> SettingsScreen(vm, light, onBackups = { navigate(6) }, onExports = { navigate(2) }, onWorkspace={navigate(7)},onPricing={navigate(8)},onListings={navigate(9)},onMarket={navigate(10)},onTasks={navigate(11)},onTrash={navigate(12)}) { light = it }
+                    4 -> OperatorDashboard(vm,capture={navigate(0)},inventory={navigate(5)},batch={id->batchTarget=id;photoTarget=null;navigate(1)},market={navigate(10)},tasks={navigate(11)},backups={navigate(6)})
+                    5 -> InventoryScreen(vm, reviewPhotos = { navigate(1) },initialGroupId=inventoryTarget)
+                    6 -> BackupScreen(vm) { goBack() }
+                    7 -> AiWorkspaceScreen(vm,back={goBack()},onTasks={navigate(11)},onNavigate={route,id->
                         if(!vm.busy && !vm.maintenance) when(route) {
-                            "inventory","recognition"->{inventoryTarget=id.ifBlank {null};screen=5}
-                            "batches"->{batchTarget=id.ifBlank {null};photoTarget=null;screen=1}
-                            "market"->{marketTarget=id.ifBlank {null};screen=10}
-                            "shopify"->screen=9
-                            "tasks"->{taskTarget=id.ifBlank {null};screen=11}
-                            "settings"->screen=3
-                            "home"->screen=4
-                            "capture"->screen=0
-                            "pricing"->screen=8
-                            "backup"->screen=6
+                            "inventory","recognition"->{inventoryTarget=id.ifBlank {null};navigate(5)}
+                            "batches"->{batchTarget=id.ifBlank {null};photoTarget=null;navigate(1)}
+                            "market"->{marketTarget=id.ifBlank {null};navigate(10)}
+                            "shopify"->navigate(9)
+                            "tasks"->{taskTarget=id.ifBlank {null};navigate(11)}
+                            "settings"->navigate(3)
+                            "home"->navigate(4)
+                            "capture"->navigate(0)
+                            "pricing"->navigate(8)
+                            "backup"->navigate(6)
                         }
                     })
-                    8 -> PricingScreen(vm) {screen=3}
-                    10 -> MarketDatabaseScreen(vm,{screen=3},initialGroupId=marketTarget)
-                    9 -> ListingPlansScreen(vm) {screen=3}
-                    12 -> TrashScreen(vm) {screen=3}
-                    11 -> TasksScreen(vm,back={screen=3},inventory={inventoryTarget=it;screen=5},shopify={screen=9},initialTaskId=taskTarget,batch={batchTarget=it;photoTarget=null;screen=1})
+                    8 -> PricingScreen(vm) {goBack()}
+                    10 -> MarketDatabaseScreen(vm,{goBack()},initialGroupId=marketTarget,onAutoPrice={batchTarget=null;navigate(1)},onStoredPricing={navigate(8)})
+                    9 -> ShopifyHub(vm) {goBack()}
+                    12 -> TrashScreen(vm) {goBack()}
+                    11 -> TasksScreen(vm,back={goBack()},inventory={inventoryTarget=it;navigate(5)},shopify={navigate(9)},initialTaskId=taskTarget,batch={batchTarget=it;photoTarget=null;navigate(1)})
+                }
                 }
                 if (!vm.initialized) Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { Box(contentAlignment = Alignment.Center) { Text("Recovering your capture journal…") } }
             }
@@ -179,33 +195,34 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
         if (finishDialog) AlertDialog(onDismissRequest = { finishDialog = false }, title = { Text("Finish this batch?") }, text = { Text("The open product will be finalized, including incomplete front/back sets. Archives will be verified in the background. Originals stay on this device. Inventory details and photo corrections remain available in Inventory.") }, confirmButton = { TextButton(enabled = !vm.pendingCapture, onClick = { if (!vm.pendingCapture) { finishDialog = false; vm.action { vm.repo.finish() } } }) { Text("Finish batch") } }, dismissButton = { TextButton(onClick = { finishDialog = false }) { Text("Keep capturing") } })
     }
 }
-@Composable fun PageTitle(title: String, subtitle: String) { Text(title, fontSize = 30.sp, fontWeight = FontWeight.Bold); Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant); Spacer(Modifier.height(20.dp)) }
+@Composable fun PageTitle(title: String, subtitle: String) { Text(title, style=MaterialTheme.typography.headlineSmall); Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant); Spacer(Modifier.height(8.dp)) }
 @Composable fun EmptyState(title: String, text: String) { Column(Modifier.padding(vertical = 36.dp)) { Text(title, fontSize = 22.sp, fontWeight = FontWeight.SemiBold); Spacer(Modifier.height(8.dp)); Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
 @Composable fun StartBatchDialog(vm: CaptureViewModel, dismiss: () -> Unit) {
-    var name by remember { mutableStateOf("VHS ${LocalDate.now()}") }; var location by remember { mutableStateOf(vm.repo.preferences.getString("defaultLocation", "") ?: "") }
+    var name by rememberSaveable { mutableStateOf("VHS ${LocalDate.now()}") }; var location by rememberSaveable { mutableStateOf(vm.repo.preferences.getString("defaultLocation", "") ?: "") }
     AlertDialog(onDismissRequest = dismiss, title = { Text("A new capture session") }, text = { Column(Modifier.verticalScroll(rememberScrollState())) { Text("One tape at a time. Capture, then Next."); Spacer(Modifier.height(16.dp)); OutlinedTextField(name, { name = it.take(80) }, label = { Text("Batch name") }, singleLine = true); Spacer(Modifier.height(12.dp)); OutlinedTextField(location, { location = it.uppercase().take(3) }, label = { Text("Location · optional") }, supportingText = { Text("A1–J10 or Q1") }, singleLine = true, isError = !validLocation(location)) } }, confirmButton = { TextButton(enabled = name.isNotBlank() && validLocation(location), onClick = { vm.action { vm.repo.start(name, location); dismiss() } }) { Text("Start capturing") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
 
 @Composable
-fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRow?, group: GroupRow?, photos: List<PhotoRow>, onStart: () -> Unit, onFinish: () -> Unit, onReview: () -> Unit) {
+fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRow?, group: GroupRow?, photos: List<PhotoRow>, onStart: () -> Unit, onFinish: () -> Unit, onReview: () -> Unit,onSettings:(()->Unit)?=null) {
     val context = LocalContext.current; val owner = LocalLifecycleOwner.current
     var permitted by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { permitted = it }
     var front by rememberSaveable { mutableStateOf(false) }; var hdr by rememberSaveable { mutableStateOf(vm.repo.preferences.getBoolean("hdr", false)) }
     var torch by rememberSaveable { mutableStateOf(false) }; var exposure by rememberSaveable { mutableFloatStateOf(0f) }; var flash by rememberSaveable { mutableIntStateOf(vm.flash) }
     var photoSize by remember { mutableStateOf(PhotoResolution.read(vm.repo.preferences)) }
-    var sizeMenu by remember { mutableStateOf(false) }
+    var sizeMenu by rememberSaveable { mutableStateOf(false) }
     val fast = vm.repo.preferences.getBoolean("fastCapture", true)
     val landscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
     LaunchedEffect(engine.camera) { engine.torch(torch); engine.exposure(exposure) }
-    var noteDialog by remember { mutableStateOf(false) }
-    var locationDialog by remember { mutableStateOf(false) }; var barcodeDialog by remember { mutableStateOf(false) }
+    var noteDialog by rememberSaveable { mutableStateOf(false) }
+    var locationDialog by rememberSaveable { mutableStateOf(false) }; var barcodeDialog by rememberSaveable { mutableStateOf(false) }
     var location by remember(session?.location) { mutableStateOf(session?.location ?: "") }
     val ready = photos.filter { it.state == "READY" }; val info = group?.let { barcodeInfo(it, photos) }
     val nextRole = defaultRole(photos.size)
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = if (landscape) 4.dp else 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) { Text("SNAPIMS", fontSize = 12.sp, letterSpacing = 3.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold); Text(session?.name ?: "Ready when you are", fontSize = 19.sp, fontWeight = FontWeight.SemiBold, maxLines = 1) }
+            if(onSettings!=null) TextButton(onClick=onSettings) {Text("Settings")}
             if (session != null) { AssistChip(onClick = { locationDialog = true }, label = { Text(session.location.ifEmpty { "Location" }) }, leadingIcon = { Icon(Icons.Outlined.Place, null, Modifier.size(16.dp)) }); IconButton(onClick = onFinish, enabled = !vm.pendingCapture) { Icon(Icons.Outlined.DoneAll, "Finish batch") } }
         }
         // Keep the same AndroidView through orientation changes and move only controls.
@@ -323,12 +340,13 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
         TextButton(onClick = { vm.action { vm.repo.barcode(group.id, null); photos.lastOrNull { it.role == "BACK" }?.let { vm.repo.rescan(it.id) }; dismiss() } }) { Text("Rescan back photo") }
     } }, confirmButton = { TextButton(onClick = { vm.action { vm.repo.barcode(group.id, value); dismiss() } }) { Text("Confirm") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
-@Composable fun BatchesScreen(vm: CaptureViewModel, sessions: List<SessionRow>, groups: List<GroupRow>, photos: List<PhotoRow>, archives: List<ArchiveRow>, onStart: () -> Unit,initialSessionId:String?=null,initialPhotoId:String?=null) {
-    var selected by remember { mutableStateOf<String?>(initialSessionId) }
+@Composable fun BatchesScreen(vm: CaptureViewModel, sessions: List<SessionRow>, groups: List<GroupRow>, photos: List<PhotoRow>, archives: List<ArchiveRow>, onStart: () -> Unit,initialSessionId:String?=null,initialPhotoId:String?=null,onInventory:()->Unit={}) {
+    val photoList=androidx.compose.foundation.lazy.rememberLazyListState()
+    var selected by rememberSaveable { mutableStateOf<String?>(initialSessionId) }
     var production by rememberSaveable {mutableStateOf(initialPhotoId==null)}
     LaunchedEffect(initialSessionId) {if(initialSessionId!=null) selected=initialSessionId}
     val session = sessions.firstOrNull { it.id == selected } ?: sessions.firstOrNull()
-    if(production && session!=null) {ProductionBatchScreen(vm,session,onPhotos={production=false},onBatch={selected=it});return}
+    if(production && session!=null) {ProductionBatchScreen(vm,session,onPhotos={production=false},onBatch={selected=it},onInventory=onInventory);return}
     val recognitionRows by vm.recognition.collectAsStateWithLifecycle()
     var recognitionGroup by remember { mutableStateOf<GroupRow?>(null) }
     var batchRecognitionDialog by remember { mutableStateOf(false) }
@@ -336,7 +354,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
     var editBarcode by remember { mutableStateOf<GroupRow?>(null) }
     var inspected by remember { mutableStateOf<PhotoRow?>(null) }
     LaunchedEffect(initialPhotoId,photos) {if(initialPhotoId!=null) inspected=photos.firstOrNull {it.id==initialPhotoId}}
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(vertical = 20.dp)) {
+    LazyColumn(state=photoList,modifier=Modifier.fillMaxSize().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(vertical = 20.dp)) {
         item { PageTitle("Your batches", "Every photograph stays yours");if(session!=null) Button(onClick={production=true}) {Text("Open production workflow")} }
         item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { sessions.forEach { s -> FilterChip(selected = s.id == session?.id, onClick = { selected = s.id }, label = { Text(s.name) }) }; if (sessions.none { !it.finished }) AssistChip(onClick = onStart, label = { Text("New batch") }) } }
         if (session == null) item { EmptyState("Start with one tape", "Create a batch in Capture. Your photos and unfinished product are restored when you return.") }
@@ -408,34 +426,38 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
 @Composable fun SettingsScreen(vm: CaptureViewModel, light: Boolean, onBackups: () -> Unit = {}, onExports: () -> Unit = {}, onWorkspace:()->Unit={},onPricing:()->Unit={},onListings:()->Unit={},onMarket:()->Unit={},onTasks:()->Unit={},onTrash:()->Unit={}, appearance: (Boolean) -> Unit) {
     val prefs = vm.repo.preferences
     val context = LocalContext.current
-    var showLicenses by remember { mutableStateOf(false) }
-    var archiveMb by remember { mutableStateOf(prefs.getInt("archiveMb", 500).toString()) }
+    var showLicenses by rememberSaveable { mutableStateOf(false) }
+    var archiveMb by rememberSaveable { mutableStateOf(prefs.getInt("archiveMb", 500).toString()) }
     var location by remember { mutableStateOf(prefs.getString("defaultLocation", "") ?: "") }
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(vertical = 24.dp)) {
         item { PageTitle("Settings", "Your collection, your controls") }
         item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { OutlinedButton(onClick = onBackups) { Text("Backup & import") }; OutlinedButton(onClick = onExports) { Text("Transfers") } } }
         item { Row(Modifier.horizontalScroll(rememberScrollState())) {OutlinedButton(onClick=onTasks) {Text("Tasks")};OutlinedButton(onClick=onWorkspace) {Text("AI workspace")};OutlinedButton(onClick=onPricing) {Text("Sold pricing")};OutlinedButton(onClick=onListings) {Text("Shopify")};OutlinedButton(onClick=onMarket) {Text("Market database")}} }
         item {OutlinedButton(onClick=onTrash) {Text("Trash · recover deleted records")}}
-        item { Text("CAMERA", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
-        item { ResolutionSettings(prefs) }
-        item { PreferenceSwitch("Fast capture", prefs.getBoolean("fastCapture", true)) { prefs.edit().putBoolean("fastCapture", it).apply() } }
-        item { Text("Fast capture uses zero shutter lag where supported, with a low-latency fallback and JPEG 95%. Turn it off for JPEG 100% and quality priority. Flash, HDR and low light can add delay. Pinch the preview or use the zoom slider.", style = MaterialTheme.typography.bodySmall) }
-        item { PreferenceSwitch("Gridlines", prefs.getBoolean("grid", true)) { prefs.edit().putBoolean("grid", it).apply() } }
-        item { PreferenceSwitch("Volume button shutter", prefs.getBoolean("volume", true)) { prefs.edit().putBoolean("volume", it).apply() } }
-        item { PreferenceSwitch("Haptic shutter feedback", prefs.getBoolean("haptic", true)) { prefs.edit().putBoolean("haptic", it).apply() } }
-        item { PreferenceSwitch("Optional shutter tone", prefs.getBoolean("tone", false)) { prefs.edit().putBoolean("tone", it).apply() } }
-        item { Text("RECOGNITION", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
-        item { PreferenceSwitch("Offline barcode scanning", prefs.getBoolean("barcode", true)) { prefs.edit().putBoolean("barcode", it).apply() } }
-        item { AiTaskModelsSettings(vm) }
-        item { RecognitionSettings(vm) }
-        item {BusinessDefaultsSettings(vm)}
-        item { Text("ARCHIVES & RETENTION", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, letterSpacing = 2.sp) }
-        item { OutlinedTextField(archiveMb, { value -> archiveMb = value.filter(Char::isDigit).take(5); val n = archiveMb.toIntOrNull(); if (n != null && n in 1..10000) prefs.edit().putInt("archiveMb", n).apply() }, label = { Text("Archive target · MB") }, supportingText = { Text("1–10,000 MB · whole products only; oversized products stay together") }, isError = archiveMb.toIntOrNull() !in 1..10000, singleLine = true) }
-        item { OutlinedTextField(location, { location = it.uppercase().take(3); if (validLocation(location)) prefs.edit().putString("defaultLocation", location).apply() }, label = { Text("Default location") }, supportingText = { Text("A1–J10 or Q1, optional") }, isError = !validLocation(location), singleLine = true) }
-        item { Text("Choose an export destination each time using Save to Files. Existing capture ZIPs remain unchanged; make inventory and photo corrections in Inventory. Removing a photo keeps its source file. Deleted records can be recovered in Trash for seven days. Historical exports remain unchanged. No automatic cloud backup. Uninstalling Android apps removes private files: save and verify all ZIPs before uninstalling or clearing storage.", style = MaterialTheme.typography.bodySmall) }
+        item {AiTaskModelsSettings(vm)}
+        item {Disclosure("Camera & capture","Resolution, shutter, feedback and barcode scanning") {
+ ResolutionSettings(prefs)
+ PreferenceSwitch("Fast capture", prefs.getBoolean("fastCapture", true)) { prefs.edit().putBoolean("fastCapture", it).apply() }
+ Text("Fast capture uses zero shutter lag where supported, with a low-latency fallback and JPEG 95%. Turn it off for JPEG 100% and quality priority. Flash, HDR and low light can add delay. Pinch the preview or use the zoom slider.", style = MaterialTheme.typography.bodySmall)
+ PreferenceSwitch("Gridlines", prefs.getBoolean("grid", true)) { prefs.edit().putBoolean("grid", it).apply() }
+ PreferenceSwitch("Volume button shutter", prefs.getBoolean("volume", true)) { prefs.edit().putBoolean("volume", it).apply() }
+ PreferenceSwitch("Haptic shutter feedback", prefs.getBoolean("haptic", true)) { prefs.edit().putBoolean("haptic", it).apply() }
+ PreferenceSwitch("Optional shutter tone", prefs.getBoolean("tone", false)) { prefs.edit().putBoolean("tone", it).apply() }
+}}
+        item {Disclosure("Recognition & AI","Offline recognition, API key and photographic model") {
+ PreferenceSwitch("Offline barcode scanning", prefs.getBoolean("barcode", true)) { prefs.edit().putBoolean("barcode", it).apply() }
+
+ RecognitionSettings(vm)
+}}
+        item {Disclosure("Business defaults","Vendor, product type and shipping weight") {BusinessDefaultsSettings(vm)}}
+        item {Disclosure("Archives & retention","Archive size, default shelf and safe local recovery") {
+ OutlinedTextField(archiveMb, { value -> archiveMb = value.filter(Char::isDigit).take(5); val n = archiveMb.toIntOrNull(); if (n != null && n in 1..10000) prefs.edit().putInt("archiveMb", n).apply() }, label = { Text("Archive target · MB") }, supportingText = { Text("1–10,000 MB · whole products only; oversized products stay together") }, isError = archiveMb.toIntOrNull() !in 1..10000, singleLine = true)
+ OutlinedTextField(location, { location = it.uppercase().take(3); if (validLocation(location)) prefs.edit().putString("defaultLocation", location).apply() }, label = { Text("Default location") }, supportingText = { Text("A1–J10 or Q1, optional") }, isError = !validLocation(location), singleLine = true)
+ Text("Choose an export destination each time using Save to Files. Existing capture ZIPs remain unchanged; make inventory and photo corrections in Inventory. Removing a photo keeps its source file. Deleted records can be recovered in Trash for seven days. Historical exports remain unchanged. No automatic cloud backup. Uninstalling Android apps removes private files: save and verify all ZIPs before uninstalling or clearing storage.", style = MaterialTheme.typography.bodySmall)
+}}
         item { PreferenceSwitch("Light appearance", light) { prefs.edit().putBoolean("light", it).apply(); appearance(it) } }
         item { TextButton(onClick = { showLicenses = true }) { Text("Third-party notices & licenses") } }
-        item { Text("SnapIMS Next 0.8.4 · production batch workflows", style = MaterialTheme.typography.bodySmall) }
+        item { Text("SnapIMS Next 0.9.0 · native operator workspace", style = MaterialTheme.typography.bodySmall) }
     }
     if (showLicenses) NoticesDialog(context) { showLicenses = false }
 
@@ -446,7 +468,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
 }
 
 @Composable fun NotesDialog(vm: CaptureViewModel, group: GroupRow, dismiss: () -> Unit) {
-    var note by remember { mutableStateOf(group.note) }
+    var note by rememberSaveable { mutableStateOf(group.note) }
     var rare by remember { mutableStateOf(group.rare) }; var review by remember { mutableStateOf(group.review) }
     AlertDialog(onDismissRequest = dismiss, title = { Text("Flags & notes") }, text = { Column(Modifier.verticalScroll(rememberScrollState())) {
         Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(rare, { rare = it }); Text("Rare"); Checkbox(review, { review = it }); Text("Review") }

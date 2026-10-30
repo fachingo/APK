@@ -14,7 +14,7 @@ import java.time.Instant
     val rows by remember {vm.repo.journal.trashDao().watch()}.collectAsStateWithLifecycle(emptyList())
     BackHandler(onBack=back)
     LazyColumn(Modifier.fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        item {TextButton(onClick=back) {Text("← Settings")};PageTitle("Trash","Recover deleted local records for seven days")}
+        item {TextButton(onClick=back) {Text("← Back")};PageTitle("Trash","Recover deleted local records for seven days")}
         item {Text("Deletion only affects SnapIMS. Shopify products stay unchanged. Recovery does not restart uploads or recognition. Batches recover as finished batches.")}
         val visible=rows.filter {it.parentId.isBlank() && it.expiresAt>System.currentTimeMillis()}
         if(visible.isEmpty()) item {Text("Trash is empty")}

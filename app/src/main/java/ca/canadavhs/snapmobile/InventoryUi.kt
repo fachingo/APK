@@ -12,6 +12,7 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -53,11 +54,12 @@ import coil.compose.AsyncImage
     }
 }
 @Composable private fun SummaryTile(label: String, value: String, modifier: Modifier) {
-    Surface(modifier,shape=RoundedCornerShape(22.dp),tonalElevation=2.dp) { Column(Modifier.padding(18.dp)) { Text(value,fontSize=30.sp,fontWeight=FontWeight.Bold); Text(label,style=MaterialTheme.typography.bodySmall) } }
+    Surface(modifier,shape=RoundedCornerShape(12.dp),tonalElevation=2.dp) { Column(Modifier.padding(18.dp)) { Text(value,fontSize=30.sp,fontWeight=FontWeight.Bold); Text(label,style=MaterialTheme.typography.bodySmall) } }
 }
-@Composable fun InventoryScreen(vm: CaptureViewModel, reviewPhotos: () -> Unit,initialGroupId:String?=null) {
+@Composable fun InventoryScreen(vm: CaptureViewModel, reviewPhotos: () -> Unit,initialGroupId:String?=null,onExit:(()->Unit)?=null) {
     val rows by vm.inventory.collectAsStateWithLifecycle(); val groups by vm.groups.collectAsStateWithLifecycle()
     val photos by vm.photos.collectAsStateWithLifecycle(); val sessions by vm.sessions.collectAsStateWithLifecycle()
+    val inventoryList=androidx.compose.foundation.lazy.rememberLazyListState()
     var production by rememberSaveable {mutableStateOf(false)}
     if(production) {ProductionBatchScreen(vm,null,onPhotos={production=false});return}
     var search by rememberSaveable { mutableStateOf("") }; var filter by rememberSaveable { mutableStateOf("All") }
@@ -67,12 +69,12 @@ import coil.compose.AsyncImage
     var cameraOpen by rememberSaveable {mutableStateOf(false)}
     var replacePhoto by rememberSaveable {mutableStateOf<String?>(null)}
     val selectedItem=rows.firstOrNull { it.groupId==selected }
-    BackHandler(selectedItem!=null && !cameraOpen) { if(managePhotos) managePhotos=false else selected=null }
+    BackHandler(selectedItem!=null && !cameraOpen) { if(managePhotos) managePhotos=false else if(onExit!=null) onExit() else selected=null }
     if(selectedItem!=null) {
         if(cameraOpen) {InventoryItemCamera(vm,selectedItem,replacePhoto) {cameraOpen=false};return}
         if(managePhotos) {InventoryPhotoManager(vm,selectedItem,photos.filter {it.groupId==selectedItem.groupId},rows,capture={replacePhoto=it;cameraOpen=true},back={managePhotos=false});return}
         InventoryEditor(vm,selectedItem,groups.firstOrNull { it.id==selectedItem.groupId },photos.filter { it.groupId==selectedItem.groupId },rows,
-            onClose={selected=null},reviewPhotos={managePhotos=true})
+            onClose={if(onExit!=null) onExit() else selected=null},reviewPhotos={managePhotos=true})
         return
     }
     val visible=rows.filter { item ->
@@ -81,7 +83,7 @@ import coil.compose.AsyncImage
         val matches=listOf(item.title,item.edition,item.itemId,item.location,barcode,item.conditionNotes,item.captureNote).any { it.contains(search,ignoreCase=true) }
         matches && when(filter) { "Ready" -> item.ready && !item.archived; "Needs review" -> !item.ready && !item.archived; "Archived" -> item.archived; else -> !item.archived }
     }
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal=20.dp),contentPadding=PaddingValues(vertical=20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+    LazyColumn(state=inventoryList,modifier=Modifier.fillMaxSize().padding(horizontal=20.dp),contentPadding=PaddingValues(vertical=20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item { PageTitle("Inventory","Every physical copy has its own permanent identity");OutlinedButton(onClick={production=true}) {Text("Bulk workflow · all eligible inventory")} }
         item { OutlinedTextField(search,{search=it},modifier=Modifier.fillMaxWidth(),singleLine=true,label={Text("Search title, barcode, SKU or location")},leadingIcon={Icon(Icons.Outlined.Search,null)}) }
         item { Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -91,11 +93,11 @@ import coil.compose.AsyncImage
         items(visible,key={it.groupId}) { item ->
             val list=photos.filter { it.groupId==item.groupId && !it.deleted && it.state=="READY" }.sortedBy { it.position }
             val group=groups.firstOrNull { it.id==item.groupId }
-            Surface(onClick={selected=item.groupId},shape=RoundedCornerShape(22.dp),tonalElevation=2.dp) { Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
-                if(list.isNotEmpty()) AsyncImage(vm.repo.original(list.first().id),"${item.title.ifBlank { "Unidentified tape" }} cover",Modifier.size(76.dp),contentScale=androidx.compose.ui.layout.ContentScale.Crop)
+            Surface(onClick={selected=item.groupId},shape=RoundedCornerShape(12.dp),tonalElevation=2.dp) { Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
+                if(list.isNotEmpty()) AsyncImage(vm.repo.original(list.first().id),"${item.title.ifBlank { "Unidentified tape" }} cover",Modifier.size(58.dp),contentScale=androidx.compose.ui.layout.ContentScale.Crop)
                 else Icon(Icons.Outlined.ImageNotSupported,"No complete photo",Modifier.size(48.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(item.title.ifBlank { "Untitled tape" },fontWeight=FontWeight.SemiBold,fontSize=18.sp,maxLines=2)
+                    Text(item.title.ifBlank { "Untitled tape" },fontWeight=FontWeight.SemiBold,fontSize=16.sp,maxLines=2)
                     Text("${item.condition} · ${item.location.ifBlank { "No location" }}",style=MaterialTheme.typography.bodySmall)
                     Text("${list.size} photos · ${sessions.firstOrNull { it.id==group?.sessionId }?.name ?: item.batchId}",style=MaterialTheme.typography.bodySmall,maxLines=1)
                     Text(if(item.ready) "Ready for listing" else "Needs review",color=if(item.ready) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,fontSize=12.sp)
@@ -107,16 +109,16 @@ import coil.compose.AsyncImage
 }
 @Composable private fun InventoryEditor(vm: CaptureViewModel, item: InventoryRow, group: GroupRow?, photos: List<PhotoRow>, all: List<InventoryRow>, onClose: () -> Unit, reviewPhotos: () -> Unit) {
     val starting=remember(item.groupId) {item.copy(barcode=effectiveBarcode(item,group,photos))}
-    var draft by remember(item.groupId) { mutableStateOf(starting) }
-    var price by remember(item.groupId) { mutableStateOf(InventoryRules.priceText(item.priceCents)) }
-    var discount by remember(item.groupId) { mutableStateOf(java.math.BigDecimal(item.discountBasisPoints).movePointLeft(2).toPlainString()) }
-    var year by remember(item.groupId) { mutableStateOf(item.releaseYear?.toString() ?: "") }
-    var quantity by remember(item.groupId) { mutableStateOf(item.quantity.toString()) }
-    var weight by remember(item.groupId) { mutableStateOf(item.weightGrams.toString()) }
-    var marketOpen by remember {mutableStateOf(false)}
-    var advanced by remember { mutableStateOf(false) }; var showRecognition by remember { mutableStateOf(false) }
-    var archiveConfirmation by remember { mutableStateOf(false) }
-    var history by remember { mutableStateOf<List<InventoryAuditRow>>(emptyList()) }; var showHistory by remember { mutableStateOf(false) }
+    var draft by rememberSaveable(item.groupId,stateSaver=Saver<InventoryRow,String>(save={inventoryJson(it).toString()},restore={inventoryFromJson(org.json.JSONObject(it))})) { mutableStateOf(starting) }
+    var price by rememberSaveable(item.groupId) { mutableStateOf(InventoryRules.priceText(item.priceCents)) }
+    var discount by rememberSaveable(item.groupId) { mutableStateOf(java.math.BigDecimal(item.discountBasisPoints).movePointLeft(2).toPlainString()) }
+    var year by rememberSaveable(item.groupId) { mutableStateOf(item.releaseYear?.toString() ?: "") }
+    var quantity by rememberSaveable(item.groupId) { mutableStateOf(item.quantity.toString()) }
+    var weight by rememberSaveable(item.groupId) { mutableStateOf(item.weightGrams.toString()) }
+    var marketOpen by rememberSaveable {mutableStateOf(false)}
+    var advanced by rememberSaveable { mutableStateOf(false) }; var showRecognition by rememberSaveable { mutableStateOf(false) }
+    var archiveConfirmation by rememberSaveable { mutableStateOf(false) }
+    var history by remember { mutableStateOf<List<InventoryAuditRow>>(emptyList()) }; var showHistory by rememberSaveable { mutableStateOf(false) }
     val openPhotos: () -> Unit = {
         val dirty=draft!=starting || price!=InventoryRules.priceText(starting.priceCents) || discount!=java.math.BigDecimal(starting.discountBasisPoints).movePointLeft(2).toPlainString() || year!=(starting.releaseYear?.toString() ?: "") || quantity!=starting.quantity.toString() || weight!=starting.weightGrams.toString()
         if(dirty) vm.message="Save inventory changes before managing photographs." else reviewPhotos()
@@ -125,9 +127,11 @@ import coil.compose.AsyncImage
     val suggestions=recognition.filter { it.groupId==item.groupId }
     val duplicates=all.filter { it.groupId!=item.groupId && !it.archived && ((draft.title.isNotBlank() && InventoryRules.normalizedTitle(it.title)==InventoryRules.normalizedTitle(draft.title)) || (draft.barcode.isNotBlank() && it.barcode==draft.barcode)) }
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically) {
-            IconButton(onClick=onClose) { Icon(Icons.AutoMirrored.Outlined.ArrowBack,"Back to inventory") }
-            Text("Tape details",fontSize=22.sp,fontWeight=FontWeight.Bold,modifier=Modifier.weight(1f))
+        FlowRow(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=8.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.weight(1f).widthIn(min=160.dp),verticalAlignment=Alignment.CenterVertically) {
+             IconButton(onClick=onClose) { Icon(Icons.AutoMirrored.Outlined.ArrowBack,"Back to inventory") }
+             Text("Tape details",style=MaterialTheme.typography.headlineSmall,modifier=Modifier.weight(1f))
+            }
             TextButton(enabled=!vm.maintenance,onClick={vm.action {
                 val candidate=draft.copy(priceCents=InventoryRules.cents(price),discountBasisPoints=InventoryRules.discountBasisPoints(discount),
                     releaseYear=if(year.isBlank()) null else year.toIntOrNull() ?: error("Enter a valid release year."),

@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ca.canadavhs.snapmobile.core.*
@@ -54,8 +55,8 @@ internal suspend fun CaptureRepository.probeTaskModel(task:AiTask,choice:TaskMod
  // Agent tools have a separate actual function-call probe in AI workspace Connections.
 }
 @Composable internal fun AiTaskModelsSettings(vm:CaptureViewModel) {
- var open by remember {mutableStateOf(false)};var selected by remember {mutableStateOf<AiTask?>(null)};var isDefault by remember {mutableStateOf(true)}
- var choice by remember {mutableStateOf(TaskModelChoice(DEFAULT_OPENAI_MODEL))};var notice by remember {mutableStateOf("")};var probe by remember {mutableStateOf(false)};var catalog by remember {mutableStateOf<List<String>>(emptyList())}
+ var open by rememberSaveable {mutableStateOf(false)};var selected by rememberSaveable {mutableStateOf<AiTask?>(null)};var isDefault by rememberSaveable {mutableStateOf(true)}
+ var choice by rememberSaveable(stateSaver=androidx.compose.runtime.saveable.Saver<TaskModelChoice,String>(save={it.json().toString()},restore={TaskModelChoice.parse(JSONObject(it))})) {mutableStateOf(TaskModelChoice(DEFAULT_OPENAI_MODEL))};var notice by remember {mutableStateOf("")};var probe by remember {mutableStateOf(false)};var catalog by remember {mutableStateOf<List<String>>(emptyList())}
  OutlinedButton(onClick={open=true;isDefault=true;choice=vm.repo.preferences.getString("aiTask.DEFAULT",null)?.let {TaskModelChoice.parse(JSONObject(it))} ?: TaskModelChoice(DEFAULT_OPENAI_MODEL)}) {Text("AI Models & Tasks")}
  if(open) androidx.compose.ui.window.Dialog(onDismissRequest={open=false},properties=androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth=false)) {Surface(Modifier.fillMaxWidth(.96f).fillMaxHeight(.94f)) {Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)) {
   Text("AI Models & Tasks",style=MaterialTheme.typography.headlineSmall);Text("OpenAI API models only here. Offline matching/pricing never uses a model. Existing free/local/chat connections remain available in AI workspace.")

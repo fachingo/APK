@@ -10,10 +10,13 @@ class NavigationTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
     @Test fun cameraCompanionNavigationAndOfflineSettings() {
         compose.onNodeWithText("Settings").performClick()
+        compose.onNodeWithText("Recognition & AI").performScrollTo().performClick()
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Offline barcode scanning"))
         compose.onNodeWithText("Offline barcode scanning").assertIsDisplayed()
+        compose.onNodeWithContentDescription("More navigation").performClick()
         compose.onNodeWithText("Batches").performClick()
-        compose.onNodeWithText("Your batches").assertIsDisplayed()
+        compose.waitUntil(10000) {compose.onAllNodesWithTag("production-batch").fetchSemanticsNodes().isNotEmpty() || compose.onAllNodesWithText("Your batches").fetchSemanticsNodes().isNotEmpty()}
+        compose.onNodeWithContentDescription("More navigation").performClick()
         compose.onNodeWithText("Transfers").performClick()
         compose.onNodeWithText("Portable archives · originals stay on this device").assertIsDisplayed()
         compose.onNodeWithText("Capture").performClick()

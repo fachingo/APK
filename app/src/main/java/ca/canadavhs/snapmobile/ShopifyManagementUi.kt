@@ -41,7 +41,7 @@ internal fun shopifyReviewedChannels(payload:JSONObject,health:JSONObject):Strin
                 val snapshots=p.getJSONArray("batchReviews");for(i in 0 until snapshots.length()) {val product=snapshots.getJSONObject(i).getJSONObject("payload").getJSONObject("before");Text("${product.getString("title")} · ${product.getString("id")} · ${product.getString("status")} → ACTIVE + selected channels")}
             } else if(row.kind=="OWNER_ACTION") {
                 Text(before!!.getString("title"),style=MaterialTheme.typography.titleMedium);Text(before.getString("id"));Text("Current: ${before.getString("status")}")
-                Text(when(p.getString("action")) {"APPROVE_LOCAL"->"Approve locally for review. Shopify remains unchanged.";"PUBLISH_LIVE"->"Set Active and publish to all selected channels:\n${shopifyReviewedChannels(p,health)}\nThis can make the product live on the website.";"ACTIVE"->"Set Active. This may become visible on channels where the product is already published. Active alone does not guarantee website publication.";"DRAFT"->"Set Draft. This removes the product from customer purchase availability.";else->"Archive this product in Shopify. It will stop being available for purchase; it is not deleted."})
+                Text(when(p.getString("action")) {"APPROVE_LOCAL"->"Approve locally for review. Shopify remains unchanged.";"PUBLISH_LIVE"->"Activate and publish to all selected channels:\n${shopifyReviewedChannels(p,health)}\nThis can make the product live on the website.";"ACTIVE"->"Activate. This may become visible on channels where the product is already published. Active alone does not guarantee website publication.";"DRAFT"->"Set Draft. This removes the product from customer purchase availability.";else->"Archive this product in Shopify. It will stop being available for purchase; it is not deleted."})
                 Text("Only this reviewed product and status/channel are changed. A remote change after review stops the job.")
             } else if(before!=null) {
                 Text("${before.getString("title")} · ${before.getString("status")}",style=MaterialTheme.typography.titleMedium)
@@ -89,25 +89,26 @@ internal fun metadataLabel(key:String)=when(key) {"descriptionHtml"->"Descriptio
     var query by rememberSaveable {mutableStateOf("")};var status by rememberSaveable {mutableStateOf("")};var location by rememberSaveable {mutableStateOf("")}
     var localSearch by rememberSaveable {mutableStateOf("")};var selected by rememberSaveable {mutableStateOf("")}
     var fields by rememberSaveable {mutableStateOf(listOf<String>())};var reviewId by rememberSaveable {mutableStateOf<String?>(null)}
+    LaunchedEffect(model.health) {model.health?.let {h->val a=h.getJSONArray("locations");val active=(0 until a.length()).map {a.getJSONObject(it)}.filter {it.optBoolean("isActive")};if(active.none {it.getString("id")==location}) location=active.firstOrNull {it.getString("id")==vm.repo.preferences.getString("shopifyDefaultLocation","")}?.getString("id") ?: active.firstOrNull()?.getString("id").orEmpty()}}
     val selectedItem=inventory.firstOrNull {it.groupId==selected};val detail=model.productDetail
     LazyColumn(Modifier.fillMaxSize().padding(horizontal=20.dp),contentPadding=PaddingValues(vertical=20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item {TextButton(onClick=back) {Text("← Uploads & connection")};PageTitle("Shopify listings","Search, inspect and review exact physical-copy links")}
         if(!model.paired) item {Text("Connect and test your saved Shopify connection in Settings. Local inventory remains available offline.")}
-        item {OutlinedTextField(query,{query=it.take(200)},label={Text("Search listing title")},modifier=Modifier.fillMaxWidth(),singleLine=true)}
+        item {OutlinedTextField(query,{query=it.take(200)},label={Text("Search title or SKU")},modifier=Modifier.fillMaxWidth(),singleLine=true)}
         item {Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {listOf("" to "All","DRAFT" to "Draft","ACTIVE" to "Active","ARCHIVED" to "Archived").forEach {(value,label)->FilterChip(selected=status==value,onClick={status=value},label={Text(label)})}}}
         item {Button(enabled=model.paired && !model.busy,onClick={model.browse(query,status,"")}) {Text("Search Shopify")}}
         if(model.busy) item {LinearProgressIndicator(Modifier.fillMaxWidth())}
         if(model.error.isNotBlank()) item {Text(model.error,color=MaterialTheme.colorScheme.error)}
         if(model.message.isNotBlank()) item {Text(model.message)}
-        model.health?.let {h->item {Text("${h.getString("shop")} · ${if(h.getBoolean("developmentStore")) "development store" else "owner-operated production store"}")
+        model.health?.let {h->item(key="shopify-location") {Text(h.optString("name",h.getString("shop")),style=MaterialTheme.typography.titleMedium);Disclosure("Listing location & connection details",h.getString("shop")) {
             Text("Inventory location for inspection");val locations=h.getJSONArray("locations");for(i in 0 until locations.length()) {val l=locations.getJSONObject(i);if(l.optBoolean("isActive")) FilterChip(selected=location==l.getString("id"),onClick={location=l.getString("id")},label={Text(l.getString("name"))})}
-        }}
+        }}}
         model.catalog?.let {page->
             item {Text("${model.catalogQuery.ifBlank {"All titles"}} · ${model.catalogStatus.ifBlank {"all statuses"}} · ${model.catalogFetchedAt}",style=MaterialTheme.typography.bodySmall);Text("Results are a read snapshot. Preparing a review fetches the listing again.",style=MaterialTheme.typography.bodySmall)}
             val nodes=page.getJSONArray("nodes")
             if(nodes.length()==0) item {EmptyState("No matching listings","Change the title or status filter.")}
             items((0 until nodes.length()).map {nodes.getJSONObject(it)}.filter {stableRowId(it.getString("id")) !in hiddenProducts},key={it.getString("id")}) {product->OutlinedCard(Modifier.fillMaxWidth()) {Column(Modifier.padding(14.dp)) {
-                Text("${product.getString("title")} · ${product.getString("status")}",style=MaterialTheme.typography.titleMedium)
+                Text(product.getString("title"),style=MaterialTheme.typography.titleMedium);StatusLabel(product.getString("status"))
                 if(reviews.any {review->review.kind=="OWNER_ACTION" && JSONObject(review.resultJson).optJSONObject("outcome")?.optString("state")=="APPROVED_LOCALLY" && JSONObject(review.payloadJson).getJSONObject("before").let {it.getString("id")==product.getString("id") && it.optString("updatedAt")==product.optString("updatedAt")}}) Text("Approved locally · publishing still requires a separate review")
                 val variants=product.getJSONObject("variants").getJSONArray("nodes");Text((0 until variants.length()).joinToString(" · ") {variants.getJSONObject(it).let {v->"${v.optString("sku").ifBlank {"No SKU"}} · ${v.optString("price")} · stock ${v.opt("inventoryQuantity") ?: "unknown"}"}})
                 if(product.getString("status")=="DRAFT") TextButton(onClick={vm.action {vm.repo.hideShopifyDraft(product);vm.message="Draft hidden in SnapIMS. Shopify is unchanged."}}) {Text("Delete draft from app")}
@@ -116,18 +117,18 @@ internal fun metadataLabel(key:String)=when(key) {"descriptionHtml"->"Descriptio
             if(page.getJSONObject("pageInfo").optBoolean("hasNextPage")) item {OutlinedButton(enabled=!model.busy,onClick={model.browse(model.catalogQuery,model.catalogStatus,page.getJSONObject("pageInfo").getString("endCursor"))}) {Text("Next 20 listings")}}
         }
         if(detail!=null && stableRowId(detail.getString("id")) !in hiddenProducts) {
-            item {HorizontalDivider();Text("Listing details",style=MaterialTheme.typography.titleLarge);Text("${detail.getString("title")} · ${detail.getString("status")}");Text(detail.getString("id"),style=MaterialTheme.typography.bodySmall)
+            item {HorizontalDivider();Text("Listing details",style=MaterialTheme.typography.titleLarge);Text("${detail.getString("title")} · ${detail.getString("status")}");Text(detail.getString("id"),style=MaterialTheme.typography.bodySmall);TextButton(onClick={val shop=model.health?.optString("shop").orEmpty();if(shop.matches(Regex("[a-z0-9-]+\\.myshopify\\.com"))) vm.repo.context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse("https://$shop/admin/products/${detail.getString("id").substringAfterLast('/')}" )).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))}) {Text("View on Shopify")}
                 TextButton(enabled=!model.busy && location.isNotBlank(),onClick={model.inspect(detail.getString("id"),location)}) {Text("Refresh this listing")};Text(detail.getString("descriptionHtml"));val variants=detail.getJSONObject("variants").getJSONArray("nodes");for(i in 0 until variants.length()) {val v=variants.getJSONObject(i);Text("SKU ${v.getString("sku")} · CAD ${v.getString("price")}")}
                 Text("${detail.getJSONObject("media").getJSONArray("nodes").length()} images · updated ${detail.getString("updatedAt")}")
             }
             if(isDirect) item {
                 Text("Workflow: Draft → Approved locally → Active → Live on selected channel",style=MaterialTheme.typography.bodySmall)
                 TextButton(enabled=!model.busy && location.isNotBlank(),onClick={model.prepareOwnerAction(detail.getString("id"),location,"APPROVE_LOCAL","") {reviewId=it}}) {Text("Review local approval")}
-                Row(Modifier.horizontalScroll(rememberScrollState())) {listOf("DRAFT" to "Set Draft","ACTIVE" to "Set Active","ARCHIVED" to "Archive on Shopify").forEach {(action,label)->TextButton(enabled=!model.busy && location.isNotBlank(),onClick={model.prepareOwnerAction(detail.getString("id"),location,action,"") {reviewId=it}}) {Text(label)}}}
+                Row(Modifier.horizontalScroll(rememberScrollState())) {listOf("DRAFT" to "Set Draft","ACTIVE" to "Activate","ARCHIVED" to "Archive on Shopify").forEach {(action,label)->TextButton(enabled=!model.busy && location.isNotBlank(),onClick={model.prepareOwnerAction(detail.getString("id"),location,action,"") {reviewId=it}}) {Text(label)}}}
                 val publications=model.health?.optJSONArray("publications") ?: JSONArray()
                 for(i in 0 until publications.length()) {val channel=publications.getJSONObject(i);FilterChip(selected=channel.getString("id") in ownerPublications,onClick={val id=channel.getString("id");ownerPublications=if(id in ownerPublications) ownerPublications-id else ownerPublications+id},label={Text(channel.getString("name"))})}
                 TextButton(enabled=model.health!=null,onClick={vm.repo.savePublicationDefaults(ownerPublications.toSet(),model.health!!)}) {Text("Save default channels")}
-                Button(enabled=!model.busy && location.isNotBlank() && ownerPublications.isNotEmpty(),onClick={model.prepareMultiOwner(detail.getString("id"),location,ownerPublications.toSet()) {reviewId=it}}) {Text("Review publication to selected channels")}
+                Button(enabled=!model.busy && location.isNotBlank() && ownerPublications.isNotEmpty(),onClick={model.prepareMultiOwner(detail.getString("id"),location,ownerPublications.toSet()) {reviewId=it}}) {Text("Publish to selected channels")}
                 Text("Online Store publication plus Active status is required for website availability. Changes always require the exact review and SUBMIT.",style=MaterialTheme.typography.bodySmall)
             }
             item {OutlinedTextField(localSearch,{localSearch=it.take(200)},label={Text("Find local copy by title or Item ID")},modifier=Modifier.fillMaxWidth());Text("Showing up to 30 matching copies. Refine the search to find a specific Item ID.",style=MaterialTheme.typography.bodySmall)}

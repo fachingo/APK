@@ -58,7 +58,7 @@ class StandaloneUiTest {
         compose.waitUntil(10000) {runBlocking {journal.inventoryDao().item(physicalId)?.title=="Updated offline title"}}
         val saved=runBlocking {journal.inventoryDao().item(physicalId)!!}
         assertTrue(saved.ready);assertEquals(1299L,saved.priceCents);assertEquals("MANUAL",saved.priceSource)
-        compose.onNodeWithText("Home").performClick()
+        compose.onNodeWithText("Dashboard").performClick()
         compose.onNodeWithText("Physical copies").assertIsDisplayed()
         val png=File(System.getProperty("snapims.testOutput"),"standalone-home.png").apply {parentFile!!.mkdirs()}
         png.outputStream().use {compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}

@@ -58,10 +58,11 @@ class CameraLayoutTest {
     }
     private fun checkSettingsAndPortraitRotation() {
         compose.onNodeWithText("Settings").performClick()
+        compose.onNodeWithText("Camera & capture").performScrollTo().performClick()
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Photo resolution"))
         compose.onNodeWithText("Photo resolution").assertIsDisplayed()
-        compose.onNodeWithText("1.2 MP · smaller files ▾").performClick()
-        compose.onNodeWithText("6 MP · more detail").performClick()
+        compose.onNodeWithText("1.2 MP · smaller files ▾").performScrollTo().performClick()
+        compose.onNodeWithText("6 MP · more detail").performScrollTo().performClick()
         val activity = compose.activity
         val before = System.identityHashCode(activity)
         compose.runOnUiThread { org.robolectric.RuntimeEnvironment.setQualifiers("w420dp-h900dp-port") }

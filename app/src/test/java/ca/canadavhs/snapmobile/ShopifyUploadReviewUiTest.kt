@@ -40,7 +40,7 @@ class ShopifyUploadReviewUiTest {
             override suspend fun call(operationId:String,operation:String,args:JSONObject):JSONObject {check(operation=="health");return JSONObject().put("shopId","gid://shopify/Shop/1").put("shop","fixture.myshopify.com").put("name","Fixture store").put("developmentStore",true).put("currency","CAD").put("apiVersion","2026-10").put("scopes",JSONArray(listOf("write_products"))).put("publications",JSONArray()).put("locations",JSONArray().put(JSONObject().put("id",location).put("name","Main location").put("isActive",true)))}
             override suspend fun upload(target:JSONObject,file:File) {error("Review never uploads photographs")}
         }}}
-        compose.onNodeWithText("Settings").performClick();compose.onNodeWithText("Shopify").performScrollTo().performClick()
+        compose.onNodeWithText("Settings").performClick();compose.onAllNodesWithText("Shopify").onLast().performClick();compose.onNodeWithText("Connection & jobs").performClick()
         compose.onNodeWithText("Test connection").performScrollTo().performClick()
         compose.waitUntil(10000) {runCatching {compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Main location"))}.isSuccess}
         compose.onNodeWithText("Main location").performScrollTo().performClick()

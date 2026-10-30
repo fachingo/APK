@@ -1,7 +1,7 @@
-# SnapIMS Next 0.8.4 executed checks
+# SnapIMS Next 0.9.0 executed checks
 
-| Host check | Result |
-| --- | --- |
+| Android/core host check | Result |
+|---|---|
 | AgentApplicationTest | 18 passed |
 | AgentContextTest | 7 passed |
 | AgentIntegrationUiTest | 1 passed |
@@ -22,6 +22,10 @@
 | NativeShopifyIntegrationTest | 13 passed |
 | NativeShopifyOwnerUiTest | 1 passed |
 | NextIntegrationTest | 7 passed |
+| OperatorActionsUiTest | 1 passed |
+| OperatorRecoveryUiTest | 1 passed |
+| OperatorRecreationUiTest | 1 passed |
+| OperatorScreensUiTest | 1 passed |
 | ProductionBatchUiTest | 1 passed |
 | ProductionWorkflowTest | 21 passed |
 | RecognitionClientTest | 7 passed |
@@ -45,60 +49,56 @@
 | MarketCsvTest | 2 passed |
 | PricingConformanceTest | 3 passed |
 
-**236 unique Android/core checks passed, 0 failures, 0 errors, 0 skipped.**
-The full suite passed; final focused reruns verify the final code and replace the
-same class reports, rather than inflating the unique count. Application and
-instrumentation APKs build successfully. Lint: **0 errors / 90 warnings**;
-no lint checks were disabled. Instrumentation APK creation is not physical-device
-execution. Core/main camera, inventory, imports, backup/restore, Trash, agent
-permission/approval/idle behavior and native Shopify regressions remain covered.
+**240 unique Android/core checks passed after final reruns: 0 failures, 0 errors, 0 skipped.**
+The complete regression suite was exercised with the supplied private CSV.
+Final focused reruns verify the same tests after correcting the moved-toolbar
+selector and synchronizing the approval test after rotation. All original
+inventory/financial-consent assertions remain. An earlier environment interruption
+disrupted result recording; the final reports below are complete. Counts are unique
+tests with final reruns replacing their earlier results, not summed reruns. No test or lint check was disabled. Lint: **0 errors / 92 warnings**.
+Application and instrumentation APKs build; instrumentation build is not device execution.
+An additional **21 unchanged legacy broker compatibility tests** passed locally;
+no broker code was changed or deployed and direct mode requires no broker.
 
-| Acceptance area | Executed evidence |
-| --- | --- |
-| Partial selection | Native HTTP pipeline creates seven unique drafts with seven uploaded photographs from a 50-copy local batch; unselected records stay unchanged |
-| Fast draft submission | 50 copies queued by one operator action; no per-item reviews or second approval; invalid/published copies skipped |
-| Selection UI | Seven checkboxes, navigation away/back, exact seven-item draft queue, no approval dialog; channel override survives connection refresh and is saved with drafts |
-| Offline mixed batch | 100 selected synthetic copies against the same 175,054-record SQLite library; 50 high-confidence prices applied, questionable copies remain unpriced; **0 model requests** |
-| Financial validation | Median/average/trimmed mean, IQR exclusions, dated explicit FX, shipping policy, floors/ceilings, rounding and protected manual prices; stale inventory/source evidence cannot apply |
-| Compatible identity | Separate editions, remakes/years, sequels, bundles, formats and sealed/graded conditions protected; exact UPC only corroborates compatible minor OCR errors |
-| Hybrid search | Exact and approximate candidates coexist; prefix/token/spelling/trigram/Jaro-Winkler paths retain complete group counts; fallback, barcode, filters and pagination exercised |
-| Independent AI tasks | Persisted separate overrides, model capability rejection, explicit AI consent/budget limits, selected request models, bounded candidates, actual usage when returned, no automatic pricing/fallback/retry |
-| Native channels | One SUBMIT binds product/channel snapshots; multiple publication inputs; per-channel verified receipts; partial retry sends only missing destination; rejection sends no changes |
-| Recovery / integrity | Existing lost product/file-response reconciliation; saved workflow results, interrupted-AI pause, delete cancellation, migration/legacy import and non-secret preference round trip |
-| Large data | 100,000 synthetic plus 75,054 supplied source rows; 175,054 retained after restart; source CSV unchanged, repeat import adds zero |
-| Cost / data bounds | Native agent reads the real local library with no provider requests; tested compact result 9816 characters; optional AI sends no whole database/photos |
-| Host performance | Fuzzy median 26 ms; 100-copy mixed matching/application 4244 ms; physical Pixel timing UNRUN |
-| Update compatibility | Same package/certificate, version code 14 / 0.8.4, additive Room/snapshot 11, 16KB native alignment verified |
-| Public artifact privacy | Owner CSV, live databases, runtime operation journals, credentials, tokens and retained signing key excluded |
+| Area | Executed evidence |
+|---|---|
+| Feature preservation | 491 pre-edit source/control records, per-control reconciliation and 34 capability groups; existing regression coverage retained |
+| Native rendered UI | 17 actual populated renders across all eight requested areas, plus pre-edit plans and baseline captures; light/dark, landscape and 1.6× text inspected |
+| Selection / exact IDs | Seven selected from 50; capture-history return preserves seven; exact draft queue and channel overrides retained, no per-item approval dialog |
+| One-action workflows | Native UI starts selected MATCH_PRICE and direct drafts without a separate health refresh; only selected record IDs queued; saved batch channels used |
+| Work-state restoration | Unsaved title survives route return and real Activity recreation; saved database title remains unchanged; Save stays available in landscape/large text |
+| Idle / approvals | Opening populated routes causes zero native mutations/uploads/recognition jobs; existing on-demand tests cover zero idle model calls and permission/approval/rejection safeguards |
+| Recovery | Paused deterministic job resumes explicitly; AI, cancelled and changed-state recovery refused; original durable Shopify/recognition/archive recovery retained |
+| Offline sold database | 75,054 owner source rows plus 100,000 synthetic, 175,054 after restart; repeat owner import adds zero and CSV is unchanged |
+| Pricing / cost controls | 100-copy mixed batch, 50 eligible prices applied, questionable records protected, zero provider requests; manual prices, FX, outliers, identity and stale evidence regression retained |
+| Host timing | Median fuzzy retrieval 35 ms; mixed offline batch 4256 ms; not physical Pixel measurements |
+| Native Shopify | Existing intercepted-HTTP draft/photo, immutable SKU, pricing/weight/stock, linking/edits, lost-response reconciliation and exact multi-channel publication tests passed |
+| Data / updates | Package unchanged, version code15, schema11 unchanged, retained certificate and 16KB native alignment verified; no migration/destructive reset introduced |
+| Artifact privacy | Owner CSV, runtime databases/journals, API/Shopify credentials and retained signing key excluded |
 
-The benchmark FX rate is synthetic test configuration, not a fetched quote.
-A similarity/confidence category is not evidence of an observed current market price.
-Actual source references and amounts remain in the immutable local evidence library;
-results use compact IDs/hashes and load sold records in local pages.
+The application services and workers remain authoritative. The redesign changes
+presentation/navigation and adds only guarded local recovery plus saved-destination
+resolution at an explicitly requested draft/publication action. It does not start
+model requests from UI observation or silently fall back to billed API usage.
+The source parity audit is not proof of exercising every possible remote action.
 
-The owner reported working Canada VHS connection and a real draft on v0.8.3.
-**New v0.8.4 physical Pixel/live Shopify/provider/website acceptance: UNRUN here.**
-The new native tests execute real Kotlin gateway/pipeline code through intercepted
-HTTP; they cannot establish live schema/scopes, actual model quality, physical camera
-behavior or real website availability. No real store product was changed. No broker
-app was created or deployed, and no new broker dependency was introduced.
+**Physical Pixel / real Canada VHS / real AI account acceptance for 0.9.0: UNRUN here.**
+No production Shopify product was changed. Native HTTP fixtures do not establish
+live account scopes/schema acceptance or website availability. The existing SIWC
+prototype remains experimental; physical sign-in/discovery/stream acceptance is
+still unverified. Camera captures show real UI controls but no physical camera.
 
-Initial regression found and corrected a generic-format search regression, the
-mobile-import snapshot version, and tests needing updated selectors/async UI waits.
-The final full run has no failures. The final focused run additionally covers compact
-paged evidence, per-batch channel preservation and public task-setting integration.
-The unchanged legacy Python broker was not modified or deployed in this cycle.
+[Release notes](next/RELEASE_0.9.0.md) ·
+[Feature map](design/v0.9.0/FEATURE_PARITY.md) ·
+[Actual screenshots](design/v0.9.0/SCREENSHOTS.md) ·
+[Before / after workflows](design/v0.9.0/WORKFLOW_COMPARISON.md).
 
-Read [release notes](next/RELEASE_0.8.4.md),
-[workflow contract and limits](next/PRODUCTION_WORKFLOW.md), and
-[direct Shopify setup](next/DIRECT_SHOPIFY.md).
+Evidence retained in `/workspace/.setup/v090-validated-junit`,
+`v090-final-full-validation3.log`, `v090-final-focused.log`, `v090-final-approval.log`,
+`v090-final-lint.log`, `v090-market-benchmark.json`, `v090-signing.txt`,
+`v090-alignment.txt`, `v090-badging.txt` and `v090-legacy-compatibility.log`.
 
-Evidence: `/workspace/.setup/v084-validated-junit`, `v084-final-full-validation.log`,
-`v084-final-focused.log`, `v084-market-benchmark.json`, `v084-final-lint.log`,
-`v084-signing.txt`, `v084-alignment.txt`, `v084-badging.txt`.
-The host `production-batch-selection.png` screenshot was visually inspected.
-
-APK SHA256: `75e7a9a553ede0b21f50cee424d2a7d4c62f4e14474ec3cff0af16d68bd7d562`
+APK SHA256: `81c8f2282cec92c494ca5e8ad6cdf15d690c5c36489107ad85e303642f69617b`
 
 Signing certificate SHA256: `b262fd08c7a58f338027260d47a94a33e5c939d72752034dddb2f4f6bf73faae`.
-Install over the existing official app without uninstalling or clearing private data.
+Install over the existing official app without uninstalling or clearing data.
