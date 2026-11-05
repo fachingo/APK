@@ -49,7 +49,7 @@ abstract class TrashUiFixture {
 
 class TrashUiTest:TrashUiFixture() {
     @Test fun batchDeleteDisappearsAndSettingsTrashRecoversWithoutReopeningCapture() {
-        compose.openUtility("Batches");compose.onAllNodesWithText("More Actions").onFirst().performClick();compose.onAllNodes(hasScrollToIndexAction()).onLast().performScrollToNode(hasText("Delete batch · move to Trash"));compose.onNodeWithText("Delete batch · move to Trash").performClick();compose.waitForIdle()
+        compose.openUtility("Batches");compose.onNodeWithTag("guided-batch").performScrollToNode(hasText("Photo history & grouping"));compose.onNodeWithText("Photo history & grouping").performClick();compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Delete batch · move to Trash"));compose.onNodeWithText("Delete batch · move to Trash").performClick();compose.waitForIdle()
         compose.waitUntil(10000) {runBlocking {repo.dao.active()==null}}
         compose.onNodeWithText("Settings").performClick();compose.onNodeWithText("Trash · recover deleted records").performScrollTo().performClick()
         compose.waitUntil(10000) {compose.onAllNodesWithText("Recover").fetchSemanticsNodes().isNotEmpty()};compose.onNodeWithText("Recover").performClick();compose.waitForIdle()
@@ -62,7 +62,7 @@ class TrashPhotoUiTest:TrashUiFixture() {
     @Test fun finishedPhotoHasDirectDeleteAndTrashRecovery() {
         runBlocking {val group=repo.dao.group(physicalId);repo.dao.update(repo.dao.session(group.sessionId).copy(finished=true))}
         compose.openUtility("Batches")
-        compose.onNodeWithText("← Photographs & capture history").performScrollTo().performClick()
+        compose.onNodeWithTag("guided-batch").performScrollToNode(hasText("Photo history & grouping"));compose.onNodeWithText("Photo history & grouping").performClick()
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Delete photo"))
         compose.onNodeWithText("Delete photo").performClick()
         compose.waitUntil(10000) {runBlocking {repo.dao.photos(physicalId).single().deleted}}

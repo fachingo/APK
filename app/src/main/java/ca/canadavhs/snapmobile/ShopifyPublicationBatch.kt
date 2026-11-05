@@ -7,15 +7,24 @@ import kotlinx.coroutines.*
 /** A single reviewed authorization binds every product snapshot and all selected channel IDs. */
 internal suspend fun CaptureRepository.prepareShopifyOwnerBatch(ids:Set<String>,location:String,channels:Set<String>,health:JSONObject,gateway:ShopifyGateway):ShopifyReviewRow {
  require(ids.size in 1..100 && channels.isNotEmpty());requireShopifyWriteHealth(health);check(health.optBoolean("allowPublish"));check(directShopifyEndpoint(shopifyEndpoint()))
- val children=JSONArray();val selected=journal.inventoryDao().items().filter {it.groupId in ids && !it.archived};check(selected.size==ids.size);check(selected.map {it.shopifyProductId}.distinct().size==selected.size) {"Multiple local copies point at the same Shopify product; reconcile first"}
- for(item in selected) {check(item.shopifyProductId.isNotBlank()) {"${item.itemId}: create and verify a draft first"}
+ val children=JSONArray();val selected=journal.inventoryDao().items().filter {it.groupId in ids && !it.archived};check(selected.size==ids.size)
+ validatePublicationIdentities(selected)
+ val allLocal=journal.inventoryDao().items()
+ for(item in selected) check(allLocal.none {it.groupId!=item.groupId && it.shopifyProductId.isNotBlank() && it.shopifyProductId.trim()==item.shopifyProductId.trim()}) {"Publish live: ${item.itemId} shares a Shopify product with another local copy; reconcile the links first"}
+ for(item in selected) {
   val payload=shopifyOwnerPayload(item.shopifyProductId,location,"PUBLISH_LIVE",channels.sorted().first(),health,gateway,channels)
   managementIdentity(payload.getJSONObject("before"),item,health.getString("shopId"),true)
+  check(payload.getJSONObject("before").getString("status")=="DRAFT") {"Publish live: ${item.itemId} must be an existing verified Shopify draft"}
   children.put(JSONObject().put("groupId",item.groupId).put("revision",item.revision).put("payload",payload))
  }
  return mutate {val payload=JSONObject().put("batchReviews",children).put("group_ids",JSONArray(ids.sorted())).put("items",JSONArray(selected.map {inventoryJson(it)})).put("health",health).put("broker",shopifyEndpoint()).put("connectionFingerprint",shopifyConnectionFingerprint(context,shopifyEndpoint())).put("location",location).put("action","PUBLISH_LIVE").put("publications",JSONArray(channels.sorted()))
   ShopifyReviewRow(kind="OWNER_ACTION",payloadJson=payload.toString(),bindingHash=sha256(canonicalJson(payload).toByteArray())).also {journal.shopifyDao().insert(it)}
  }
+}
+internal fun validatePublicationIdentities(selected:List<InventoryRow>) {
+ val linked=selected.map {it.shopifyProductId.trim()}.filter {it.isNotEmpty()}
+ check(linked.distinct().size==linked.size) {"Publish live: multiple physical copies link to the same Shopify product. Reconcile those nonblank links first."}
+ for(item in selected) check(item.shopifyProductId.isNotBlank() && item.shopifyState in setOf("UPLOADED_AS_DRAFT","LINKED_DRAFT")) {"Publish live: ${item.itemId} needs an existing verified, unchanged draft. Use Create Shopify Drafts first."}
 }
 internal suspend fun CaptureRepository.decideShopifyOwnerBatch(review:ShopifyReviewRow,accept:Boolean,confirmation:String):String {
  val jobs=mutableListOf<String>()

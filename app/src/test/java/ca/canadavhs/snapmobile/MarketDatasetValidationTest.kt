@@ -13,7 +13,7 @@ import org.robolectric.*
 import org.robolectric.annotation.*
 import java.io.File
 
-/** 100k generated fixtures are synthetic. Optional owner CSV stays outside repository/APK. */
+/** 175k generated fixtures are synthetic. Optional owner CSV stays outside repository/APK. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk=[35],application=CaptureApplication::class)
@@ -29,28 +29,44 @@ class MarketDatasetValidationTest {
         fun log(text:String) {println(text);File(output.parentFile,"market-import-progress.txt").appendText(text+"\n")}
         fun count()=journal.openHelper.writableDatabase.query("SELECT COUNT(*) FROM market_sales WHERE current=1").use {it.moveToFirst();it.getLong(0)}
         try {
-            val fixture=File(app.cacheDir,"synthetic-100k-${newId()}.csv")
+            val fixture=File(app.cacheDir,"synthetic-175k-${newId()}.csv")
             fixture.bufferedWriter().use {out->out.appendLine("id,title,site,item_id,date_sold,sale_price,shipping_price,currency,url,barcode,edition,release_year")
-                for(i in 0 until 100_000) {val title="Fixture Movie "+(i%1000).toString().padStart(4,'0');val id=(900000000000L+i).toString();out.appendLine("$i,$title,EBAY_US,$id,2026-09-${(i%28+1).toString().padStart(2,'0')},${(i%100+100)/10.0},2.50,USD,https://www.ebay.com/itm/$id,036000291452,,")}}
-            var started=System.nanoTime();val preview=repo.previewMarket(fixture,fixture.name) {if(it%10000==0L) log("Synthetic preview $it / 100000")};assertEquals(100_000L,preview.rows)
+                for(i in 0 until 175_000) {val title="Fixture Movie "+(i%1000).toString().padStart(4,'0');val id=(900000000000L+i).toString();out.appendLine("$i,$title VHS,EBAY_US,$id,2026-09-${(i%28+1).toString().padStart(2,'0')},${(i%100+100)/10.0},2.50,USD,https://www.ebay.com/itm/$id,036000291452,,")}}
+            var started=System.nanoTime();val preview=repo.previewMarket(fixture,fixture.name) {if(it%10000==0L) log("Synthetic preview $it / 175000")};assertEquals(175_000L,preview.rows)
             report.put("syntheticPreviewMs",(System.nanoTime()-started)/1_000_000)
-            started=System.nanoTime();assertEquals(100_000L,repo.commitMarket(preview) {done,total->if(done%10000==0L) log("Synthetic import $done / $total")}.added);assertEquals(100_000L,count());report.put("syntheticImportMs",(System.nanoTime()-started)/1_000_000)
+            started=System.nanoTime();assertEquals(175_000L,repo.commitMarket(preview) {done,total->if(done%10000==0L) log("Synthetic import $done / $total")}.added);assertEquals(175_000L,count());report.put("syntheticImportMs",(System.nanoTime()-started)/1_000_000)
             started=System.nanoTime();assertEquals(0L,repo.commitMarket(preview).added);report.put("repeatImportMs",(System.nanoTime()-started)/1_000_000)
-            val times=mutableListOf<Long>();repeat(12) {iteration->val query="Fixture Movie "+((iteration*71)%1000).toString().padStart(4,'0');val time=System.nanoTime();val result=repo.searchMarket(MarketFilters(query=query,currency="USD"));assertEquals(100L,result.groups.first {it.titleKey==InventoryRules.normalizedTitle(query)}.samples);assertTrue(result.groups.size>1);times+=(System.nanoTime()-time)/1_000_000}
+            val times=mutableListOf<Long>();repeat(12) {iteration->val query="Fixture Movie "+((iteration*71)%1000).toString().padStart(4,'0');val time=System.nanoTime();val result=repo.searchMarket(MarketFilters(query=query,currency="USD"));assertEquals(175L,result.groups.first {it.titleKey==InventoryRules.normalizedTitle(query)}.samples);assertTrue(result.groups.size>1);times+=(System.nanoTime()-time)/1_000_000}
             val barcode=repo.searchMarket(MarketFilters(query="036000291452"));assertEquals(40,barcode.groups.size)
-            report.put("syntheticRecords",100000).put("queryTimesMs",JSONArray(times)).put("medianQueryMs",times.sorted()[times.size/2]).put("index",repo.marketIndexKind()).put("physicalPixelBenchmark","UNRUN")
+            report.put("syntheticRecords",175000).put("queryTimesMs",JSONArray(times)).put("medianQueryMs",times.sorted()[times.size/2]).put("index",repo.marketIndexKind()).put("physicalPixelBenchmark","UNRUN")
             preview.file.delete();fixture.delete()
             val actual=System.getProperty("snapims.marketCsv")?.let(::File)
-            var expected=100_000L
+            var expected=175_000L
             if(actual!=null) {
                 assertTrue(actual.isFile);val before=hashFile(actual);started=System.nanoTime();val p=repo.previewMarket(actual,actual.name) {if(it%10000==0L) log("Owner CSV preview $it")}
                 assertEquals(75054L,p.rows);assertEquals(mapOf("USD" to 75054L),p.currencies);assertTrue(p.warnings.any {it.contains("collection timestamp")})
                 val imported=repo.commitMarket(p) {done,total->if(done%10000==0L) log("Owner CSV import $done / $total")};assertEquals(75054L,imported.added);expected+=75054L;assertEquals(expected,count());assertEquals(before,hashFile(actual))
                 assertEquals(0L,repo.commitMarket(p).added)
                 report.put("ownerCsvRows",p.rows).put("ownerCsvSha256",before).put("ownerCsvImportMs",(System.nanoTime()-started)/1_000_000).put("ownerCsvSourceUnchanged",true).put("ownerCsvRepeatedAdded",0)
-                assertTrue(repo.searchMarket(MarketFilters(query="Disney",currency="USD")).groups.isNotEmpty());p.file.delete()
+                assertTrue(repo.searchMarket(MarketFilters(query="Disney",currency="USD")).groups.isNotEmpty())
+                // Six representative recognitions, NOT an assertion about the unavailable six Pixel records.
+                val sampleSession=repo.start("Supplied-source six-title diagnostics","A1");val initial=repo.current()
+                val diagnostics=JSONArray()
+                val examples=listOf("Beauty and the Beast" to 1992,"Aladdin" to 1993,"Toy Story" to 1996,"The Lion King" to 1995,"The Terminator" to 1984,"Titanic" to 1998)
+                for((index,example) in examples.withIndex()) {
+                    val group=if(index==0) initial else GroupRow(sessionId=sampleSession.id,number=index+1,location="A1",closed=true).also {repo.dao.insert(it)}
+                    val blank=repo.ensureInventoryItem(group);val item=repo.saveInventory(blank.copy(title=example.first,releaseYear=example.second,condition="Good"),blank.revision)
+                    val missing=repo.buildAutoPrice(item,AutoPriceRules())
+                    val valued=repo.buildAutoPrice(item,AutoPriceRules(usdCad="1.35",rateDate=java.time.LocalDate.now().toString(),fxSource="MANUAL_TEST_FIXTURE_NOT_LIVE_RATE"))
+                    assertNotEquals("ERROR",valued.optString("category"));assertTrue(valued.has("reasonCode"))
+                    diagnostics.put(JSONObject().put("title",example.first).put("year",example.second).put("withoutFx",missing.optString("reasonCode")).put("withFixtureFx",valued.optString("reasonCode")).put("score",valued.optInt("score")).put("compatibleCount",valued.optInt("count")).put("candidates",valued.optInt("candidateCount")).put("reason",valued.optString("reason")).put("priceCents",valued.opt("priceCents") ?: JSONObject.NULL))
+                }
+                report.put("representativeSixAgainstSuppliedCsv",diagnostics);output.writeText(report.toString(2))
+                assertTrue((0 until diagnostics.length()).any {diagnostics.getJSONObject(it).optString("withoutFx")=="FX_MISSING"})
+                assertTrue((0 until diagnostics.length()).any {diagnostics.getJSONObject(it).optInt("priceCents")>0})
+                repo.dao.update(sampleSession.copy(finished=true));p.file.delete()
             } else report.put("ownerCsvValidation","Not requested in this run; no owner data bundled")
-            // One hundred selected physical-copy records, against the same 175k library, with zero model requests.
+            // One hundred selected copies against the same 250,054-row library; zero model requests.
             val session=repo.start("Offline bulk pricing benchmark","A1");val first=repo.current();val selected=linkedSetOf<String>()
             for(i in 0 until 100) {val group=if(i==0) first else GroupRow(sessionId=session.id,number=i+1,location="A1").also {repo.dao.insert(it)};val item=repo.ensureInventoryItem(group);val title=when {i<50->"Fixture Movie "+i.toString().padStart(4,'0');i<75->"Fxiture Movie "+(i-50).toString().padStart(4,'0');else->"Unfindable Qxzzy title "+i};repo.saveInventory(item.copy(title=title,condition="Good"),item.revision);selected+=item.groupId}
             val pricingStart=System.nanoTime();val pricingJob=repo.queueProduction(selected,"MATCH_PRICE",AutoPriceRules(minimum=10,ageDays=36500,usdCad="1.35",rateDate=java.time.LocalDate.now().toString()).json());var providerCalls=0
@@ -62,7 +78,7 @@ class MarketDatasetValidationTest {
             val agentChat=ChatConversationRow(title="Private dataset agent validation",provider="LOCAL",model="fixture",authMode="API_KEY",toolsEnabled=true)
             journal.nextDao().insert(agentChat);val agent=AgentTools(repo)
             suspend fun agentRead(resource:String,args:JSONObject=JSONObject())=agent.execute(agentChat,"app_read",JSONObject().put("resource",resource).put("arguments_json",args.toString()))
-            val syntheticRead=agentRead("market.search",JSONObject().put("query","Fixture Movie 0042").put("currency","USD"));assertEquals(100,syntheticRead.getJSONArray("items").getJSONObject(0).getInt("count"));assertTrue(syntheticRead.toString().length<=10000)
+            val syntheticRead=agentRead("market.search",JSONObject().put("query","Fixture Movie 0042").put("currency","USD"));assertEquals(175,syntheticRead.getJSONArray("items").getJSONObject(0).getInt("count"));assertTrue(syntheticRead.toString().length<=10000)
             if(actual!=null) {val realRead=agentRead("market.search",JSONObject().put("query","Disney").put("currency","USD").put("limit",50));assertTrue(realRead.getJSONArray("items").length()>0);assertTrue(realRead.toString().length<=10000);report.put("agentActualCsvSearch","PASS").put("agentResultCharacters",realRead.toString().length)}
             assertEquals(expected,agent.execute(agentChat,"app_overview",JSONObject()).getLong("soldObservations"));report.put("agentNativeLibraryRead","PASS").put("agentNoProviderRequests",true)
             journal.openHelper.writableDatabase.query("PRAGMA quick_check").use {assertTrue(it.moveToFirst());assertEquals("ok",it.getString(0))}

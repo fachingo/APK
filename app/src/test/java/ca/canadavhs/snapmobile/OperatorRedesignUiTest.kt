@@ -49,7 +49,7 @@ internal abstract class OperatorUiFixture {
 internal class OperatorScreensUiTest:OperatorUiFixture() {
  @Test fun populatedScreensSelectionAndIdleSafety() {
   compose.waitUntil(10000) {compose.onAllNodesWithText("Open active batch →").fetchSemanticsNodes().isNotEmpty()};shot("01-dashboard-light")
-  compose.onNodeWithText("Open active batch →").performClick();compose.waitUntil(10000) {compose.onAllNodesWithTag("production-batch").fetchSemanticsNodes().isNotEmpty()}
+  compose.onNodeWithText("Open active batch →").performClick();compose.onNodeWithText("Clear").performClick();compose.onNodeWithText("Advanced Tools").performClick();compose.waitUntil(10000) {compose.onAllNodesWithTag("production-batch").fetchSemanticsNodes().isNotEmpty()}
   compose.onNodeWithTag("production-batch").performScrollToNode(hasTestTag("select-${sample.groupId}"));compose.onNodeWithTag("select-${sample.groupId}").performClick();compose.onNodeWithText("Auto Match & Price").assertIsDisplayed();shot("03-batch-selected")
   compose.onNodeWithTag("production-batch").performScrollToIndex(0);compose.onNodeWithText("Auto Match & Price").assertIsDisplayed()
   compose.onAllNodesWithText("More Actions").onFirst().performClick();shot("03-more-actions");compose.onAllNodes(hasScrollToIndexAction()).onLast().performScrollToNode(hasText("Pricing rules"));compose.onNodeWithText("Pricing rules").performClick();shot("05-pricing-presets");compose.onNodeWithText("Cancel").performClick();compose.onNodeWithContentDescription("Close actions").performClick()
@@ -84,7 +84,7 @@ internal class OperatorRecreationUiTest:OperatorUiFixture() {
 internal class OperatorActionsUiTest:OperatorUiFixture() {
  @Test fun oneTapOfflinePricingAndDirectDraftUseOnlySelectionAndSavedBatchDestinations() {
   val session=runBlocking {repo.dao.group(sample.groupId).sessionId};repo.preferences.edit().putStringSet("batchPublications.fixture.myshopify.com.$session",setOf("gid://shopify/Publication/2")).commit()
-  compose.onNodeWithText("Open active batch →").performClick();compose.waitUntil(10000) {compose.onAllNodesWithTag("production-batch").fetchSemanticsNodes().isNotEmpty()}
+  compose.onNodeWithText("Open active batch →").performClick();compose.onNodeWithText("Clear").performClick();compose.onNodeWithText("Advanced Tools").performClick();compose.waitUntil(10000) {compose.onAllNodesWithTag("production-batch").fetchSemanticsNodes().isNotEmpty()}
   compose.onNodeWithTag("production-batch").performScrollToNode(hasTestTag("select-${sample.groupId}"));compose.onNodeWithTag("select-${sample.groupId}").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) {it()}
   compose.onNodeWithText("Auto Match & Price").performClick();compose.waitUntil(10000) {compose.onAllNodesWithText("Auto Match & Price").fetchSemanticsNodes();runBlocking {repo.journal.productionDao().watchJobs().first().count {it.state=="QUEUED"}==1}}
   val price=runBlocking {repo.journal.productionDao().watchJobs().first().single {it.state=="QUEUED"}};assertEquals("MATCH_PRICE",price.kind);assertEquals(setOf(sample.groupId),runBlocking {repo.journal.productionDao().items(price.id).map {it.groupId}.toSet()})

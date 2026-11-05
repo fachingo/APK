@@ -38,7 +38,7 @@ internal suspend fun CaptureRepository.runProduction(jobId:String,request:(suspe
  activeProduction.add(jobId)
  try {
  mutate {job=job.copy(state="RUNNING");d.update(job)}
- val options=JSONObject(job.optionsJson)
+ val options=if(job.kind=="MATCH_PRICE") resolvePriceFx(AutoPriceRules.parse(JSONObject(job.optionsJson))).json() else JSONObject(job.optionsJson)
  val dispatch=request ?: {choice:TaskModelChoice,chat:ChatConversationRow,messages:List<ChatMessageRow>,tools:JSONArray,delta:suspend(String)->Unit ->
   val schema=when {chat.title.startsWith("Market matches ·")->JSONObject("""{"type":"object","properties":{"matches":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"confidence":{"type":"number"},"reason":{"type":"string"}},"required":["id","confidence","reason"],"additionalProperties":false}}},"required":["matches"],"additionalProperties":false}""")
    chat.title=="Edition identification"->JSONObject("""{"type":"object","properties":{"edition":{"type":"string"},"confidence":{"type":"number"},"reason":{"type":"string"}},"required":["edition","confidence","reason"],"additionalProperties":false}""")
@@ -95,5 +95,5 @@ internal suspend fun CaptureRepository.applyProductionContent(ids:Set<String>):P
  return applied to errors
 }
 class ProductionWorker(context:Context,params:WorkerParameters):CoroutineWorker(context,params) {
- override suspend fun doWork():Result=withContext(Dispatchers.IO) {val repo=(applicationContext as CaptureApplication).repository;val id=inputData.getString("id") ?: return@withContext Result.failure();try {repo.runProduction(id);Result.success()} catch(e:CancellationException) {throw e} catch(e:Exception) {repo.mutate {repo.journal.productionDao().job(id)?.takeIf {it.state!="CANCELLED"}?.let {repo.journal.productionDao().update(it.copy(state="PAUSED_REVIEW",error=e.message.orEmpty().take(1000)))}};Result.success()}}
+ override suspend fun doWork():Result=withContext(Dispatchers.IO) {val repo=(applicationContext as CaptureApplication).repository;val id=inputData.getString("id") ?: return@withContext Result.failure();try {if(repo.journal.productionDao().job(id)?.kind==GUIDED_KIND) {if(repo.runGuidedBatch(id)) Result.retry() else Result.success()} else {repo.runProduction(id);Result.success()}} catch(e:CancellationException) {throw e} catch(e:Exception) {repo.mutate {repo.journal.productionDao().job(id)?.takeIf {it.state!="CANCELLED"}?.let {repo.journal.productionDao().update(it.copy(state="PAUSED_REVIEW",error=e.message.orEmpty().take(1000)))}};Result.success()}}
 }

@@ -1,3 +1,15 @@
+# SnapIMS Next 0.10.0 — guided VHS production
+
+**[Download the update-compatible APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.10.0-debug.apk)** · [Source ZIP](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.10.0-source.zip) · [Release notes and installation](docs/next/RELEASE_0.10.0.md)
+
+Capture → Identify → Price → Review Listings → Create Shopify Drafts. Offline processing advances automatically after you close a physical copy. Review exceptions, approve strong prices/listings together, and submit eligible copies from one guided batch workspace. Existing controls remain in **Advanced Tools**.
+
+Automatic Bank of Canada USD/CAD caching replaces required manual FX entry. Indexed fuzzy retrieval feeds strict comparable validation and explainable evidence scores; reliable single-sale recommendations can be reviewed individually. Manual prices, immutable SKUs, sold evidence, photographs and credentials are preserved. No AI calls are required, and no broker or home computer is needed.
+
+[Workflow and diagnosed causes](docs/next/WORKFLOW_0.10.0.md) · [Native screenshots](docs/design/v0.10.0/SCREENSHOTS.md) · [Executed tests](docs/TEST_RESULTS.md).
+
+Install as an update without uninstalling or clearing data. Physical Pixel, live FX and production Shopify acceptance remain unverified here; automated tests never modify real store products.
+
 # SnapIMS Next 0.9.0 — native operator workspace
 
 **[Download the Android APK](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.9.0-debug.apk)** · [Source ZIP](https://github.com/fachingo/APK/raw/refs/heads/main/releases/SnapIMS-Next-0.9.0-source.zip) · [Release notes](docs/next/RELEASE_0.9.0.md)

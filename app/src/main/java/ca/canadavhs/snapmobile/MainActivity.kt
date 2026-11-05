@@ -147,7 +147,7 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
                 Box(Modifier.weight(1f).fillMaxHeight()) {
                 screenStates.SaveableStateProvider(screen) { when (screen) {
                     0 -> CaptureScreen(vm, engine, active, current, currentPhotos, onStart = { startDialog = true }, onFinish = { if (!vm.pendingCapture) finishDialog = true }, onReview = { if (!vm.busy) navigate(1) },onSettings={navigate(3)})
-                    1 -> BatchesScreen(vm, sessions, groups, photos, archives, onStart = { startDialog = true },initialSessionId=batchTarget,initialPhotoId=photoTarget,onInventory={navigate(5)})
+                    1 -> BatchesScreen(vm, sessions, groups, photos, archives, onStart = { startDialog = true },initialSessionId=batchTarget,initialPhotoId=photoTarget,onInventory={navigate(5)},onCapture={navigate(0)})
                     2 -> Column(Modifier.fillMaxSize().padding(24.dp)) {
                         PageTitle("Transfers", "Portable archives · originals stay on this device")
                         Text("Save verified capture ZIPs to Files or share them. Your inventory remains usable on this phone. Open Settings → Backup & import for protected backups and inventory packages.", style = MaterialTheme.typography.bodyMedium)
@@ -192,14 +192,14 @@ fun MobileApp(activity: MainActivity, vm: CaptureViewModel = viewModel()) {
         }
         }
         if (startDialog) StartBatchDialog(vm) { startDialog = false }
-        if (finishDialog) AlertDialog(onDismissRequest = { finishDialog = false }, title = { Text("Finish this batch?") }, text = { Text("The open product will be finalized, including incomplete front/back sets. Archives will be verified in the background. Originals stay on this device. Inventory details and photo corrections remain available in Inventory.") }, confirmButton = { TextButton(enabled = !vm.pendingCapture, onClick = { if (!vm.pendingCapture) { finishDialog = false; vm.action { vm.repo.finish() } } }) { Text("Finish batch") } }, dismissButton = { TextButton(onClick = { finishDialog = false }) { Text("Keep capturing") } })
+        if (finishDialog) AlertDialog(onDismissRequest = { finishDialog = false }, title = { Text("Finish this batch?") }, text = { Text("Finish capture and open the guided batch review. Offline identification, local pricing and archives continue in the background. Originals stay on this device; uncertain copies can be corrected or deferred. No Shopify upload starts until you approve it.") }, confirmButton = { TextButton(enabled = !vm.pendingCapture, onClick = { if (!vm.pendingCapture) { finishDialog = false; vm.action { val finished=active?.id ?: error("No active batch");vm.repo.finish();vm.repo.preferences.edit().putInt("guidedStep.$finished",1).commit();batchTarget=finished;photoTarget=null;navigate(1) } } }) { Text("Finish batch") } }, dismissButton = { TextButton(onClick = { finishDialog = false }) { Text("Keep capturing") } })
     }
 }
 @Composable fun PageTitle(title: String, subtitle: String) { Text(title, style=MaterialTheme.typography.headlineSmall); Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant); Spacer(Modifier.height(8.dp)) }
 @Composable fun EmptyState(title: String, text: String) { Column(Modifier.padding(vertical = 36.dp)) { Text(title, fontSize = 22.sp, fontWeight = FontWeight.SemiBold); Spacer(Modifier.height(8.dp)); Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
 @Composable fun StartBatchDialog(vm: CaptureViewModel, dismiss: () -> Unit) {
     var name by rememberSaveable { mutableStateOf("VHS ${LocalDate.now()}") }; var location by rememberSaveable { mutableStateOf(vm.repo.preferences.getString("defaultLocation", "") ?: "") }
-    AlertDialog(onDismissRequest = dismiss, title = { Text("A new capture session") }, text = { Column(Modifier.verticalScroll(rememberScrollState())) { Text("One tape at a time. Capture, then Next."); Spacer(Modifier.height(16.dp)); OutlinedTextField(name, { name = it.take(80) }, label = { Text("Batch name") }, singleLine = true); Spacer(Modifier.height(12.dp)); OutlinedTextField(location, { location = it.uppercase().take(3) }, label = { Text("Location · optional") }, supportingText = { Text("A1–J10 or Q1") }, singleLine = true, isError = !validLocation(location)) } }, confirmButton = { TextButton(enabled = name.isNotBlank() && validLocation(location), onClick = { vm.action { vm.repo.start(name, location); dismiss() } }) { Text("Start capturing") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
+    AlertDialog(onDismissRequest = dismiss, title = { Text("A new capture session") }, text = { Column(Modifier.verticalScroll(rememberScrollState())) { Text("One card is one physical tape. Take its photographs, then Next tape. Offline identification and pricing start automatically when each copy is closed. Review prices and listings in Batches."); Spacer(Modifier.height(16.dp)); OutlinedTextField(name, { name = it.take(80) }, label = { Text("Batch name") }, singleLine = true); Spacer(Modifier.height(12.dp)); OutlinedTextField(location, { location = it.uppercase().take(3) }, label = { Text("Location · optional") }, supportingText = { Text("A1–J10 or Q1") }, singleLine = true, isError = !validLocation(location)) } }, confirmButton = { TextButton(enabled = name.isNotBlank() && validLocation(location), onClick = { vm.action { vm.repo.start(name, location); dismiss() } }) { Text("Start capturing") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
 
 @Composable
@@ -340,13 +340,13 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
         TextButton(onClick = { vm.action { vm.repo.barcode(group.id, null); photos.lastOrNull { it.role == "BACK" }?.let { vm.repo.rescan(it.id) }; dismiss() } }) { Text("Rescan back photo") }
     } }, confirmButton = { TextButton(onClick = { vm.action { vm.repo.barcode(group.id, value); dismiss() } }) { Text("Confirm") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
-@Composable fun BatchesScreen(vm: CaptureViewModel, sessions: List<SessionRow>, groups: List<GroupRow>, photos: List<PhotoRow>, archives: List<ArchiveRow>, onStart: () -> Unit,initialSessionId:String?=null,initialPhotoId:String?=null,onInventory:()->Unit={}) {
+@Composable fun BatchesScreen(vm: CaptureViewModel, sessions: List<SessionRow>, groups: List<GroupRow>, photos: List<PhotoRow>, archives: List<ArchiveRow>, onStart: () -> Unit,initialSessionId:String?=null,initialPhotoId:String?=null,onInventory:()->Unit={},onCapture:()->Unit=onStart) {
     val photoList=androidx.compose.foundation.lazy.rememberLazyListState()
     var selected by rememberSaveable { mutableStateOf<String?>(initialSessionId) }
     var production by rememberSaveable {mutableStateOf(initialPhotoId==null)}
     LaunchedEffect(initialSessionId) {if(initialSessionId!=null) selected=initialSessionId}
     val session = sessions.firstOrNull { it.id == selected } ?: sessions.firstOrNull()
-    if(production && session!=null) {ProductionBatchScreen(vm,session,onPhotos={production=false},onBatch={selected=it},onInventory=onInventory);return}
+    if(production && session!=null) {ProductionBatchScreen(vm,session,onPhotos={production=false},onBatch={selected=it},onInventory=onInventory,onCapture=onCapture);return}
     val recognitionRows by vm.recognition.collectAsStateWithLifecycle()
     var recognitionGroup by remember { mutableStateOf<GroupRow?>(null) }
     var batchRecognitionDialog by remember { mutableStateOf(false) }
@@ -457,7 +457,7 @@ fun CaptureScreen(vm: CaptureViewModel, engine: CameraEngine, session: SessionRo
 }}
         item { PreferenceSwitch("Light appearance", light) { prefs.edit().putBoolean("light", it).apply(); appearance(it) } }
         item { TextButton(onClick = { showLicenses = true }) { Text("Third-party notices & licenses") } }
-        item { Text("SnapIMS Next 0.9.0 · native operator workspace", style = MaterialTheme.typography.bodySmall) }
+        item { Text("SnapIMS Next 0.10.0 · guided VHS workflow", style = MaterialTheme.typography.bodySmall) }
     }
     if (showLicenses) NoticesDialog(context) { showLicenses = false }
 

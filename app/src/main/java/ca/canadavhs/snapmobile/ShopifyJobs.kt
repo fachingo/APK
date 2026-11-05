@@ -63,12 +63,17 @@ internal suspend fun CaptureRepository.cancelShopify(id:String) {
         jobs.items(id).filter {it.state!="SUCCESS"}.forEach {jobs.update(it.copy(state="CANCELLED"))}
     };WorkManager.getInstance(context).cancelUniqueWork("shopify-$id")
 }
-internal suspend fun CaptureRepository.resumeShopify(id:String,base:String,health:JSONObject) {
+internal suspend fun CaptureRepository.resumeShopify(id:String,base:String,health:JSONObject,selectedGroups:Set<String>?=null) {
     requireShopifyWriteHealth(health)
     mutate {val jobs=journal.shopifyDao();val old=jobs.job(id) ?: error("Job missing")
         check(old.shopId==health.getString("shopId") && old.shop==health.getString("shop")) {"Reconnect to the original store."}
-        check(jobs.items(id).none {it.state=="NEEDS_REVIEW"}) {"An item or restored review requires fresh approval. Cancel remaining work and prepare a new review."}
-        jobs.items(id).filter {it.state!="SUCCESS"}.forEach {jobs.update(it.copy(state="QUEUED",error=""))}
+        val all=jobs.items(id)
+        if(selectedGroups!=null) {check(old.state !in setOf("QUEUED","RUNNING","WAITING_REMOTE")) {"Wait for the current job before retrying individual copies"};check(selectedGroups.isNotEmpty() && selectedGroups.all {group->all.any {it.groupId==group}})}
+        val selected=all.filter {selectedGroups==null || it.groupId in selectedGroups}
+        check(selected.none {it.state=="NEEDS_REVIEW"}) {"An item or restored review requires fresh approval. Cancel remaining work and prepare a new review."}
+        // Other recoverable copies remain paused; their creation keys and remote checkpoints are retained.
+        if(selectedGroups!=null) all.filter {it.groupId !in selectedGroups && it.state in setOf("QUEUED","RUNNING","WAITING_REMOTE","RETRYABLE")}.forEach {jobs.update(it.copy(state="PAUSED",error="Not selected for this targeted retry"))}
+        selected.filter {it.state!="SUCCESS"}.forEach {jobs.update(it.copy(state="QUEUED",error=""))}
         jobs.update(old.copy(broker=base,connectionFingerprint=shopifyConnectionFingerprint(context,base),state="QUEUED",error="",updatedAt=System.currentTimeMillis()))
     };enqueueShopify(id)
 }

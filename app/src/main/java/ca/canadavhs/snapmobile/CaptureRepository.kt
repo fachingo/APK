@@ -116,6 +116,7 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, val d
         val groups = dao.groups(session).filter { it.closed && it.archiveId == null }
         val bytes = groups.sumOf { g -> dao.photos(g.id).filter { !it.deleted }.sumOf { it.bytes } }
         if (bytes >= archiveLimit()) queueArchives(session, automatic = true)
+        advanceCapturedBatch(session)
     }
     suspend fun undoNext() = mutate {
         val current = current(); editable(current)
@@ -128,7 +129,7 @@ class CaptureRepository(val context: Context, val journal: CaptureJournal, val d
         event(previous.sessionId, previous.id, "UNDO_NEXT")
     }
     suspend fun finish() {
-        val session=mutate {finishBatchLocked()};queueArchives(session)
+        val session=mutate {finishBatchLocked()};queueArchives(session);advanceCapturedBatch(session)
     }
     internal suspend fun finishBatchLocked():String {
         val group=current();editable(group)

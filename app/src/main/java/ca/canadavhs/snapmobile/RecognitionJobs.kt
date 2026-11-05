@@ -21,7 +21,7 @@ fun photoSnapshot(photos: List<PhotoRow>): String = JSONArray(photos.map { JSONO
 suspend fun CaptureRepository.setRecognitionMode(mode: String) = withContext(Dispatchers.IO) {
     require(mode in RECOGNITION_MODES)
     check(preferences.edit().putString("recognitionMode", mode).commit())
-    for (row in dao.unsettledRecognition().filter { it.provider != mode }) {
+    for (row in dao.unsettledRecognition().filter { it.provider != mode && !it.approvalId.startsWith("GUIDED:") }) {
         journal.withTransaction {
             val latest = dao.recognition(row.id)
             if (latest != null && latest.state in listOf("QUEUED", "RUNNING")) dao.update(latest.copy(state = "CANCELLED", error = "Recognition mode changed; result was not applied.", completedAt = System.currentTimeMillis()))
@@ -47,7 +47,8 @@ suspend fun CaptureRepository.queueRecognition(groupId:String):RecognitionRow {
     val row=mutate {queueRecognitionLocked(groupId,recognitionSettings())};scheduleRecognition(row);return row
 }
 internal suspend fun CaptureRepository.queueRecognitionLocked(groupId:String,settings:RecognitionSettings,approvalId:String=""):RecognitionRow {
-    check(settings==recognitionSettings()) {"Recognition settings or credentials changed. Request a new review."}
+    if(approvalId.startsWith("GUIDED:")) check(settings.provider=="OCR" && settings.authBinding=="OFFLINE" && journal.productionDao().job(approvalId.removePrefix("GUIDED:"))?.let {it.kind=="GUIDED_BATCH" && it.state in setOf("QUEUED","RUNNING")}==true) {"Guided offline recognition is no longer active"}
+    else check(settings==recognitionSettings()) {"Recognition settings or credentials changed. Request a new review."}
     dao.group(groupId);val all=dao.photos(groupId).filter {!it.deleted};val photos=all.filter {it.state=="READY"}
     check(photos.isNotEmpty()) {"Capture a photo before recognition."};check(all.none {it.state!="READY"}) {"Resolve unfinished photographs before recognition."}
     val fingerprint=photoFingerprint(photos)

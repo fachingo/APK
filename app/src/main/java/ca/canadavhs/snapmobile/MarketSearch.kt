@@ -76,7 +76,7 @@ internal suspend fun CaptureRepository.searchMarket(filters:MarketFilters,offset
                 if(titleKeys.isEmpty()) return emptyList()
                 clauses+="titleKey IN (${titleKeys.joinToString(",") {"?"}})";args+=titleKeys
             }
-            else if(key.matches(Regex("[0-9]{8,14}"))) {clauses+="barcode=?";args+=key}
+            else if(key.matches(Regex("[0-9]{8,14}"))) {val forms=barcodeForms(key);clauses+="barcode IN (${forms.joinToString(",") {"?"}})";args+=forms}
             else if(kind!="INDEXED") {val tokens=key.split(' ').filter {it.isNotBlank() && (!broad || it !in setOf("the","a","an","and","of","in","on"))}.take(15).ifEmpty {listOf(key)};source="(SELECT id FROM market_fts WHERE market_fts MATCH ?) AS hit CROSS JOIN market_sales AS s ON s.id=hit.id";args+=tokens.joinToString(if(broad) " OR " else " ") {it+"*"}}
             else {val parts=key.split(' ').filter {it.isNotBlank()}.take(15).map {word->args+=word;args+=word+"\uffff";"id IN (SELECT id FROM market_token_rows WHERE term>=? AND term<?)"};clauses+="("+parts.joinToString(if(broad) " OR " else " AND ")+")"}
         }
@@ -92,11 +92,13 @@ internal suspend fun CaptureRepository.searchMarket(filters:MarketFilters,offset
         val sql="SELECT titleKey,MIN(title) title,currency,edition,releaseYear,COUNT(*) samples,MIN(totalCents) low,MAX(totalCents) high,MAX(soldAt) newest,MIN(soldAt) oldest FROM $source WHERE $where GROUP BY titleKey,currency,edition,releaseYear ORDER BY $order LIMIT ? OFFSET ?"
         journal.openHelper.writableDatabase.query(sql,args.toTypedArray()).use {c->return buildList {while(c.moveToNext()) add(MarketGroup(c.getString(0),c.getString(1),c.getString(2),c.getString(3),if(c.isNull(4)) null else c.getInt(4),c.getLong(5),c.getLong(6),c.getLong(7),c.getString(8),approximate,marketMatchScore(filters.query,c.getString(1)),oldest=c.getString(9)))}}
     }
+    if(normalized.matches(Regex("[0-9]{8,14}"))) return@withContext MarketPage(search(normalized,false).map {it.copy(matchScore=100,matchTier="EXACT",matchReason="Exact UPC/EAN identity; format and edition still require validation")},kind)
     if(normalized.isBlank() || InventoryRules.normalizedTitle(filters.query).isBlank() || !allowApproximate || normalized.matches(Regex("[0-9]+"))) return@withContext MarketPage(search(normalized,false),kind)
     // Always retrieve from several indexed paths, even when exact hits exist. Never scan the sales table with a fuzzy function.
     val corrected=correctMarketQuery(normalized)
     val expanded=marketExpandedQuery(normalized)
-    val candidates=(search(normalized,false,true)+(if(corrected!=normalized) search(corrected,true,true) else emptyList())+if(expanded!=normalized) search(expanded,true,true) else emptyList())
+    val cleaned=filmTitle(filters.query)
+    val candidates=(search(normalized,false)+(if(cleaned.isNotBlank() && cleaned!=normalized) search(cleaned,false,true) else emptyList())+search(normalized,false,true)+(if(corrected!=normalized) search(corrected,true,true) else emptyList())+if(expanded!=normalized) search(expanded,true,true) else emptyList())
         .distinctBy {listOf(it.titleKey,it.currency,it.edition,it.year)}.map {g->
             val original=hybridMarketScore(filters.query,g.title,filters.year,g.year,filters.edition,g.edition)
             val repaired=if(corrected!=normalized) hybridMarketScore(corrected,g.title,filters.year,g.year,filters.edition,g.edition) else original
@@ -167,7 +169,7 @@ internal fun marketExpandedQuery(value:String):String {
  return value.split(' ').joinToString(" ") {aliases[it] ?: it}
 }
 internal fun hybridMarketScore(query:String,title:String,year:Int?=null,candidateYear:Int?=null,edition:String="",candidateEdition:String=""):Triple<Int,String,String> {
- val q=InventoryRules.normalizedTitle(marketExpandedQuery(query)).ifBlank {marketRawKey(query)};val t=InventoryRules.normalizedTitle(title).ifBlank {marketRawKey(title)}
+ val q=filmTitle(marketExpandedQuery(query)).ifBlank {marketRawKey(query)};val t=filmTitle(title).ifBlank {marketRawKey(title)}
  if(q.isBlank() || t.isBlank()) return Triple(0,"POSSIBLE","No identified title")
  val stop=setOf("a","an","the","and","of","in","on");fun tokens(v:String)=v.split(' ').filter {it.isNotBlank() && it !in stop}.toSet()
  val qs=tokens(q);val ts=tokens(t);val overlap=if(qs.isEmpty() || ts.isEmpty()) 0.0 else 2.0*qs.intersect(ts).size/(qs.size+ts.size)
@@ -205,7 +207,14 @@ internal fun CaptureRepository.indexMarketTitle(key:String,title:String) {
 }
 internal fun CaptureRepository.hybridTitleCandidates(key:String,filters:MarketFilters,wanted:Int):List<String> {
  val tokens=key.split(' ').filter {it.isNotBlank() && it !in setOf("the","a","an","and","of","in","on")}.take(15).ifEmpty {listOf(key)}
- val clauses=mutableListOf<String>();val args=mutableListOf<String>();for(word in tokens) {clauses+="(t.term>=? AND t.term<?)";args+=word;args+=word+"\uffff"}
+ val expanded=tokens.flatMap {word->
+  if(word.length<4 || word.all(Char::isDigit)) listOf(word) else {
+   val grams=wordGrams(word).take(30)
+   val close=journal.openHelper.writableDatabase.query("SELECT g.term,COUNT(*) overlaps FROM market_grams g JOIN market_lexicon l ON l.term=g.term WHERE gram IN (${grams.joinToString(",") {"?"}}) AND l.length BETWEEN ? AND ? GROUP BY g.term ORDER BY overlaps DESC,g.term LIMIT 60",(grams+listOf((word.length-2).toString(),(word.length+2).toString())).toTypedArray()).use {c->buildList {while(c.moveToNext()) {val term=c.getString(0);if(editDistance(word,term,2)<=2) add(term)}}}
+   listOf(word)+close.sortedWith(compareBy<String> {editDistance(word,it,2)}.thenBy {it}).take(3)
+  }
+ }.distinct()
+ val clauses=mutableListOf<String>();val args=mutableListOf<String>();for(word in expanded) {clauses+="(t.term>=? AND t.term<?)";args+=word;args+=word+"\uffff"}
  val sql="SELECT m.titleKey,m.title,COUNT(*) overlaps FROM market_title_terms t JOIN market_titles m ON m.titleKey=t.titleKey WHERE ${clauses.joinToString(" OR ")} GROUP BY m.titleKey ORDER BY CASE WHEN m.titleKey=? THEN 0 ELSE 1 END,overlaps DESC,m.titleKey LIMIT 500"
  args+=InventoryRules.normalizedTitle(key)
  val candidates=journal.openHelper.writableDatabase.query(sql,args.toTypedArray()).use {c->buildList {while(c.moveToNext()) add(Triple(c.getString(0),c.getString(1),hybridMarketScore(key,c.getString(1),filters.year,null,filters.edition,"").first))}}

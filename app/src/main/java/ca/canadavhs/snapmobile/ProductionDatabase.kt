@@ -20,10 +20,14 @@ data class ShopifyChannelStateRow(@PrimaryKey val id:String,val productId:String
  @Query("SELECT * FROM production_items WHERE jobId=:id AND groupId NOT IN (SELECT targetId FROM trash_entries WHERE kind='INVENTORY') ORDER BY rowid") fun watchJobItems(id:String):Flow<List<ProductionItemRow>>
  @Query("SELECT * FROM production_jobs ORDER BY createdAt DESC LIMIT 100") fun watchJobs():Flow<List<ProductionJobRow>>
  @Query("SELECT * FROM production_items WHERE groupId NOT IN (SELECT targetId FROM trash_entries WHERE kind='INVENTORY') AND rowid IN (SELECT MAX(i.rowid) FROM production_items i JOIN production_jobs j ON j.id=i.jobId GROUP BY i.groupId,j.kind) ORDER BY rowid DESC") fun watchItems():Flow<List<ProductionItemRow>>
+ @Query("SELECT p.* FROM production_items p JOIN groups g ON g.id=p.groupId WHERE (:sessionId IS NULL OR g.sessionId=:sessionId) AND p.groupId NOT IN (SELECT targetId FROM trash_entries WHERE kind='INVENTORY') AND p.rowid IN (SELECT MAX(i.rowid) FROM production_items i JOIN production_jobs j ON j.id=i.jobId WHERE j.kind='MATCH_PRICE' GROUP BY i.groupId) ORDER BY p.rowid DESC") fun watchPrices(sessionId:String?):Flow<List<ProductionItemRow>>
  @Query("SELECT * FROM production_jobs WHERE id=:id") suspend fun job(id:String):ProductionJobRow?
  @Query("SELECT * FROM production_jobs WHERE state IN ('QUEUED','RUNNING')") suspend fun unfinished():List<ProductionJobRow>
  @Query("SELECT * FROM production_items WHERE jobId=:id ORDER BY rowid") suspend fun items(id:String):List<ProductionItemRow>
  @Query("SELECT * FROM production_items WHERE id=:id") suspend fun item(id:String):ProductionItemRow?
+ @Query("SELECT DISTINCT j.* FROM production_jobs j JOIN production_items p ON p.jobId=j.id JOIN groups g ON g.id=p.groupId WHERE j.kind='GUIDED_BATCH' AND g.sessionId=:sessionId AND j.state!='CANCELLED' ORDER BY j.createdAt DESC LIMIT 1") suspend fun guided(sessionId:String):ProductionJobRow?
+ @Query("SELECT DISTINCT j.* FROM production_jobs j JOIN production_items p ON p.jobId=j.id JOIN groups g ON g.id=p.groupId WHERE j.kind='GUIDED_BATCH' AND g.sessionId=:sessionId AND j.state!='CANCELLED' ORDER BY j.createdAt DESC LIMIT 1") fun watchGuided(sessionId:String):Flow<ProductionJobRow?>
+ @Query("SELECT p.* FROM production_items p JOIN production_jobs j ON j.id=p.jobId WHERE p.groupId=:groupId AND j.kind='MATCH_PRICE' ORDER BY j.createdAt DESC,p.rowid DESC LIMIT 1") suspend fun latestPrice(groupId:String):ProductionItemRow?
  @Insert suspend fun insert(row:ProductionJobRow)
  @Insert suspend fun insert(row:ProductionItemRow)
  @Update suspend fun update(row:ProductionJobRow)

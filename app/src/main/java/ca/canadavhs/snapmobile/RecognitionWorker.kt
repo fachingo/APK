@@ -23,7 +23,8 @@ class RecognitionWorker(context: Context, params: WorkerParameters) : CoroutineW
         val attempt = repo.dao.recognition(id) ?: return@withContext Result.success()
         if (attempt.state !in listOf("QUEUED", "RUNNING") || !RecognitionProcess.active.add(id)) return@withContext Result.success()
         try {
-            if (attempt.provider != repo.recognitionMode()) {
+            val guided=attempt.provider=="OCR" && attempt.authBinding=="OFFLINE" && attempt.approvalId.startsWith("GUIDED:") && repo.journal.productionDao().job(attempt.approvalId.removePrefix("GUIDED:"))?.let {it.kind=="GUIDED_BATCH" && it.state!="CANCELLED"}==true
+            if (attempt.provider != repo.recognitionMode() && !guided) {
                 repo.mutate {repo.dao.recognition(id)?.takeIf {it.state in listOf("QUEUED","RUNNING")}?.let {repo.dao.update(it.copy(state="CANCELLED",error="Recognition mode changed.",completedAt=System.currentTimeMillis()))}}
                 return@withContext Result.success()
             }
